@@ -1,0 +1,170 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../widgets/custom_text_field.dart';
+import '../../widgets/custom_button.dart';
+
+class ForgotPasswordScreen extends StatefulWidget {
+  const ForgotPasswordScreen({super.key});
+
+  @override
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+}
+
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  bool _emailSent = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  void _sendResetEmail() async {
+    if (_formKey.currentState!.validate()) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      await authProvider.sendPasswordResetEmail(_emailController.text.trim());
+
+      if (mounted) {
+        if (authProvider.error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(authProvider.error!),
+              backgroundColor: Colors.red,
+            ),
+          );
+        } else {
+          setState(() {
+            _emailSent = true;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Password reset email sent! Check your inbox.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Reset Password'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.blue,
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.15),
+                // Icon
+                const Icon(
+                  Icons.lock_reset,
+                  size: 80,
+                  color: Colors.blue,
+                ),
+                const SizedBox(height: 24),
+
+                // Title
+                Text(
+                  'Forgot Password?',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+
+                // Subtitle
+                Text(
+                  _emailSent 
+                    ? 'We\'ve sent a password reset link to your email address.'
+                    : 'Enter your email address and we\'ll send you a link to reset your password.',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 48),
+
+                if (!_emailSent) ...[
+                  // Email Field
+                  CustomTextField(
+                    controller: _emailController,
+                    label: 'Email',
+                    keyboardType: TextInputType.emailAddress,
+                    prefixIcon: Icons.email_outlined,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your email';
+                      }
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                        return 'Please enter a valid email';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Send Reset Email Button
+                  Consumer<AuthProvider>(
+                    builder: (context, authProvider, child) {
+                      return CustomButton(
+                        text: 'Send Reset Email',
+                        onPressed: authProvider.isLoading ? null : _sendResetEmail,
+                        isLoading: authProvider.isLoading,
+                      );
+                    },
+                  ),
+                ] else ...[
+                  // Success Icon
+                  const Icon(
+                    Icons.mark_email_read,
+                    size: 60,
+                    color: Colors.green,
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Resend Button
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _emailSent = false;
+                      });
+                    },
+                    child: const Text('Resend Email'),
+                  ),
+                ],
+
+                const SizedBox(height: 24),
+
+                // Back to Sign In
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Back to Sign In'),
+                ),
+              ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

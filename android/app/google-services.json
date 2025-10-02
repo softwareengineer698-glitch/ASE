@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "824249688083",
+    "project_id": "foodbank1-49283",
+    "storage_bucket": "foodbank1-49283.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:824249688083:android:fada2282200443395b1fe6",
+        "android_client_info": {
+          "package_name": "com.example.ase"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCaIT2l3mBR2ihObNfWSKGc1N0n-1dyd8E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
