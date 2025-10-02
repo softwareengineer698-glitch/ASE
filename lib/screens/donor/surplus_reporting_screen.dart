@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/local_surplus_service.dart';
+import '../../services/notification_service.dart';
 
 class SurplusReportingScreen extends StatefulWidget {
   final String donorName;
@@ -18,6 +19,7 @@ class _SurplusReportingScreenState extends State<SurplusReportingScreen> {
   final _foodTypeController = TextEditingController();
   final _quantityController = TextEditingController();
   final _surplusService = LocalSurplusService();
+  final _notificationService = NotificationService();
   
   DateTime? _selectedExpiryDate;
   bool _isSubmitting = false;
@@ -70,6 +72,13 @@ class _SurplusReportingScreenState extends State<SurplusReportingScreen> {
       );
 
       if (success) {
+        // Send notification about new surplus
+        await _notificationService.notifySurplusReported(
+          donorName: widget.donorName,
+          foodType: _foodTypeController.text.trim(),
+          quantity: int.parse(_quantityController.text.trim()),
+        );
+        
         _showSuccessDialog();
         _resetForm();
       } else {

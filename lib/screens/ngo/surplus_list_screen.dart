@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/surplus_item.dart';
 import '../../services/local_surplus_service.dart';
+import '../../services/notification_service.dart';
 
 class SurplusListScreen extends StatefulWidget {
   final String ngoName;
@@ -16,6 +17,7 @@ class SurplusListScreen extends StatefulWidget {
 
 class _SurplusListScreenState extends State<SurplusListScreen> {
   final _surplusService = LocalSurplusService();
+  final _notificationService = NotificationService();
   List<SurplusItem> _surplusItems = [];
   bool _isLoading = true;
   String _selectedFilter = 'All';
@@ -95,6 +97,13 @@ class _SurplusListScreenState extends State<SurplusListScreen> {
       );
 
       if (success) {
+        // Send notification to donor about acceptance
+        await _notificationService.notifySurplusAccepted(
+          ngoName: widget.ngoName,
+          foodType: item.foodType,
+          donorName: item.donorName,
+        );
+        
         _showSuccessSnackBar('Successfully accepted "${item.foodType}"');
       } else {
         _showErrorSnackBar('Failed to accept item. Please try again.');
