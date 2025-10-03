@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/ngo_request_model.dart';
+import '../models/surplus_report_model.dart';
 
 class NGOService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -93,6 +94,138 @@ class NGOService {
       return null;
     } catch (e) {
       throw 'Failed to get NGO request: $e';
+    }
+  }
+
+  // Get accepted donations for a specific NGO
+  Stream<List<NGORequestModel>> getAcceptedDonations(String ngoId) {
+    return _firestore
+        .collection('ngo_requests')
+        .where('ngoId', isEqualTo: ngoId)
+        .where('status', isEqualTo: 'accepted')
+        .snapshots()
+        .map((snapshot) {
+          final requests = snapshot.docs
+              .map((doc) => NGORequestModel.fromMap(doc.data(), doc.id))
+              .toList();
+          // Sort by timestamp descending (most recent first)
+          requests.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return requests;
+        });
+  }
+
+  // Get accepted donations with surplus details for a specific NGO
+  Stream<List<Map<String, dynamic>>> getAcceptedDonationsWithDetails(String ngoId) {
+    return getAcceptedDonations(ngoId).asyncMap((requests) async {
+      List<Map<String, dynamic>> donationsWithDetails = [];
+      
+      for (NGORequestModel request in requests) {
+        try {
+          // Get surplus details for each accepted request
+          final surplusDoc = await _firestore
+              .collection('surplus_reports')
+              .doc(request.surplusId)
+              .get();
+          
+          if (surplusDoc.exists && surplusDoc.data() != null) {
+            final surplusData = SurplusReportModel.fromMap(surplusDoc.data()!, surplusDoc.id);
+            
+            // Get donor details
+            final donorDoc = await _firestore
+                .collection('users')
+                .doc(surplusData.donorId)
+                .get();
+            
+            String donorEmail = 'Unknown Donor';
+            if (donorDoc.exists && donorDoc.data() != null) {
+              donorEmail = donorDoc.data()?['email'] ?? 'Unknown Donor';
+            }
+            
+            donationsWithDetails.add({
+              'request': request,
+              'surplus': surplusData,
+              'donorEmail': donorEmail,
+            });
+          } else {
+            // Handle case where surplus document doesn't exist or is null
+            print('Warning: Surplus document ${request.surplusId} not found or is null');
+            donationsWithDetails.add({
+              'request': request,
+              'surplus': null,
+              'donorEmail': 'Unknown Donor',
+              'error': 'Surplus data not found',
+            });
+          }
+        } catch (e) {
+          print('Error fetching details for request ${request.id}: $e');
+          // Add request without surplus details if there's an error
+          donationsWithDetails.add({
+            'request': request,
+            'surplus': null,
+            'donorEmail': 'Unknown Donor',
+          });
+        }
+      }
+      
+      return donationsWithDetails;
+    });
+  }
+
+  // Mark donation as collected/completed
+  Future<void> markDonationAsCollected(String requestId, String surplusId) async {
+    try {
+      // Update NGO request status to completed
+      await _firestore
+          .collection('ngo_requests')
+          .doc(requestId)
+          .update({'status': 'completed'});
+      
+      // Update surplus status to completed
+      await _firestore
+          .collection('surplus_reports')
+          .doc(surplusId)
+          .update({'status': 'completed'});
+    } catch (e) {
+      throw 'Failed to mark donation as collected: $e';
+    }
+  }
+
+  // Get donation statistics for NGO
+  Future<Map<String, int>> getDonationStatistics(String ngoId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('ngo_requests')
+          .where('ngoId', isEqualTo: ngoId)
+          .get();
+      
+      int totalRequests = snapshot.docs.length;
+      int acceptedRequests = 0;
+      int completedRequests = 0;
+      int pendingRequests = 0;
+      
+      for (var doc in snapshot.docs) {
+        final status = doc.data()['status'] as String;
+        switch (status) {
+          case 'accepted':
+            acceptedRequests++;
+            break;
+          case 'completed':
+            completedRequests++;
+            break;
+          case 'pending':
+            pendingRequests++;
+            break;
+        }
+      }
+      
+      return {
+        'total': totalRequests,
+        'accepted': acceptedRequests,
+        'completed': completedRequests,
+        'pending': pendingRequests,
+      };
+    } catch (e) {
+      throw 'Failed to get donation statistics: $e';
     }
   }
 }

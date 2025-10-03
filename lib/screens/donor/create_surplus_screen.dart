@@ -160,17 +160,65 @@ class _CreateSurplusScreenState extends State<CreateSurplusScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Food Type
-              CustomTextField(
-                controller: _foodTypeController,
-                label: 'Food Type',
-                prefixIcon: Icons.fastfood,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter the food type';
-                  }
-                  return null;
-                },
+              // Food Type with suggestions
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CustomTextField(
+                    controller: _foodTypeController,
+                    label: 'Food Type',
+                    prefixIcon: Icons.fastfood,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter the food type';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Suggestions:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      'Fresh Vegetables',
+                      'Fruits',
+                      'Bread & Bakery',
+                      'Dairy Products',
+                      'Cooked Meals',
+                      'Rice & Grains',
+                      'Canned Foods',
+                      'Beverages',
+                    ].map((suggestion) => GestureDetector(
+                      onTap: () {
+                        _foodTypeController.text = suggestion;
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Text(
+                          suggestion,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                      ),
+                    )).toList(),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 

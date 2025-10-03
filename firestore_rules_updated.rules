@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function validRole(role) {
+      return role != null && (role.toLowerCase() == "donor" || role.toLowerCase() == "ngo");
+    }
+
+    // Users collection - Simplified for signup
+    match /users/{userId} {
+      // Allow creation for authenticated users with valid data
+      allow create: if isSignedIn()
+        && isOwner(userId)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email != null
+        && request.resource.data.role != null
+        && request.resource.data.createdAt != null;
+
+      // Allow all authenticated users to read user documents (needed for cross-collection queries)
+      allow read: if isSignedIn();
+      
+      allow update: if isSignedIn() 
+        && isOwner(userId)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.role == resource.data.role;
+
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+
+    // Surplus reports collection - Simplified permissions
+    match /surplus_reports/{reportId} {
+      allow create: if isSignedIn()
+        && request.resource.data.donorId == request.auth.uid
+        && request.resource.data.foodType != null
+        && request.resource.data.quantity is int
+        && request.resource.data.quantity > 0
+        && request.resource.data.expiry is timestamp
+        && request.resource.data.timestamp is timestamp
+        && request.resource.data.status == "available";
+
+      // Allow all authenticated users to read (donors see their own, NGOs see all)
+      allow read: if isSignedIn();
+      
+      // Allow updates for owners and status updates for NGOs
+      allow update: if isSignedIn() && (
+        resource.data.donorId == request.auth.uid ||
+        // Allow status updates only
+        (request.resource.data.keys().hasOnly(['status']) && 
+         request.resource.data.keys().hasAll(['status']))
+      );
+
+      allow delete: if isSignedIn() && resource.data.donorId == request.auth.uid;
+    }
+
+    // NGO requests collection - Simplified
+    match /ngo_requests/{requestId} {
+      allow create: if isSignedIn()
+        && request.resource.data.ngoId == request.auth.uid
+        && request.resource.data.surplusId != null
+        && request.resource.data.timestamp is timestamp
+        && request.resource.data.status != null;
+
+      // Allow reading for all authenticated users
+      allow read: if isSignedIn();
+      
+      allow update: if isSignedIn()
+        && resource.data.ngoId == request.auth.uid;
+
+      allow delete: if isSignedIn() && resource.data.ngoId == request.auth.uid;
+    }
+
+    // Profiles collection - Simplified
+    match /profiles/{userId} {
+      allow create, read, update, delete: if isSignedIn() && isOwner(userId);
+    }
+
+    // Notifications collection - Simplified
+    match /notifications/{notificationId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isSignedIn() 
+        && resource.data.userId == request.auth.uid;
+    }
+  }
+}

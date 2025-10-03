@@ -8,7 +8,9 @@ import '../../services/notification_service.dart';
 import '../../models/user_model.dart';
 import '../auth/sign_in_screen.dart';
 import '../profile/simple_profile_screen.dart';
+import '../ngo/accepted_donations_screen.dart';
 import '../../models/surplus_report_model.dart';
+import '../../models/ngo_request_model.dart';
 
 class NGODashboard extends StatefulWidget {
   const NGODashboard({super.key});
@@ -137,6 +139,140 @@ class _NGODashboardState extends State<NGODashboard> {
                     ],
                   ),
                 ),
+              ),
+              const SizedBox(height: 24),
+
+              // Quick Actions Section
+              const Text(
+                'Quick Actions',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Action Buttons Row
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildActionCard(
+                      context,
+                      'Accepted Donations',
+                      'View accepted donations',
+                      Icons.volunteer_activism,
+                      Colors.green,
+                      () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AcceptedDonationsScreen(),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildActionCard(
+                      context,
+                      'Statistics',
+                      'View your impact',
+                      Icons.analytics,
+                      Colors.blue,
+                      () => _showStatisticsDialog(context, user.uid),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // My Accepted Donations Summary
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Recent Accepted Donations',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AcceptedDonationsScreen(),
+                      ),
+                    ),
+                    child: const Text('View All'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Recent Accepted Donations List
+              StreamBuilder<List<Map<String, dynamic>>>(
+                stream: _ngoService.getAcceptedDonationsWithDetails(user.uid),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    );
+                  }
+                  
+                  if (snapshot.hasError) {
+                    return Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text('Error loading donations: ${snapshot.error}'),
+                      ),
+                    );
+                  }
+                  
+                  final donations = snapshot.data ?? [];
+                  
+                  if (donations.isEmpty) {
+                    return Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.volunteer_activism_outlined,
+                              size: 48,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No accepted donations yet',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Accept surplus items to see them here',
+                              style: TextStyle(color: Colors.grey[500]),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  
+                  // Show only the first 3 recent donations
+                  final recentDonations = donations.take(3).toList();
+                  
+                  return Column(
+                    children: recentDonations.map((donation) => 
+                      _buildDonationSummaryCard(donation)
+                    ).toList(),
+                  );
+                },
               ),
               const SizedBox(height: 24),
 
@@ -613,6 +749,226 @@ class _NGODashboardState extends State<NGODashboard> {
           ),
           Expanded(
             child: Text(value),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionCard(
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return Card(
+      elevation: 4,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                color.withOpacity(0.1),
+                color.withOpacity(0.05),
+              ],
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  icon,
+                  size: 28,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDonationSummaryCard(Map<String, dynamic> donation) {
+    final request = donation['request'] as NGORequestModel;
+    final surplus = donation['surplus'] as SurplusReportModel?;
+    final donorEmail = donation['donorEmail'] as String;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: _getStatusColor(request.status),
+          child: Icon(
+            request.status == 'completed' ? Icons.check : Icons.hourglass_empty,
+            color: Colors.white,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          surplus?.foodType ?? 'Food Item (Details Unavailable)',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('From: $donorEmail'),
+            Text(
+              'Status: ${_getStatusDisplayName(request.status)}',
+              style: TextStyle(
+                color: _getStatusColor(request.status),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        trailing: surplus != null
+            ? Text(
+                '${surplus.quantity} kg',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              )
+            : null,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const AcceptedDonationsScreen(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'accepted':
+        return Colors.blue;
+      case 'completed':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getStatusDisplayName(String status) {
+    switch (status.toLowerCase()) {
+      case 'accepted':
+        return 'Pending Collection';
+      case 'completed':
+        return 'Completed';
+      case 'pending':
+        return 'Pending';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return status.toUpperCase();
+    }
+  }
+
+  Future<void> _showStatisticsDialog(BuildContext context, String ngoId) async {
+    try {
+      final stats = await _ngoService.getDonationStatistics(ngoId);
+      
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Your Impact Statistics'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildStatRow('Total Requests', stats['total']!),
+                  _buildStatRow('Accepted Donations', stats['accepted']!),
+                  _buildStatRow('Completed Collections', stats['completed']!),
+                  _buildStatRow('Pending Requests', stats['pending']!),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AcceptedDonationsScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text('View Details'),
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading statistics: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildStatRow(String label, int value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label),
+          Text(
+            value.toString(),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
           ),
         ],
       ),

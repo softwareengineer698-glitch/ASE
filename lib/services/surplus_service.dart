@@ -21,25 +21,30 @@ class SurplusService {
     return _firestore
         .collection('surplus_reports')
         .where('donorId', isEqualTo: donorId)
-        .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => SurplusReportModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snapshot) {
+          final reports = snapshot.docs
+              .map((doc) => SurplusReportModel.fromMap(doc.data(), doc.id))
+              .toList();
+          // Sort on client side to avoid composite index requirement
+          reports.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return reports;
+        });
   }
 
   // Get all available surplus reports (for NGOs)
   Stream<List<SurplusReportModel>> getAvailableSurplusReports() {
     return _firestore
         .collection('surplus_reports')
-        .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
-          // Filter for available status on client side to avoid composite index requirement
+          // Filter and sort on client side to avoid composite index requirement
           final availableReports = snapshot.docs
               .where((doc) => doc.data()['status'] == 'available')
               .map((doc) => SurplusReportModel.fromMap(doc.data(), doc.id))
               .toList();
+          // Sort by timestamp descending
+          availableReports.sort((a, b) => b.timestamp.compareTo(a.timestamp));
           return availableReports;
         });
   }
