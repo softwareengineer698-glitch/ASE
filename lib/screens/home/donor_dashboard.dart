@@ -7,7 +7,7 @@ import '../../models/surplus_report_model.dart';
 import '../auth/sign_in_screen.dart';
 import '../forecast/forecast_dashboard.dart';
 import '../donor/create_surplus_screen.dart';
-import '../profile/profile_screen.dart';
+import '../profile/simple_profile_screen.dart';
 
 class DonorDashboard extends StatefulWidget {
   const DonorDashboard({super.key});

@@ -32,12 +32,16 @@ class SurplusService {
   Stream<List<SurplusReportModel>> getAvailableSurplusReports() {
     return _firestore
         .collection('surplus_reports')
-        .where('status', isEqualTo: 'available')
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => SurplusReportModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snapshot) {
+          // Filter for available status on client side to avoid composite index requirement
+          final availableReports = snapshot.docs
+              .where((doc) => doc.data()['status'] == 'available')
+              .map((doc) => SurplusReportModel.fromMap(doc.data(), doc.id))
+              .toList();
+          return availableReports;
+        });
   }
 
   // Update surplus report status

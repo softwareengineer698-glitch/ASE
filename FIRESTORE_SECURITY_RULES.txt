@@ -31,12 +31,18 @@ service cloud.firestore {
         && request.resource.data.email != null
         && request.resource.data.role in ['donor', 'ngo'];
 
-      allow read, update, delete: if isOwner(userId);
+      allow read, update: if isOwner(userId);
+      allow delete: if false; // Prevent user deletion
     }
 
-    // Profiles collection - user profile data (editable by owner only)
+    // Profiles collection - user profile data (editable by owner only, except role/email/uid)
     match /profiles/{userId} {
-      allow create, read, update, delete: if isOwner(userId);
+      allow create, read: if isOwner(userId);
+      
+      allow update: if isOwner(userId)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId', 'role', 'email']));
+      
+      allow delete: if isOwner(userId);
     }
 
     // Surplus Reports collection - created by Donors only
@@ -45,32 +51,39 @@ service cloud.firestore {
       allow create: if isDonor()
         && request.resource.data.donorId == request.auth.uid
         && request.resource.data.keys().hasAll(['donorId', 'foodType', 'quantity', 'expiry', 'timestamp'])
-        && request.resource.data.timestamp is timestamp;
+        && request.resource.data.timestamp is timestamp
+        && request.resource.data.quantity is number
+        && request.resource.data.quantity > 0;
 
-      // Donors can read/update/delete their own reports
-      allow read, update, delete: if isDonor() 
+      // Donors can read/update/delete ONLY their own reports
+      allow read, update, delete: if isDonor()
         && resource.data.donorId == request.auth.uid;
 
-      // NGOs can read all surplus reports (to see available food)
+      // NGOs can read ALL surplus reports (to see available food)
       allow read: if isNGO();
+
+      // Additional validation for updates (only status changes allowed for NGOs)
+      allow update: if isNGO()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['available', 'requested', 'completed'];
     }
 
     // NGO Requests collection - created by NGOs when accepting surplus
     match /ngo_requests/{requestId} {
-      // NGOs can create requests with their own ngoId
+      // NGOs can create requests with their own ngoId and valid donorId from surplus
       allow create: if isNGO()
         && request.resource.data.ngoId == request.auth.uid
-        && request.resource.data.keys().hasAll(['ngoId', 'surplusId', 'status'])
-        && request.resource.data.status in ['pending', 'accepted', 'completed', 'cancelled'];
+        && request.resource.data.keys().hasAll(['ngoId', 'donorId', 'surplusId', 'status'])
+        && request.resource.data.status in ['pending', 'accepted', 'completed', 'cancelled']
+        && exists(/databases/$(database)/documents/surplus_reports/$(request.resource.data.surplusId));
 
       // NGOs can read/update their own requests
       allow read, update: if isNGO() 
         && resource.data.ngoId == request.auth.uid;
 
-      // Donors can read requests for their surplus reports
+      // Donors can read requests made on their surplus reports
       allow read: if isDonor() 
-        && exists(/databases/$(database)/documents/surplus_reports/$(resource.data.surplusId))
-        && get(/databases/$(database)/documents/surplus_reports/$(resource.data.surplusId)).data.donorId == request.auth.uid;
+        && resource.data.donorId == request.auth.uid;
     }
 
     // Notifications collection - users can read their own notifications
