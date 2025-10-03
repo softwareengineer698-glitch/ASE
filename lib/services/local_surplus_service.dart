@@ -44,6 +44,33 @@ class LocalSurplusService {
           donorName: 'Supermart',
           status: SurplusStatus.accepted,
         ),
+        SurplusItem(
+          id: _generateId(),
+          foodType: 'Rice & Grains',
+          quantity: 75,
+          expiryDate: DateTime.now().add(const Duration(days: 60)),
+          reportedDate: DateTime.now().subtract(const Duration(days: 2)),
+          donorName: 'Wholesale Market',
+          status: SurplusStatus.collected,
+        ),
+        SurplusItem(
+          id: _generateId(),
+          foodType: 'Dairy Products',
+          quantity: 30,
+          expiryDate: DateTime.now().add(const Duration(days: 5)),
+          reportedDate: DateTime.now().subtract(const Duration(days: 1)),
+          donorName: 'Local Dairy Farm',
+          status: SurplusStatus.collected,
+        ),
+        SurplusItem(
+          id: _generateId(),
+          foodType: 'Frozen Meals',
+          quantity: 40,
+          expiryDate: DateTime.now().add(const Duration(days: 14)),
+          reportedDate: DateTime.now().subtract(const Duration(hours: 8)),
+          donorName: 'Restaurant Chain',
+          status: SurplusStatus.collected,
+        ),
       ]);
       _notifyListeners();
     }

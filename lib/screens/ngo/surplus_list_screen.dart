@@ -76,6 +76,10 @@ class _SurplusListScreenState extends State<SurplusListScreen> {
         return _surplusItems
             .where((item) => item.status == SurplusStatus.accepted)
             .toList();
+      case 'Collected':
+        return _surplusItems
+            .where((item) => item.status == SurplusStatus.collected)
+            .toList();
       case 'Expired':
         return _surplusItems
             .where((item) => item.isExpired || item.status == SurplusStatus.expired)
@@ -217,6 +221,7 @@ class _SurplusListScreenState extends State<SurplusListScreen> {
                   'All',
                   'Available',
                   'Accepted',
+                  'Collected',
                   'Expired',
                 ].map((filter) {
                   return Padding(
@@ -282,6 +287,10 @@ class _SurplusListScreenState extends State<SurplusListScreen> {
       case 'Accepted':
         message = 'No accepted items yet.\nStart accepting surplus items!';
         icon = Icons.check_circle_outline;
+        break;
+      case 'Collected':
+        message = 'No completed collections yet.\nCollected items will appear here!';
+        icon = Icons.done_all_outlined;
         break;
       case 'Expired':
         message = 'No expired items found.\nThat\'s great news!';
@@ -455,6 +464,32 @@ class _SurplusListScreenState extends State<SurplusListScreen> {
                         'Item accepted - Ready for collection',
                         style: TextStyle(
                           color: Colors.blue.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else if (item.status == SurplusStatus.collected) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.done_all, color: Colors.green.shade700),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Successfully collected - Thank you for helping!',
+                        style: TextStyle(
+                          color: Colors.green.shade700,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

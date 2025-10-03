@@ -19,14 +19,35 @@ class NGOService {
 
   // Get NGO requests for a specific NGO
   Stream<List<NGORequestModel>> getNGORequests(String ngoId) {
-    return _firestore
-        .collection('ngo_requests')
-        .where('ngoId', isEqualTo: ngoId)
-        .orderBy('timestamp', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => NGORequestModel.fromMap(doc.data(), doc.id))
-            .toList());
+    try {
+      print('NGO Service: Querying requests for NGO: $ngoId');
+      return _firestore
+          .collection('ngo_requests')
+          .where('ngoId', isEqualTo: ngoId)
+          .snapshots()
+          .map((snapshot) {
+            print('NGO Service: Received ${snapshot.docs.length} request documents');
+            final requests = <NGORequestModel>[];
+            
+            for (var doc in snapshot.docs) {
+              try {
+                final request = NGORequestModel.fromMap(doc.data(), doc.id);
+                requests.add(request);
+                print('NGO Service: Parsed request ${request.id} with status ${request.status}');
+              } catch (e) {
+                print('NGO Service: Error parsing request document ${doc.id}: $e');
+              }
+            }
+            
+            // Sort on client side to avoid composite index requirement
+            requests.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+            print('NGO Service: Returning ${requests.length} sorted requests');
+            return requests;
+          });
+    } catch (e) {
+      print('NGO Service: Error in getNGORequests: $e');
+      throw 'Failed to get NGO requests: $e';
+    }
   }
 
   // Get requests for a specific surplus (for donors to see who requested)
@@ -34,11 +55,15 @@ class NGOService {
     return _firestore
         .collection('ngo_requests')
         .where('surplusId', isEqualTo: surplusId)
-        .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => NGORequestModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snapshot) {
+          final requests = snapshot.docs
+              .map((doc) => NGORequestModel.fromMap(doc.data(), doc.id))
+              .toList();
+          // Sort on client side to avoid composite index requirement
+          requests.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return requests;
+        });
   }
 
   // Update NGO request status
@@ -114,61 +139,76 @@ class NGOService {
         });
   }
 
-  // Get accepted donations with surplus details for a specific NGO
+  // Get all donations with surplus details for a specific NGO (for filtering in UI)
   Stream<List<Map<String, dynamic>>> getAcceptedDonationsWithDetails(String ngoId) {
-    return getAcceptedDonations(ngoId).asyncMap((requests) async {
-      List<Map<String, dynamic>> donationsWithDetails = [];
-      
-      for (NGORequestModel request in requests) {
-        try {
-          // Get surplus details for each accepted request
-          final surplusDoc = await _firestore
-              .collection('surplus_reports')
-              .doc(request.surplusId)
-              .get();
-          
-          if (surplusDoc.exists && surplusDoc.data() != null) {
-            final surplusData = SurplusReportModel.fromMap(surplusDoc.data()!, surplusDoc.id);
+    try {
+      print('NGO Service: Getting donations for NGO ID: $ngoId');
+      return getNGORequests(ngoId).asyncMap((requests) async {
+        print('NGO Service: Found ${requests.length} requests');
+        List<Map<String, dynamic>> donationsWithDetails = [];
+        
+        for (NGORequestModel request in requests) {
+          try {
+            print('NGO Service: Processing request ${request.id} for surplus ${request.surplusId}');
             
-            // Get donor details
-            final donorDoc = await _firestore
-                .collection('users')
-                .doc(surplusData.donorId)
+            // Get surplus details for each request
+            final surplusDoc = await _firestore
+                .collection('surplus_reports')
+                .doc(request.surplusId)
                 .get();
             
-            String donorEmail = 'Unknown Donor';
-            if (donorDoc.exists && donorDoc.data() != null) {
-              donorEmail = donorDoc.data()?['email'] ?? 'Unknown Donor';
+            if (surplusDoc.exists && surplusDoc.data() != null) {
+              final surplusData = SurplusReportModel.fromMap(surplusDoc.data()!, surplusDoc.id);
+              print('NGO Service: Found surplus data for ${request.surplusId}');
+              
+              // Get donor details
+              final donorDoc = await _firestore
+                  .collection('users')
+                  .doc(surplusData.donorId)
+                  .get();
+              
+              String donorEmail = 'Unknown Donor';
+              if (donorDoc.exists && donorDoc.data() != null) {
+                donorEmail = donorDoc.data()?['email'] ?? 'Unknown Donor';
+                print('NGO Service: Found donor email: $donorEmail');
+              } else {
+                print('NGO Service: Donor document not found for ${surplusData.donorId}');
+              }
+              
+              donationsWithDetails.add({
+                'request': request,
+                'surplus': surplusData,
+                'donorEmail': donorEmail,
+              });
+            } else {
+              // Handle case where surplus document doesn't exist or is null
+              print('Warning: Surplus document ${request.surplusId} not found or is null');
+              donationsWithDetails.add({
+                'request': request,
+                'surplus': null,
+                'donorEmail': 'Unknown Donor',
+                'error': 'Surplus data not found',
+              });
             }
-            
-            donationsWithDetails.add({
-              'request': request,
-              'surplus': surplusData,
-              'donorEmail': donorEmail,
-            });
-          } else {
-            // Handle case where surplus document doesn't exist or is null
-            print('Warning: Surplus document ${request.surplusId} not found or is null');
+          } catch (e) {
+            print('Error fetching details for request ${request.id}: $e');
+            // Add request without surplus details if there's an error
             donationsWithDetails.add({
               'request': request,
               'surplus': null,
               'donorEmail': 'Unknown Donor',
-              'error': 'Surplus data not found',
+              'error': e.toString(),
             });
           }
-        } catch (e) {
-          print('Error fetching details for request ${request.id}: $e');
-          // Add request without surplus details if there's an error
-          donationsWithDetails.add({
-            'request': request,
-            'surplus': null,
-            'donorEmail': 'Unknown Donor',
-          });
         }
-      }
-      
-      return donationsWithDetails;
-    });
+        
+        print('NGO Service: Returning ${donationsWithDetails.length} donations with details');
+        return donationsWithDetails;
+      });
+    } catch (e) {
+      print('NGO Service: Critical error in getAcceptedDonationsWithDetails: $e');
+      throw 'Failed to get donations with details: $e';
+    }
   }
 
   // Mark donation as collected/completed

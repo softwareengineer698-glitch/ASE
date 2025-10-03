@@ -27,8 +27,12 @@ class SurplusReportModel {
       donorId: map['donorId'] ?? '',
       foodType: map['foodType'] ?? '',
       quantity: map['quantity'] ?? 0,
-      expiry: (map['expiry'] as Timestamp).toDate(),
-      timestamp: (map['timestamp'] as Timestamp).toDate(),
+      expiry: map['expiry'] != null 
+          ? (map['expiry'] as Timestamp).toDate()
+          : DateTime.now().add(const Duration(days: 7)),
+      timestamp: map['timestamp'] != null 
+          ? (map['timestamp'] as Timestamp).toDate()
+          : DateTime.now(),
       description: map['description'],
       status: map['status'] ?? 'available',
     );

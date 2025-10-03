@@ -89,4 +89,54 @@ class SurplusService {
       throw 'Failed to delete surplus report: $e';
     }
   }
+
+  // Get donor statistics for impact dashboard
+  Future<Map<String, dynamic>> getDonorStatistics(String donorId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('surplus_reports')
+          .where('donorId', isEqualTo: donorId)
+          .get();
+
+      final reports = snapshot.docs
+          .map((doc) => SurplusReportModel.fromMap(doc.data(), doc.id))
+          .toList();
+
+      // Calculate statistics
+      final totalItems = reports.length;
+      final completedItems = reports.where((r) => r.status == 'completed').length;
+      final totalQuantity = reports.fold<double>(0, (sum, report) => sum + report.quantity);
+      final completedQuantity = reports
+          .where((r) => r.status == 'completed')
+          .fold<double>(0, (sum, report) => sum + report.quantity);
+
+      // Estimate people fed (assuming 1kg feeds 4 people on average)
+      final peopleFed = (completedQuantity * 4).round();
+
+      // Estimate PKR saved (assuming 150 PKR per kg on average)
+      final pkrSaved = (completedQuantity * 150).round();
+
+      // Calculate this month's waste reduction
+      final now = DateTime.now();
+      final thisMonth = DateTime(now.year, now.month, 1);
+      final thisMonthReports = reports.where((r) => 
+          r.timestamp.isAfter(thisMonth) && r.status == 'completed').toList();
+      final thisMonthQuantity = thisMonthReports
+          .fold<double>(0, (sum, report) => sum + report.quantity);
+
+      return {
+        'totalItems': totalItems,
+        'completedItems': completedItems,
+        'totalQuantity': totalQuantity,
+        'completedQuantity': completedQuantity,
+        'peopleFed': peopleFed,
+        'pkrSaved': pkrSaved,
+        'thisMonthWasteReduced': thisMonthQuantity,
+        'availableItems': reports.where((r) => r.status == 'available').length,
+        'requestedItems': reports.where((r) => r.status == 'requested').length,
+      };
+    } catch (e) {
+      throw 'Failed to get donor statistics: $e';
+    }
+  }
 }

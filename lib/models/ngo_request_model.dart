@@ -23,7 +23,9 @@ class NGORequestModel {
       ngoId: map['ngoId'] ?? '',
       surplusId: map['surplusId'] ?? '',
       status: map['status'] ?? 'pending',
-      timestamp: (map['timestamp'] as Timestamp).toDate(),
+      timestamp: map['timestamp'] != null 
+          ? (map['timestamp'] as Timestamp).toDate()
+          : DateTime.now(),
       message: map['message'],
     );
   }
