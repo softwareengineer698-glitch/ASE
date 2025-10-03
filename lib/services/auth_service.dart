@@ -58,15 +58,23 @@ class AuthService {
         // Create user document in Firestore
         UserModel userModel = UserModel(
           uid: user.uid,
-          email: email,
+          email: user.email ?? email, // Use auth email, fallback to input email
           role: role,
           createdAt: DateTime.now(),
         );
 
+        // Debug: Print the exact data being sent to Firestore
+        final firestoreData = userModel.toMap();
+        print('DEBUG: Firestore data to be written:');
+        print('  Document ID: ${user.uid}');
+        print('  Auth UID: ${user.uid}');
+        print('  Auth Email: ${user.email}');
+        print('  Data: $firestoreData');
+        
         await firestore
             .collection('users')
             .doc(user.uid)
-            .set(userModel.toMap());
+            .set(firestoreData);
 
         print('Firestore document created, saving role locally...');
         // Save user role locally

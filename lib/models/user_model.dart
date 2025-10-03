@@ -15,19 +15,32 @@ class UserModel {
     return UserModel(
       uid: map['uid'] ?? '',
       email: map['email'] ?? '',
-      role: UserRole.values.firstWhere(
-        (e) => e.toString() == 'UserRole.${map['role']}',
-        orElse: () => UserRole.donor,
-      ),
+      role: _parseRole(map['role']),
       createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
     );
+  }
+
+  static UserRole _parseRole(dynamic roleValue) {
+    if (roleValue == null) return UserRole.donor;
+    
+    final roleString = roleValue.toString().toLowerCase();
+    
+    // Handle "donor"/"ngo" format from Firestore
+    switch (roleString) {
+      case 'donor':
+        return UserRole.donor;
+      case 'ngo':
+        return UserRole.ngo;
+      default:
+        return UserRole.donor; // Default fallback
+    }
   }
 
   Map<String, dynamic> toMap() {
     return {
       'uid': uid,
       'email': email,
-      'role': role.name,
+      'role': role.name, // Uses "donor"/"ngo" to match Firestore security rules
       'createdAt': createdAt.toIso8601String(),
     };
   }

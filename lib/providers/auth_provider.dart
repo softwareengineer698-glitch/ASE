@@ -21,6 +21,29 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider() {
     // Don't initialize immediately, wait for explicit call
     print('AuthProvider created, waiting for Firebase to be ready');
+    // Try to initialize with longer delay and retry mechanism
+    _waitForFirebaseAndInitialize();
+  }
+
+  void _waitForFirebaseAndInitialize() async {
+    // Wait for Firebase to be initialized with retry mechanism
+    int attempts = 0;
+    const maxAttempts = 10;
+    const delayBetweenAttempts = Duration(milliseconds: 500);
+
+    while (attempts < maxAttempts) {
+      if (_authService.isFirebaseInitialized) {
+        print('Firebase is ready after $attempts attempts, initializing auth');
+        _initializeAuth();
+        return;
+      }
+      
+      attempts++;
+      print('Firebase not ready yet, attempt $attempts/$maxAttempts');
+      await Future.delayed(delayBetweenAttempts);
+    }
+    
+    print('Firebase initialization timeout after $maxAttempts attempts');
   }
 
   void _initializeAuth() {

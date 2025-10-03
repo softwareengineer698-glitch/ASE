@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../models/user_model.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
 import 'sign_up_screen.dart';
 import 'forgot_password_screen.dart';
-import 'role_selection_screen.dart';
+import '../home/donor_dashboard.dart';
+import '../home/ngo_dashboard_simple.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -26,12 +30,46 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   void _signIn() async {
-    // Skip authentication and go directly to role selection
-    Navigator.push(
+    if (_formKey.currentState!.validate()) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      await authProvider.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (mounted) {
+        if (authProvider.error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(authProvider.error!),
+              backgroundColor: Colors.red,
+            ),
+          );
+        } else if (authProvider.user != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Signed in successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          
+          // Navigate to role-based dashboard
+          _navigateToDashboard(authProvider.user!.role);
+        }
+      }
+    }
+  }
+
+  void _navigateToDashboard(UserRole role) {
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
-        builder: (context) => const RoleSelectionScreen(),
+        builder: (context) => role == UserRole.donor
+            ? const DonorDashboard()
+            : const NGODashboard(),
       ),
+      (route) => false, // Remove all previous routes
     );
   }
 
@@ -80,7 +118,12 @@ class _SignInScreenState extends State<SignInScreen> {
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: Icons.email_outlined,
                   validator: (value) {
-                    // For demo purposes, allow any input or empty
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                      return 'Please enter a valid email';
+                    }
                     return null;
                   },
                 ),
@@ -101,17 +144,23 @@ class _SignInScreenState extends State<SignInScreen> {
                     },
                   ),
                   validator: (value) {
-                    // For demo purposes, allow any input or empty
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your password';
+                    }
                     return null;
                   },
                 ),
                 const SizedBox(height: 24),
 
                 // Sign In Button
-                CustomButton(
-                  text: 'Sign In',
-                  onPressed: _signIn,
-                  isLoading: false,
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    return CustomButton(
+                      text: 'Sign In',
+                      onPressed: authProvider.isLoading ? null : _signIn,
+                      isLoading: authProvider.isLoading,
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
 

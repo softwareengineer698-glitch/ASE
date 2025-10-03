@@ -5,6 +5,8 @@ import '../../models/user_model.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
 import 'sign_in_screen.dart';
+import '../home/donor_dashboard.dart';
+import '../home/ngo_dashboard_simple.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -55,9 +57,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
               backgroundColor: Colors.green,
             ),
           );
+          
+          // Navigate to role-based dashboard
+          _navigateToDashboard();
         }
       }
     }
+  }
+
+  void _navigateToDashboard() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => _selectedRole == UserRole.donor
+            ? const DonorDashboard()
+            : const NGODashboard(),
+      ),
+      (route) => false, // Remove all previous routes
+    );
   }
 
   @override

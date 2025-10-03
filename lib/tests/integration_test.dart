@@ -1,9 +1,7 @@
-import 'package:flutter/material.dart';
 import '../services/local_surplus_service.dart';
 import '../services/notification_service.dart';
 import '../services/profile_service.dart';
 import '../models/surplus_item.dart';
-import '../models/notification_model.dart';
 import '../models/user_profile_model.dart';
 
 class IntegrationTestRunner {
@@ -15,7 +13,7 @@ class IntegrationTestRunner {
   final _notificationService = NotificationService();
   final _profileService = ProfileService();
 
-  List<String> _testResults = [];
+  final List<String> _testResults = [];
   bool _allTestsPassed = true;
 
   /// Run all integration tests

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
@@ -16,11 +17,14 @@ void main() async {
 
   // Initialize Firebase
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     print('Firebase initialized successfully in main');
 
-    // Give Firebase a moment to fully initialize
-    await Future.delayed(const Duration(milliseconds: 100));
+    // Give Firebase a moment to fully initialize before starting the app
+    await Future.delayed(const Duration(milliseconds: 500));
+    print('Firebase initialization complete, starting app');
   } catch (e) {
     print('Firebase initialization error in main: $e');
   }
@@ -33,7 +37,7 @@ void _initializeServices() {
   NotificationService();
   ProfileService();
   LocalSurplusService();
-  
+
   print('Services initialized successfully');
 }
 
@@ -44,9 +48,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // Set notification context for in-app notifications
     NotificationService().setContext(context);
-    
+
     return ChangeNotifierProvider(
-      create: (context) => AuthProvider(),
+      create: (context) {
+        print('Creating AuthProvider after Firebase initialization');
+        return AuthProvider();
+      },
       child: MaterialApp(
         title: 'FoodBridge',
         theme: AppTheme.lightTheme,

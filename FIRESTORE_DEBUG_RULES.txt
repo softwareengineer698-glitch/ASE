@@ -1,0 +1,51 @@
+// TEMPORARY DEBUG RULES - Use these to test Firestore write
+// Replace your current rules with these, test signup, then revert to secure rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // TEMPORARY: Allow all authenticated users to write to users collection
+    // This helps isolate if the issue is with authentication or rule logic
+    match /users/{userId} {
+      allow create, read, update, delete: if request.auth != null;
+    }
+  }
+}
+
+// After testing with above rules, use these SECURE rules:
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Normalize role value (case-insensitive check)
+    function validRole() {
+      let r = request.resource.data.role;
+      return r != null && (
+        r.toLowerCase() == "donor" || r.toLowerCase() == "ngo"
+      );
+    }
+
+    match /users/{userId} {
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email != null  // Just check email exists
+        && validRole();
+
+      allow read, update, delete: if isSignedIn()
+        && request.auth.uid == userId;
+    }
+  }
+}
+
+// DEBUGGING STEPS:
+// 1. First use the simple rules above (allow all authenticated)
+// 2. Test signup - should work
+// 3. Then use the secure rules 
+// 4. If secure rules fail, check the debug output for exact values

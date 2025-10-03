@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../models/user_model.dart';
 import 'auth/sign_in_screen.dart';
+import 'home/donor_dashboard.dart';
+import 'home/ngo_dashboard_simple.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -103,8 +108,16 @@ class _SplashScreenState extends State<SplashScreen>
 
       if (!mounted) return;
 
-      // For now, always navigate to sign-in screen (skip authentication check)
-      _navigateToAuth();
+      // Initialize AuthProvider after Firebase is ready
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      authProvider.reinitializeAuth();
+
+      // Check if user is already authenticated
+      if (authProvider.isAuthenticated && authProvider.user != null) {
+        _navigateToDashboard(authProvider.user!.role);
+      } else {
+        _navigateToAuth();
+      }
     } catch (e) {
       print('Navigation error: $e');
 
@@ -120,6 +133,17 @@ class _SplashScreenState extends State<SplashScreen>
       context,
       MaterialPageRoute(
         builder: (context) => const SignInScreen(),
+      ),
+    );
+  }
+
+  void _navigateToDashboard(UserRole role) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => role == UserRole.donor
+            ? const DonorDashboard()
+            : const NGODashboard(),
       ),
     );
   }
