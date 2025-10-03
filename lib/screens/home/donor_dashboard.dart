@@ -1,14 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/surplus_service.dart';
+import '../../models/surplus_report_model.dart';
 import '../auth/sign_in_screen.dart';
 import '../forecast/forecast_dashboard.dart';
-import '../donor/surplus_reporting_screen.dart';
+import '../donor/create_surplus_screen.dart';
+import '../profile/profile_screen.dart';
 
-class DonorDashboard extends StatelessWidget {
+class DonorDashboard extends StatefulWidget {
   const DonorDashboard({super.key});
 
   @override
+  State<DonorDashboard> createState() => _DonorDashboardState();
+}
+
+class _DonorDashboardState extends State<DonorDashboard> {
+  final SurplusService _surplusService = SurplusService();
+
+  @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final user = authProvider.user;
+
+    if (user == null) {
+      return const SignInScreen();
+    }
+
     return WillPopScope(
       onWillPop: () => _showExitDialog(context),
       child: Scaffold(
@@ -18,6 +37,13 @@ class DonorDashboard extends StatelessWidget {
           foregroundColor: Colors.white,
           automaticallyImplyLeading: false,
           actions: [
+            IconButton(
+              icon: const Icon(Icons.person),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              ),
+            ),
             IconButton(
               icon: const Icon(Icons.logout),
               onPressed: () => _showLogoutDialog(context),
@@ -101,9 +127,7 @@ class DonorDashboard extends StatelessWidget {
                       () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const SurplusReportingScreen(
-                            donorName: 'Current Donor', // TODO: Get from auth provider
-                          ),
+                          builder: (context) => const CreateSurplusScreen(),
                         ),
                       ),
                     ),
@@ -200,53 +224,87 @@ class DonorDashboard extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // Additional Features
-              const Text(
-                'More Features',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              // My Surplus Reports Section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'My Surplus Reports',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CreateSurplusScreen(),
+                      ),
+                    ),
+                    child: const Text('Add New'),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.2,
-                children: [
-                  _buildFeatureCard(
-                    context,
-                    'My Donations',
-                    Icons.history,
-                    Colors.purple,
-                    () => _showFeatureComingSoon(context),
-                  ),
-                  _buildFeatureCard(
-                    context,
-                    'Find NGOs',
-                    Icons.search,
-                    Colors.indigo,
-                    () => _showFeatureComingSoon(context),
-                  ),
-                  _buildFeatureCard(
-                    context,
-                    'Notifications',
-                    Icons.notifications,
-                    Colors.red,
-                    () => _showFeatureComingSoon(context),
-                  ),
-                  _buildFeatureCard(
-                    context,
-                    'Settings',
-                    Icons.settings,
-                    Colors.grey,
-                    () => _showFeatureComingSoon(context),
-                  ),
-                ],
+              // Surplus Reports List
+              StreamBuilder<List<SurplusReportModel>>(
+                stream: _surplusService.getDonorSurplusReports(user.uid),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  
+                  if (snapshot.hasError) {
+                    return Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text('Error: ${snapshot.error}'),
+                      ),
+                    );
+                  }
+                  
+                  final reports = snapshot.data ?? [];
+                  
+                  if (reports.isEmpty) {
+                    return Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.inventory_2_outlined,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No surplus reports yet',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Create your first surplus report to help reduce food waste',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey[500]),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  
+                  return Column(
+                    children: reports.take(3).map((report) => 
+                      _buildSurplusReportCard(report)
+                    ).toList(),
+                  );
+                },
               ),
             ],
           ),
@@ -453,5 +511,83 @@ class DonorDashboard extends StatelessWidget {
         backgroundColor: Colors.blue,
       ),
     );
+  }
+
+  Widget _buildSurplusReportCard(SurplusReportModel report) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12.0),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: _getStatusColor(report.status),
+          child: Icon(
+            _getStatusIcon(report.status),
+            color: Colors.white,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          report.foodType,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Quantity: ${report.quantity} kg'),
+            Text(
+              'Expires: ${report.expiry.day}/${report.expiry.month}/${report.expiry.year}',
+              style: TextStyle(
+                color: _isExpiringSoon(report.expiry) ? Colors.red : Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+        trailing: Chip(
+          label: Text(
+            report.status.toUpperCase(),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: _getStatusColor(report.status).withOpacity(0.2),
+          labelStyle: TextStyle(color: _getStatusColor(report.status)),
+        ),
+        onTap: () {
+          // TODO: Navigate to surplus detail screen
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Surplus details for ${report.foodType}')),
+          );
+        },
+      ),
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'available':
+        return Colors.green;
+      case 'requested':
+        return Colors.orange;
+      case 'completed':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'available':
+        return Icons.check_circle;
+      case 'requested':
+        return Icons.hourglass_empty;
+      case 'completed':
+        return Icons.done_all;
+      default:
+        return Icons.help;
+    }
+  }
+
+  bool _isExpiringSoon(DateTime expiry) {
+    final now = DateTime.now();
+    final difference = expiry.difference(now).inDays;
+    return difference <= 2; // Expires within 2 days
   }
 }

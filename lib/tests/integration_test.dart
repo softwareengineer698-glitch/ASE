@@ -5,7 +5,8 @@ import '../models/surplus_item.dart';
 import '../models/user_profile_model.dart';
 
 class IntegrationTestRunner {
-  static final IntegrationTestRunner _instance = IntegrationTestRunner._internal();
+  static final IntegrationTestRunner _instance =
+      IntegrationTestRunner._internal();
   factory IntegrationTestRunner() => _instance;
   IntegrationTestRunner._internal();
 
@@ -67,25 +68,30 @@ class IntegrationTestRunner {
       // Test singleton pattern
       final service1 = LocalSurplusService();
       final service2 = LocalSurplusService();
-      _assert(identical(service1, service2), 'LocalSurplusService singleton pattern');
+      _assert(identical(service1, service2),
+          'LocalSurplusService singleton pattern');
 
       final notif1 = NotificationService();
       final notif2 = NotificationService();
-      _assert(identical(notif1, notif2), 'NotificationService singleton pattern');
+      _assert(
+          identical(notif1, notif2), 'NotificationService singleton pattern');
 
       final profile1 = ProfileService();
       final profile2 = ProfileService();
-      _assert(identical(profile1, profile2), 'ProfileService singleton pattern');
+      _assert(
+          identical(profile1, profile2), 'ProfileService singleton pattern');
 
       // Test service initialization
       _surplusService.initializeMockData();
       _notificationService.initializeMockData();
       _profileService.initializeMockProfile();
 
-      _assert(_surplusService.getAllSurplusItems().isNotEmpty, 'Surplus service has mock data');
-      _assert(_notificationService.getAllNotifications().isNotEmpty, 'Notification service has mock data');
-      _assert(_profileService.getCurrentProfile() != null, 'Profile service has mock profile');
-
+      _assert(_surplusService.getAllSurplusItems().isNotEmpty,
+          'Surplus service has mock data');
+      _assert(_notificationService.getAllNotifications().isNotEmpty,
+          'Notification service has mock data');
+      _assert(_profileService.getCurrentProfile() != null,
+          'Profile service has mock profile');
     } catch (e) {
       _logResult('❌ Service initialization failed: $e');
     }
@@ -118,14 +124,15 @@ class IntegrationTestRunner {
       _assert(updateSuccess, 'Profile update');
 
       final updatedProfile = _profileService.getCurrentProfile();
-      _assert(updatedProfile!.name == 'Updated Test User', 'Profile update verification');
+      _assert(updatedProfile!.name == 'Updated Test User',
+          'Profile update verification');
       _assert(updatedProfile.bio == 'Updated bio', 'Profile bio update');
 
       // Test role switching
       final roleSwitch = await _profileService.switchRole(UserRole.ngo);
       _assert(roleSwitch, 'Role switching');
-      _assert(_profileService.getCurrentProfile()!.role == UserRole.ngo, 'Role switch verification');
-
+      _assert(_profileService.getCurrentProfile()!.role == UserRole.ngo,
+          'Role switch verification');
     } catch (e) {
       _logResult('❌ Profile management failed: $e');
     }
@@ -159,13 +166,13 @@ class IntegrationTestRunner {
 
       _assert(testItem.quantity == 25, 'Surplus item quantity');
       _assert(testItem.donorName == 'Test Donor', 'Surplus item donor name');
-      _assert(testItem.status == SurplusStatus.available, 'Surplus item initial status');
+      _assert(testItem.status == SurplusStatus.available,
+          'Surplus item initial status');
 
       // Test statistics
       final stats = _surplusService.getStatistics();
       _assert(stats['total']! > 0, 'Statistics total count');
       _assert(stats['available']! > 0, 'Statistics available count');
-
     } catch (e) {
       _logResult('❌ Surplus reporting flow failed: $e');
     }
@@ -183,22 +190,25 @@ class IntegrationTestRunner {
       final itemId = testItem.id;
 
       // Test item acceptance
-      final success = await _surplusService.acceptSurplusItem(itemId, 'Test NGO');
+      final success =
+          await _surplusService.acceptSurplusItem(itemId, 'Test NGO');
       _assert(success, 'Surplus item acceptance');
 
       // Verify status change
       final updatedItems = _surplusService.getAllSurplusItems();
       final acceptedItem = updatedItems.firstWhere((item) => item.id == itemId);
-      _assert(acceptedItem.status == SurplusStatus.accepted, 'Item status changed to accepted');
+      _assert(acceptedItem.status == SurplusStatus.accepted,
+          'Item status changed to accepted');
 
       // Test collection
       final collectSuccess = await _surplusService.markAsCollected(itemId);
       _assert(collectSuccess, 'Item marked as collected');
 
       final collectedItems = _surplusService.getAllSurplusItems();
-      final collectedItem = collectedItems.firstWhere((item) => item.id == itemId);
-      _assert(collectedItem.status == SurplusStatus.collected, 'Item status changed to collected');
-
+      final collectedItem =
+          collectedItems.firstWhere((item) => item.id == itemId);
+      _assert(collectedItem.status == SurplusStatus.collected,
+          'Item status changed to collected');
     } catch (e) {
       _logResult('❌ NGO acceptance flow failed: $e');
     }
@@ -217,8 +227,10 @@ class IntegrationTestRunner {
         quantity: 10,
       );
 
-      final afterReportCount = _notificationService.getAllNotifications().length;
-      _assert(afterReportCount == initialCount + 1, 'Surplus reported notification created');
+      final afterReportCount =
+          _notificationService.getAllNotifications().length;
+      _assert(afterReportCount == initialCount + 1,
+          'Surplus reported notification created');
 
       // Test surplus accepted notification
       await _notificationService.notifySurplusAccepted(
@@ -227,22 +239,24 @@ class IntegrationTestRunner {
         donorName: 'Test Donor',
       );
 
-      final afterAcceptCount = _notificationService.getAllNotifications().length;
-      _assert(afterAcceptCount == initialCount + 2, 'Surplus accepted notification created');
+      final afterAcceptCount =
+          _notificationService.getAllNotifications().length;
+      _assert(afterAcceptCount == initialCount + 2,
+          'Surplus accepted notification created');
 
       // Test notification marking as read
       final notifications = _notificationService.getAllNotifications();
       final testNotification = notifications.first;
-      
-      await _notificationService.markAsRead(testNotification.id);
+
+      _notificationService.markAsRead(testNotification.id);
       final updatedNotifications = _notificationService.getAllNotifications();
-      final readNotification = updatedNotifications.firstWhere((n) => n.id == testNotification.id);
+      final readNotification =
+          updatedNotifications.firstWhere((n) => n.id == testNotification.id);
       _assert(readNotification.isRead, 'Notification marked as read');
 
       // Test unread count
       final unreadCount = _notificationService.unreadCount;
       _assert(unreadCount >= 0, 'Unread count is valid');
-
     } catch (e) {
       _logResult('❌ Notification system failed: $e');
     }
@@ -253,7 +267,7 @@ class IntegrationTestRunner {
 
     try {
       // Simulate complete user journey
-      
+
       // 1. User creates profile
       await _profileService.createProfile(
         name: 'E2E Test Donor',
@@ -285,7 +299,8 @@ class IntegrationTestRunner {
         orElse: () => throw Exception('E2E test item not found'),
       );
 
-      final acceptSuccess = await _surplusService.acceptSurplusItem(e2eItem.id, 'E2E Test NGO');
+      final acceptSuccess =
+          await _surplusService.acceptSurplusItem(e2eItem.id, 'E2E Test NGO');
       _assert(acceptSuccess, 'E2E: Surplus acceptance');
 
       // 5. Donor gets acceptance notification
@@ -306,7 +321,6 @@ class IntegrationTestRunner {
       );
 
       _logResult('✅ Complete end-to-end flow successful');
-
     } catch (e) {
       _logResult('❌ End-to-end flow failed: $e');
     }
@@ -318,11 +332,13 @@ class IntegrationTestRunner {
     try {
       // Test data survives service reinitialization
       final beforeCount = _surplusService.getAllSurplusItems().length;
-      final beforeNotifications = _notificationService.getAllNotifications().length;
+      final beforeNotifications =
+          _notificationService.getAllNotifications().length;
 
       // Simulate app restart (services maintain state in memory)
       _assert(beforeCount > 0, 'Data exists before persistence test');
-      _assert(beforeNotifications > 0, 'Notifications exist before persistence test');
+      _assert(beforeNotifications > 0,
+          'Notifications exist before persistence test');
 
       // Test data export/import capability
       final surplusItems = _surplusService.getAllSurplusItems();
@@ -332,10 +348,11 @@ class IntegrationTestRunner {
       // Test data validation
       for (final itemData in exportData) {
         _assert(itemData.containsKey('id'), 'Exported data contains ID');
-        _assert(itemData.containsKey('foodType'), 'Exported data contains food type');
-        _assert(itemData.containsKey('status'), 'Exported data contains status');
+        _assert(itemData.containsKey('foodType'),
+            'Exported data contains food type');
+        _assert(
+            itemData.containsKey('status'), 'Exported data contains status');
       }
-
     } catch (e) {
       _logResult('❌ Data persistence test failed: $e');
     }
@@ -359,7 +376,8 @@ class IntegrationTestRunner {
       }
 
       // Test accepting non-existent item
-      final invalidAccept = await _surplusService.acceptSurplusItem('invalid_id', 'Test NGO');
+      final invalidAccept =
+          await _surplusService.acceptSurplusItem('invalid_id', 'Test NGO');
       _assert(!invalidAccept, 'Properly handles invalid item acceptance');
 
       // Test profile validation
@@ -374,9 +392,9 @@ class IntegrationTestRunner {
       );
 
       _assert(profile.validateName('') != null, 'Name validation works');
-      _assert(profile.validateEmail('invalid-email') != null, 'Email validation works');
+      _assert(profile.validateEmail('invalid-email') != null,
+          'Email validation works');
       _assert(profile.validatePhone('123') != null, 'Phone validation works');
-
     } catch (e) {
       _logResult('❌ Error handling test failed: $e');
     }
@@ -407,8 +425,10 @@ class IntegrationTestRunner {
     print('Total Tests: ${results['totalTests']}');
     print('Passed: ${results['passedTests']} ✅');
     print('Failed: ${results['failedTests']} ❌');
-    print('Success Rate: ${((results['passedTests'] / results['totalTests']) * 100).toStringAsFixed(1)}%');
-    print('Overall Result: ${results['allTestsPassed'] ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}');
+    print(
+        'Success Rate: ${((results['passedTests'] / results['totalTests']) * 100).toStringAsFixed(1)}%');
+    print(
+        'Overall Result: ${results['allTestsPassed'] ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}');
     print('Timestamp: ${results['timestamp']}');
     print('=' * 50);
 
@@ -431,8 +451,8 @@ class IntegrationTestRunner {
       _profileService.initializeMockProfile();
 
       final hasData = _surplusService.getAllSurplusItems().isNotEmpty &&
-                     _notificationService.getAllNotifications().isNotEmpty &&
-                     _profileService.getCurrentProfile() != null;
+          _notificationService.getAllNotifications().isNotEmpty &&
+          _profileService.getCurrentProfile() != null;
 
       return hasData;
     } catch (e) {

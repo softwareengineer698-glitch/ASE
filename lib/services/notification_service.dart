@@ -130,12 +130,28 @@ class NotificationService {
   }
 
   // Mark notification as read
-  Future<void> markAsRead(String notificationId) async {
+  void markAsRead(String notificationId) {
     final index = _notifications.indexWhere((n) => n.id == notificationId);
-    if (index != -1) {
-      _notifications[index] = _notifications[index].copyWith(isRead: true);
-      _notifyListeners();
+    if (index == -1) {
+      throw Exception('Notification not found');
     }
+    
+    _notifications[index] = _notifications[index].copyWith(isRead: true);
+    _notifyListeners();
+  }
+
+  // Public method to show in-app notifications
+  void showInAppNotification(String title, String message, {NotificationType? type}) {
+    final notification = AppNotification(
+      id: _generateId(),
+      title: title,
+      message: message,
+      type: type ?? NotificationType.general,
+      priority: NotificationPriority.medium,
+      timestamp: DateTime.now(),
+    );
+    
+    addNotification(notification);
   }
 
   // Mark all notifications as read
@@ -183,8 +199,16 @@ class NotificationService {
   void _showInAppNotification(AppNotification notification) {
     if (_currentContext == null) return;
 
-    // Show as SnackBar for immediate feedback
-    ScaffoldMessenger.of(_currentContext!).showSnackBar(
+    // Check if ScaffoldMessenger is available
+    try {
+      final scaffoldMessenger = ScaffoldMessenger.maybeOf(_currentContext!);
+      if (scaffoldMessenger == null) {
+        print('ScaffoldMessenger not available, skipping in-app notification');
+        return;
+      }
+
+      // Show as SnackBar for immediate feedback
+      scaffoldMessenger.showSnackBar(
       SnackBar(
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -217,8 +241,10 @@ class NotificationService {
             _handleNotificationTap(notification);
           },
         ),
-      ),
-    );
+      ));
+    } catch (e) {
+      print('Error showing in-app notification: $e');
+    }
   }
 
   // Simulate push notification (placeholder for Firebase)

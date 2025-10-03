@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isDonor() {
+      return isSignedIn() && getUserRole() == 'donor';
+    }
+
+    function isNGO() {
+      return isSignedIn() && getUserRole() == 'ngo';
+    }
+
+    // Users collection - each user can only access their own document
+    match /users/{userId} {
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email != null
+        && request.resource.data.role in ['donor', 'ngo'];
+
+      allow read, update, delete: if isOwner(userId);
+    }
+
+    // Profiles collection - user profile data (editable by owner only)
+    match /profiles/{userId} {
+      allow create, read, update, delete: if isOwner(userId);
+    }
+
+    // Surplus Reports collection - created by Donors only
+    match /surplus_reports/{reportId} {
+      // Donors can create surplus reports with their own donorId
+      allow create: if isDonor()
+        && request.resource.data.donorId == request.auth.uid
+        && request.resource.data.keys().hasAll(['donorId', 'foodType', 'quantity', 'expiry', 'timestamp'])
+        && request.resource.data.timestamp is timestamp;
+
+      // Donors can read/update/delete their own reports
+      allow read, update, delete: if isDonor() 
+        && resource.data.donorId == request.auth.uid;
+
+      // NGOs can read all surplus reports (to see available food)
+      allow read: if isNGO();
+    }
+
+    // NGO Requests collection - created by NGOs when accepting surplus
+    match /ngo_requests/{requestId} {
+      // NGOs can create requests with their own ngoId
+      allow create: if isNGO()
+        && request.resource.data.ngoId == request.auth.uid
+        && request.resource.data.keys().hasAll(['ngoId', 'surplusId', 'status'])
+        && request.resource.data.status in ['pending', 'accepted', 'completed', 'cancelled'];
+
+      // NGOs can read/update their own requests
+      allow read, update: if isNGO() 
+        && resource.data.ngoId == request.auth.uid;
+
+      // Donors can read requests for their surplus reports
+      allow read: if isDonor() 
+        && exists(/databases/$(database)/documents/surplus_reports/$(resource.data.surplusId))
+        && get(/databases/$(database)/documents/surplus_reports/$(resource.data.surplusId)).data.donorId == request.auth.uid;
+    }
+
+    // Notifications collection - users can read their own notifications
+    match /notifications/{notificationId} {
+      allow create: if isSignedIn(); // System can create notifications
+      allow read, update: if isSignedIn() 
+        && resource.data.userId == request.auth.uid;
+    }
+  }
+}
