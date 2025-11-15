@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:foodbridge/screens/home/ngo_dashboard_simple.dart';
+import '../home/ngo_dashboard_new.dart';
 import '../../models/user_model.dart';
-import '../home/donor_dashboard.dart';
+import '../home/donor_dashboard_new.dart';
 // import '../home/ngo_dashboard.dart';
 
 class RoleSelectionScreen extends StatelessWidget {

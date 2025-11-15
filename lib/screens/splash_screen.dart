@@ -3,8 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/user_model.dart';
 import 'auth/sign_in_screen.dart';
-import 'home/donor_dashboard.dart';
-import 'home/ngo_dashboard_simple.dart';
+import 'main/main_wrapper.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -141,9 +140,7 @@ class _SplashScreenState extends State<SplashScreen>
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => role == UserRole.donor
-            ? const DonorDashboard()
-            : const NGODashboard(),
+        builder: (context) => const MainWrapper(),
       ),
     );
   }

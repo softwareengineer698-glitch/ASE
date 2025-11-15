@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../models/forecast_model.dart';
-import '../../services/mock_data_service.dart';
 
+/// Advanced AI Forecast Dashboard for Donors
+/// Provides surplus predictions, alerts, and recommendations
 class ForecastDashboard extends StatefulWidget {
   const ForecastDashboard({super.key});
 
@@ -33,8 +35,8 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
       if (!mounted) return;
       
       setState(() {
-        forecastData = MockDataService.getMockForecastData();
-        forecastSummary = MockDataService.getForecastSummary(selectedCategory);
+        forecastData = _getMockForecastData();
+        forecastSummary = _getForecastSummary(selectedCategory);
         isLoading = false;
       });
     });
@@ -43,15 +45,47 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
   void _onCategoryChanged(String category) {
     setState(() {
       selectedCategory = category;
-      forecastSummary = MockDataService.getForecastSummary(category);
+      forecastSummary = _getForecastSummary(category);
     });
+  }
+
+  List<ForecastData> _getMockForecastData() {
+    final now = DateTime.now();
+    return List.generate(7, (index) {
+      return ForecastData(
+        date: now.add(Duration(days: index)),
+        demand: 20 + (index * 5) + (index % 3) * 10,
+        category: selectedCategory,
+        confidence: 0.8 + (index * 0.02),
+      );
+    });
+  }
+
+  ForecastSummary _getForecastSummary(String category) {
+    final mockData = _getMockForecastData();
+    final totalDemand = mockData.fold<double>(0, (sum, item) => sum + item.demand);
+    final avgDemand = totalDemand / mockData.length;
+    final peakData = mockData.reduce((a, b) => a.demand > b.demand ? a : b);
+    
+    return ForecastSummary(
+      category: category,
+      totalDemand: totalDemand,
+      averageDemand: avgDemand,
+      peakDemand: peakData.demand,
+      peakDate: peakData.date,
+      dailyForecasts: mockData,
+    );
+  }
+
+  List<String> _getCategories() {
+    return ['Vegetables', 'Fruits', 'Grains', 'Dairy', 'Prepared Food'];
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Demand Forecast'),
+        title: Text('forecast_title'.tr()),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -92,8 +126,8 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Demand Forecasting',
+                                    Text(
+                                      'forecast_title'.tr(),
                                       style: TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
@@ -163,7 +197,7 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
                     height: 50,
                     child: ListView(
                       scrollDirection: Axis.horizontal,
-                      children: MockDataService.getCategories().map((category) {
+                      children: _getCategories().map((category) {
                         final isSelected = selectedCategory == category;
                         return Container(
                           margin: const EdgeInsets.only(right: 8.0),
@@ -234,8 +268,8 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
                   ],
 
                   // Chart Section
-                  const Text(
-                    '7-Day Demand Forecast',
+                  Text(
+                    'weekly_forecast'.tr(),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

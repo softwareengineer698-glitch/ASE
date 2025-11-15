@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/user_model.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
 import 'sign_up_screen.dart';
 import 'forgot_password_screen.dart';
-import '../home/donor_dashboard.dart';
-import '../home/ngo_dashboard_simple.dart';
+import '../main/main_wrapper.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -21,12 +22,47 @@ class _SignInScreenState extends State<SignInScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('saved_email');
+    final savedPassword = prefs.getString('saved_password');
+    final rememberMe = prefs.getBool('remember_me') ?? false;
+
+    if (rememberMe && savedEmail != null && savedPassword != null) {
+      setState(() {
+        _emailController.text = savedEmail;
+        _passwordController.text = savedPassword;
+        _rememberMe = true;
+      });
+    }
+  }
+
+  Future<void> _saveCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setString('saved_email', _emailController.text);
+      await prefs.setString('saved_password', _passwordController.text);
+      await prefs.setBool('remember_me', true);
+    } else {
+      await prefs.remove('saved_email');
+      await prefs.remove('saved_password');
+      await prefs.setBool('remember_me', false);
+    }
   }
 
   void _signIn() async {
@@ -47,6 +83,8 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
           );
         } else if (authProvider.user != null) {
+          // Save credentials if remember me is checked
+          await _saveCredentials();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Signed in successfully!'),
@@ -65,9 +103,7 @@ class _SignInScreenState extends State<SignInScreen> {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
-        builder: (context) => role == UserRole.donor
-            ? const DonorDashboard()
-            : const NGODashboard(),
+        builder: (context) => const MainWrapper(),
       ),
       (route) => false, // Remove all previous routes
     );
@@ -114,7 +150,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 // Email Field
                 CustomTextField(
                   controller: _emailController,
-                  label: 'Email',
+                  label: 'email'.tr(),
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: Icons.email_outlined,
                   validator: (value) {
@@ -132,7 +168,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 // Password Field
                 CustomTextField(
                   controller: _passwordController,
-                  label: 'Password',
+                  label: 'password'.tr(),
                   obscureText: _obscurePassword,
                   prefixIcon: Icons.lock_outline,
                   suffixIcon: IconButton(
@@ -150,13 +186,29 @@ class _SignInScreenState extends State<SignInScreen> {
                     return null;
                   },
                 ),
+                const SizedBox(height: 16),
+
+                // Remember Me Checkbox
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberMe,
+                      onChanged: (value) {
+                        setState(() {
+                          _rememberMe = value ?? false;
+                        });
+                      },
+                    ),
+                    Text('remember_me'.tr()),
+                  ],
+                ),
                 const SizedBox(height: 24),
 
                 // Sign In Button
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, child) {
                     return CustomButton(
-                      text: 'Sign In',
+                      text: 'sign_in'.tr(),
                       onPressed: authProvider.isLoading ? null : _signIn,
                       isLoading: authProvider.isLoading,
                     );

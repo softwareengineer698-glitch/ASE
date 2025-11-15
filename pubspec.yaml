@@ -44,6 +44,12 @@ dependencies:
 
   # Chart package for forecasting visualization
   fl_chart: ^0.68.0
+  
+  # Image picker for profile pictures
+  image_picker: ^1.0.4
+  
+  # Localization package for language switching
+  easy_localization: ^3.0.3
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -93,6 +99,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/icon.jpg
+    - assets/translations/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

@@ -5,8 +5,7 @@ import '../../models/user_model.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
 import 'sign_in_screen.dart';
-import '../home/donor_dashboard.dart';
-import '../home/ngo_dashboard_simple.dart';
+import '../main/main_wrapper.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -69,9 +68,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
-        builder: (context) => _selectedRole == UserRole.donor
-            ? const DonorDashboard()
-            : const NGODashboard(),
+        builder: (context) => const MainWrapper(),
       ),
       (route) => false, // Remove all previous routes
     );

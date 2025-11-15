@@ -4,12 +4,6 @@ import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../models/user_model.dart';
 import '../settings/theme_settings_screen.dart';
-import '../settings/notification_settings_screen.dart';
-import '../settings/language_settings_screen.dart';
-import '../analytics/analytics_dashboard.dart';
-import '../leaderboard/leaderboard_screen.dart';
-import '../forecast/ai_forecast_dashboard.dart';
-import '../delivery/delivery_confirmation_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -46,7 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 24),
                 
                 // Settings Section
-                _buildSettingsSection(context, themeProvider, user),
+                _buildSettingsSection(context, themeProvider),
                 
                 const SizedBox(height: 24),
                 
@@ -115,7 +109,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSettingsSection(BuildContext context, ThemeProvider themeProvider, UserModel? user) {
+  Widget _buildSettingsSection(BuildContext context, ThemeProvider themeProvider) {
     return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,52 +125,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           _buildSettingsItem(
-            icon: Icons.analytics,
-            title: 'Analytics Dashboard',
-            subtitle: 'View your impact and performance metrics',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const AnalyticsDashboard(),
-              ),
-            ),
-          ),
-          // AI Forecast Dashboard (Donors only)
-          if (user?.role == UserRole.donor)
-            _buildSettingsItem(
-              icon: Icons.psychology,
-              title: 'AI Forecast Dashboard',
-              subtitle: 'Predict surplus patterns with AI insights',
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AIForecastDashboard(),
-                ),
-              ),
-            ),
-          _buildSettingsItem(
-            icon: Icons.leaderboard,
-            title: 'Leaderboards',
-            subtitle: 'See top performers and your ranking',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const LeaderboardScreen(),
-              ),
-            ),
-          ),
-          _buildSettingsItem(
-            icon: Icons.assignment_turned_in,
-            title: 'Delivery Confirmations',
-            subtitle: 'Manage delivery verifications and signatures',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const DeliveryConfirmationScreen(),
-              ),
-            ),
-          ),
-          _buildSettingsItem(
             icon: Icons.palette,
             title: 'Theme & Appearance',
             subtitle: 'Customize app colors and brightness',
@@ -188,26 +136,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           _buildSettingsItem(
-            icon: Icons.language,
-            title: 'Language / زبان',
-            subtitle: 'English / اردو',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const LanguageSettingsScreen(),
-              ),
-            ),
-          ),
-          _buildSettingsItem(
             icon: Icons.notifications,
             title: 'Notifications',
             subtitle: 'Manage notification preferences',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const NotificationSettingsScreen(),
-              ),
-            ),
+            onTap: () => _showComingSoonDialog(context),
           ),
           _buildSettingsItem(
             icon: Icons.privacy_tip,
