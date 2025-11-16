@@ -1,4 +1,4 @@
-# DonateConnect - Flutter Firebase Authentication App
+# FoodBridge - Flutter Firebase Authentication App
 
 A complete Flutter application with Firebase Authentication and role-based access control for Donors and NGOs.
 
