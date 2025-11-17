@@ -26,7 +26,7 @@ class SurplusItem {
       'expiryDate': expiryDate.toIso8601String(),
       'reportedDate': reportedDate.toIso8601String(),
       'donorName': donorName,
-      'status': status.toString(),
+      'status': status.name,
     };
   }
 
@@ -39,11 +39,23 @@ class SurplusItem {
       expiryDate: DateTime.parse(map['expiryDate']),
       reportedDate: DateTime.parse(map['reportedDate']),
       donorName: map['donorName'],
-      status: SurplusStatus.values.firstWhere(
-        (e) => e.toString() == map['status'],
-        orElse: () => SurplusStatus.available,
-      ),
+      status: _parseStatus(map['status']),
     );
+  }
+
+  static SurplusStatus _parseStatus(dynamic statusValue) {
+    if (statusValue == null) return SurplusStatus.available;
+
+    final statusString = statusValue.toString();
+
+    // Handle both enum string format and name format
+    for (final status in SurplusStatus.values) {
+      if (status.toString() == statusString || status.name == statusString) {
+        return status;
+      }
+    }
+
+    return SurplusStatus.available; // Default fallback
   }
 
   // Copy with method for updates
@@ -69,13 +81,12 @@ class SurplusItem {
 
   // Helper methods
   bool get isExpired => DateTime.now().isAfter(expiryDate);
-  bool get isExpiringSoon => 
-      expiryDate.difference(DateTime.now()).inDays <= 2;
-  
+  bool get isExpiringSoon => expiryDate.difference(DateTime.now()).inDays <= 2;
+
   String get formattedExpiryDate {
     final now = DateTime.now();
     final difference = expiryDate.difference(now).inDays;
-    
+
     if (difference < 0) {
       return 'Expired ${(-difference)} days ago';
     } else if (difference == 0) {

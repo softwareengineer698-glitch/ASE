@@ -62,7 +62,7 @@ class AppBottomNavigation extends StatelessWidget {
         NavigationDestination(
           icon: const Icon(Icons.leaderboard_outlined),
           selectedIcon: const Icon(Icons.leaderboard),
-          label: 'Leaders',
+          label: 'leaders'.tr(),
         ),
         NavigationDestination(
           icon: const Icon(Icons.analytics_outlined),
@@ -90,7 +90,7 @@ class AppBottomNavigation extends StatelessWidget {
         NavigationDestination(
           icon: const Icon(Icons.leaderboard_outlined),
           selectedIcon: const Icon(Icons.leaderboard),
-          label: 'Leaders',
+          label: 'leaders'.tr(),
         ),
         NavigationDestination(
           icon: const Icon(Icons.analytics_outlined),

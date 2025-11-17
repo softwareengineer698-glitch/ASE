@@ -38,7 +38,7 @@ class LocalizationService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_languageKey, _currentLanguage);
     } catch (e) {
-      print('Error saving language preference: $e');
+      debugPrint('Error saving language preference: $e');
     }
   }
 
@@ -53,9 +53,9 @@ class LocalizationService extends ChangeNotifier {
 
   /// Get localized string
   String getString(String key) {
-    return _localizedStrings[_currentLanguage]?[key] ?? 
-           _localizedStrings[_defaultLanguage]?[key] ?? 
-           key;
+    return _localizedStrings[_currentLanguage]?[key] ??
+        _localizedStrings[_defaultLanguage]?[key] ??
+        key;
   }
 
   /// Get available languages

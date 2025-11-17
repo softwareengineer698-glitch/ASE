@@ -5,7 +5,7 @@ import '../services/auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
-  
+
   UserModel? _user;
   bool _isLoading = false;
   String? _error;
@@ -14,45 +14,37 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isAuthenticated => _user != null;
-  
+
   // Check if Firebase is available
   bool get isFirebaseAvailable => _authService.isFirebaseInitialized;
 
   AuthProvider() {
-    // Don't initialize immediately, wait for explicit call
-    print('AuthProvider created, waiting for Firebase to be ready');
-    // Try to initialize with longer delay and retry mechanism
     _waitForFirebaseAndInitialize();
   }
 
-  void _waitForFirebaseAndInitialize() async {
+  Future<void> _waitForFirebaseAndInitialize() async {
     // Wait for Firebase to be initialized with retry mechanism
     int attempts = 0;
-    const maxAttempts = 10;
-    const delayBetweenAttempts = Duration(milliseconds: 500);
+    const maxAttempts = 8;
+    const delayBetweenAttempts = Duration(milliseconds: 400);
 
     while (attempts < maxAttempts) {
       if (_authService.isFirebaseInitialized) {
-        print('Firebase is ready after $attempts attempts, initializing auth');
         _initializeAuth();
         return;
       }
-      
+
       attempts++;
-      print('Firebase not ready yet, attempt $attempts/$maxAttempts');
       await Future.delayed(delayBetweenAttempts);
     }
-    
-    print('Firebase initialization timeout after $maxAttempts attempts');
+
+    debugPrint('Firebase initialization timeout after $maxAttempts attempts');
   }
 
   void _initializeAuth() {
     // Initialize auth state listener if Firebase is available
     if (_authService.isFirebaseInitialized) {
-      print('Firebase is ready, setting up auth state listener');
       _setupAuthStateListener();
-    } else {
-      print('Firebase not ready yet in AuthProvider');
     }
   }
 
@@ -67,7 +59,7 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
       });
     } catch (e) {
-      print('Error setting up auth state listener: $e');
+      debugPrint('Error setting up auth state listener: $e');
     }
   }
 
@@ -79,13 +71,13 @@ class AuthProvider extends ChangeNotifier {
     try {
       _setLoading(true);
       _clearError();
-      
+
       _user = await _authService.signUpWithEmailAndPassword(
         email: email,
         password: password,
         role: role,
       );
-      
+
       notifyListeners();
     } catch (e) {
       _setError(e.toString());
@@ -101,12 +93,12 @@ class AuthProvider extends ChangeNotifier {
     try {
       _setLoading(true);
       _clearError();
-      
+
       _user = await _authService.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      
+
       notifyListeners();
     } catch (e) {
       _setError(e.toString());
@@ -119,7 +111,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       _setLoading(true);
       _clearError();
-      
+
       await _authService.sendPasswordResetEmail(email);
     } catch (e) {
       _setError(e.toString());
@@ -132,7 +124,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       _setLoading(true);
       _clearError();
-      
+
       await _authService.signOut();
       _user = null;
       notifyListeners();
@@ -169,10 +161,9 @@ class AuthProvider extends ChangeNotifier {
   // Reinitialize auth after Firebase is ready
   void reinitializeAuth() {
     if (!_authService.isFirebaseInitialized) {
-      print('Firebase not initialized yet, skipping auth state listener setup');
       return;
     }
-    
+
     _setupAuthStateListener();
   }
 }

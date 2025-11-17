@@ -15,25 +15,23 @@ import 'services/local_surplus_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize EasyLocalization
   await EasyLocalization.ensureInitialized();
 
   // Initialize services
-  _initializeServices();
+  await _initializeServices();
 
   // Initialize Firebase
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    print('Firebase initialized successfully in main');
 
-    // Give Firebase a moment to fully initialize before starting the app
-    await Future.delayed(const Duration(milliseconds: 500));
-    print('Firebase initialization complete, starting app');
+    // Brief delay to ensure Firebase is fully ready
+    await Future.delayed(const Duration(milliseconds: 300));
   } catch (e) {
-    print('Firebase initialization error in main: $e');
+    debugPrint('Firebase initialization error: $e');
   }
 
   runApp(
@@ -49,13 +47,11 @@ void main() async {
   );
 }
 
-void _initializeServices() {
+Future<void> _initializeServices() async {
   // Initialize all singleton services
   NotificationService();
   ProfileService();
   LocalSurplusService();
-
-  print('Services initialized successfully');
 }
 
 class MyApp extends StatelessWidget {
@@ -69,10 +65,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (context) {
-            print('Creating AuthProvider after Firebase initialization');
-            return AuthProvider();
-          },
+          create: (context) => AuthProvider(),
         ),
         ChangeNotifierProvider(
           create: (context) {

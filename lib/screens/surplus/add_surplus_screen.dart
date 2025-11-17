@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../models/surplus_model.dart';
 import '../../services/mock_data_service.dart';
 
@@ -15,7 +17,7 @@ class _AddSurplusScreenState extends State<AddSurplusScreen> {
   final _quantityController = TextEditingController();
   final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
-  
+
   String selectedCategory = 'Vegetables';
   String selectedUnit = 'kg';
   DateTime selectedExpiryDate = DateTime.now().add(const Duration(days: 1));
@@ -36,7 +38,7 @@ class _AddSurplusScreenState extends State<AddSurplusScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Surplus'),
+        title: Text('add_surplus'.tr()),
         backgroundColor: Colors.green,
         foregroundColor: Colors.white,
       ),
@@ -192,7 +194,8 @@ class _AddSurplusScreenState extends State<AddSurplusScreen> {
                         if (value == null || value.trim().isEmpty) {
                           return 'Enter quantity';
                         }
-                        if (int.tryParse(value) == null || int.parse(value) <= 0) {
+                        if (int.tryParse(value) == null ||
+                            int.parse(value) <= 0) {
                           return 'Enter valid number';
                         }
                         return null;
@@ -307,24 +310,25 @@ class _AddSurplusScreenState extends State<AddSurplusScreen> {
                     ),
                   ),
                   child: isSubmitting
-                      ? const Row(
+                      ? Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            SizedBox(
+                            const SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             ),
-                            SizedBox(width: 12),
-                            Text('Adding Surplus...'),
+                            const SizedBox(width: 12),
+                            Text('adding_surplus'.tr()),
                           ],
                         )
-                      : const Text(
-                          'Add Surplus',
-                          style: TextStyle(
+                      : Text(
+                          'add_surplus'.tr(),
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -360,7 +364,8 @@ class _AddSurplusScreenState extends State<AddSurplusScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _buildTip('• Ensure food is fresh and safe for consumption'),
+                      _buildTip(
+                          '• Ensure food is fresh and safe for consumption'),
                       _buildTip('• Package items properly to maintain quality'),
                       _buildTip('• Provide accurate expiry dates'),
                       _buildTip('• Include clear pickup instructions'),
@@ -417,7 +422,20 @@ class _AddSurplusScreenState extends State<AddSurplusScreen> {
   }
 
   String _formatDate(DateTime date) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
@@ -455,10 +473,10 @@ class _AddSurplusScreenState extends State<AddSurplusScreen> {
       if (success) {
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Surplus added successfully!'),
+          SnackBar(
+            content: Text('surplus_added_success'.tr()),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
 
@@ -470,10 +488,10 @@ class _AddSurplusScreenState extends State<AddSurplusScreen> {
     } catch (e) {
       // Check if widget is still mounted before showing error
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString()}'),
+          content: Text('${'error_prefix'.tr()}${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );

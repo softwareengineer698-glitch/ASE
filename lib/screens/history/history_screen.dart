@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/user_model.dart';
 import '../../widgets/empty_state_widget.dart';
@@ -62,7 +63,7 @@ class _HistoryScreenState extends State<HistoryScreen>
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('History'),
+            title: Text('history'.tr()),
             automaticallyImplyLeading: false,
             bottom: TabBar(
               controller: _tabController,
@@ -70,7 +71,7 @@ class _HistoryScreenState extends State<HistoryScreen>
             ),
           ),
           body: _isLoading
-              ? const LoadingWidget(message: 'Loading history...')
+              ? LoadingWidget(message: 'loading_history'.tr())
               : TabBarView(
                   controller: _tabController,
                   children: isDonor ? _getDonorTabViews() : _getNGOTabViews(),
@@ -81,18 +82,18 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   List<Tab> _getDonorTabs() {
-    return const [
-      Tab(text: 'All', icon: Icon(Icons.list)),
-      Tab(text: 'Active', icon: Icon(Icons.pending_actions)),
-      Tab(text: 'Completed', icon: Icon(Icons.check_circle)),
+    return [
+      Tab(text: 'all'.tr(), icon: const Icon(Icons.list)),
+      Tab(text: 'active'.tr(), icon: const Icon(Icons.pending_actions)),
+      Tab(text: 'completed'.tr(), icon: const Icon(Icons.check_circle)),
     ];
   }
 
   List<Tab> _getNGOTabs() {
-    return const [
-      Tab(text: 'All', icon: Icon(Icons.list)),
-      Tab(text: 'Accepted', icon: Icon(Icons.handshake)),
-      Tab(text: 'Collected', icon: Icon(Icons.check_circle)),
+    return [
+      Tab(text: 'all'.tr(), icon: const Icon(Icons.list)),
+      Tab(text: 'accepted'.tr(), icon: const Icon(Icons.handshake)),
+      Tab(text: 'collected'.tr(), icon: const Icon(Icons.check_circle)),
     ];
   }
 
@@ -113,52 +114,52 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   Widget _buildDonorAllHistory() {
-    return const EmptyStateWidget(
+    return EmptyStateWidget(
       icon: Icons.volunteer_activism,
-      title: 'No Donations Yet',
-      message: 'Start donating to help your community and see your impact here.',
-      actionText: 'Make a Donation',
+      title: 'no_donations_yet'.tr(),
+      message: 'start_donating_message'.tr(),
+      actionText: 'make_donation'.tr(),
     );
   }
 
   Widget _buildDonorActiveHistory() {
-    return const EmptyStateWidget(
+    return EmptyStateWidget(
       icon: Icons.pending_actions,
-      title: 'No Active Donations',
-      message: 'You don\'t have any pending donations at the moment.',
+      title: 'no_active_donations'.tr(),
+      message: 'no_pending_donations'.tr(),
     );
   }
 
   Widget _buildDonorCompletedHistory() {
-    return const EmptyStateWidget(
+    return EmptyStateWidget(
       icon: Icons.check_circle_outline,
-      title: 'No Completed Donations',
-      message: 'Your completed donations will appear here.',
+      title: 'no_completed_donations'.tr(),
+      message: 'completed_donations_message'.tr(),
     );
   }
 
   Widget _buildNGOAllHistory() {
-    return const EmptyStateWidget(
+    return EmptyStateWidget(
       icon: Icons.business,
-      title: 'No Requests Yet',
-      message: 'Start accepting donations to help your community and track them here.',
-      actionText: 'Browse Donations',
+      title: 'no_requests_yet'.tr(),
+      message: 'start_accepting_message'.tr(),
+      actionText: 'browse_donations'.tr(),
     );
   }
 
   Widget _buildNGOAcceptedHistory() {
-    return const EmptyStateWidget(
+    return EmptyStateWidget(
       icon: Icons.handshake,
-      title: 'No Accepted Donations',
-      message: 'Donations you\'ve accepted will appear here.',
+      title: 'no_accepted_donations'.tr(),
+      message: 'accepted_donations_message'.tr(),
     );
   }
 
   Widget _buildNGOCollectedHistory() {
-    return const EmptyStateWidget(
+    return EmptyStateWidget(
       icon: Icons.check_circle_outline,
-      title: 'No Collected Donations',
-      message: 'Donations you\'ve collected will appear here.',
+      title: 'no_collected_donations'.tr(),
+      message: 'collected_donations_message'.tr(),
     );
   }
 }

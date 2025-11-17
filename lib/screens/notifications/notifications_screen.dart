@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../models/notification_model.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/notification_widgets.dart';
@@ -37,7 +38,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     // Initialize mock data and load notifications
     _notificationService.initializeMockData();
-    
+
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() {
@@ -61,13 +62,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'Unread':
         return _notifications.where((n) => !n.isRead).toList();
       case 'Surplus':
-        return _notifications.where((n) => 
-          n.type == NotificationType.surplusReported ||
-          n.type == NotificationType.surplusAccepted ||
-          n.type == NotificationType.surplusCollected
-        ).toList();
+        return _notifications
+            .where((n) =>
+                n.type == NotificationType.surplusReported ||
+                n.type == NotificationType.surplusAccepted ||
+                n.type == NotificationType.surplusCollected)
+            .toList();
       case 'General':
-        return _notifications.where((n) => n.type == NotificationType.general).toList();
+        return _notifications
+            .where((n) => n.type == NotificationType.general)
+            .toList();
       default:
         return _notifications;
     }
@@ -77,7 +81,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: Text('notifications'.tr()),
         backgroundColor: AppTheme.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -85,32 +89,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           if (_notifications.any((n) => !n.isRead))
             TextButton(
               onPressed: _markAllAsRead,
-              child: const Text(
-                'Mark All Read',
-                style: TextStyle(color: Colors.white),
+              child: Text(
+                'mark_all_read'.tr(),
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: _handleMenuAction,
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'clear_all',
                 child: Row(
                   children: [
                     Icon(Icons.clear_all),
                     SizedBox(width: 8),
-                    Text('Clear All'),
+                    Text('clear_all'.tr()),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'settings',
                 child: Row(
                   children: [
-                    Icon(Icons.settings),
-                    SizedBox(width: 8),
-                    Text('Settings'),
+                    const Icon(Icons.settings),
+                    const SizedBox(width: 8),
+                    Text('settings'.tr()),
                   ],
                 ),
               ),
@@ -209,7 +213,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             return NotificationTile(
                               notification: notification,
                               onTap: () => _handleNotificationTap(notification),
-                              onDismiss: () => _deleteNotification(notification.id),
+                              onDismiss: () =>
+                                  _deleteNotification(notification.id),
                             );
                           },
                         ),
@@ -220,7 +225,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String title, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -256,8 +262,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final today = DateTime.now();
     return _notifications.where((n) {
       return n.timestamp.year == today.year &&
-             n.timestamp.month == today.month &&
-             n.timestamp.day == today.day;
+          n.timestamp.month == today.month &&
+          n.timestamp.day == today.day;
     }).length;
   }
 
@@ -339,16 +345,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: AppTheme.getStatusColor(notification.type.toString()).withOpacity(0.2),
+                    color: AppTheme.getStatusColor(notification.type.toString())
+                        .withOpacity(0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     notification.typeLabel,
                     style: TextStyle(
                       fontSize: 10,
-                      color: AppTheme.getStatusColor(notification.type.toString()),
+                      color:
+                          AppTheme.getStatusColor(notification.type.toString()),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -360,7 +369,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            child: Text('close'.tr()),
           ),
           if (notification.actionData != null)
             ElevatedButton(
@@ -368,7 +377,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 Navigator.of(context).pop();
                 // Handle action navigation
               },
-              child: const Text('View'),
+              child: Text('view'.tr()),
             ),
         ],
       ),
@@ -378,9 +387,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void _deleteNotification(String notificationId) {
     _notificationService.deleteNotification(notificationId);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Notification deleted'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text('notification_deleted'.tr()),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -389,8 +398,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     await _notificationService.markAllAsRead();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('All notifications marked as read'),
+        SnackBar(
+          content: Text('all_notifications_read'.tr()),
           backgroundColor: AppTheme.primaryGreen,
         ),
       );
@@ -412,26 +421,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear All Notifications'),
-        content: const Text('Are you sure you want to delete all notifications? This action cannot be undone.'),
+        title: Text('clear_all_notifications'.tr()),
+        content: Text('confirm_clear_notifications'.tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
               _notificationService.clearAllNotifications();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('All notifications cleared'),
+                SnackBar(
+                  content: Text('all_notifications_cleared'.tr()),
                   backgroundColor: AppTheme.primaryOrange,
                 ),
               );
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Clear All'),
+            child: Text('clear_all'.tr()),
           ),
         ],
       ),
@@ -442,31 +451,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Notification Settings'),
-        content: const Column(
+        title: Text('notification_settings'.tr()),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(Icons.notifications),
-              title: Text('Push Notifications'),
-              trailing: Switch(value: true, onChanged: null),
+              leading: const Icon(Icons.notifications),
+              title: Text('push_notifications'.tr()),
+              trailing: const Switch(value: true, onChanged: null),
             ),
             ListTile(
-              leading: Icon(Icons.vibration),
-              title: Text('Vibration'),
-              trailing: Switch(value: true, onChanged: null),
+              leading: const Icon(Icons.vibration),
+              title: Text('vibration'.tr()),
+              trailing: const Switch(value: true, onChanged: null),
             ),
             ListTile(
-              leading: Icon(Icons.volume_up),
-              title: Text('Sound'),
-              trailing: Switch(value: true, onChanged: null),
+              leading: const Icon(Icons.volume_up),
+              title: Text('sound'.tr()),
+              trailing: const Switch(value: true, onChanged: null),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            child: Text('close'.tr()),
           ),
         ],
       ),

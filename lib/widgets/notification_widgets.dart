@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../models/notification_model.dart';
 import '../theme/app_theme.dart';
 
@@ -93,7 +94,8 @@ class NotificationTile extends StatelessWidget {
           title: Text(
             notification.title,
             style: TextStyle(
-              fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
+              fontWeight:
+                  notification.isRead ? FontWeight.normal : FontWeight.bold,
               fontSize: 14,
             ),
             maxLines: 1,
@@ -123,9 +125,11 @@ class NotificationTile extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: _getPriorityColor(notification.priority).withOpacity(0.2),
+                      color: _getPriorityColor(notification.priority)
+                          .withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -212,7 +216,8 @@ class NotificationFloatingBanner extends StatefulWidget {
   });
 
   @override
-  State<NotificationFloatingBanner> createState() => _NotificationFloatingBannerState();
+  State<NotificationFloatingBanner> createState() =>
+      _NotificationFloatingBannerState();
 }
 
 class _NotificationFloatingBannerState extends State<NotificationFloatingBanner>
@@ -407,7 +412,7 @@ class NotificationEmptyState extends StatelessWidget {
               ElevatedButton.icon(
                 onPressed: onRefresh,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Refresh'),
+                label: Text('refresh'.tr()),
               ),
             ],
           ],

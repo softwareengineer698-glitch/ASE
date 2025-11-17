@@ -33,7 +33,7 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
     Future.delayed(const Duration(milliseconds: 800), () {
       // Check if widget is still mounted before updating state
       if (!mounted) return;
-      
+
       setState(() {
         forecastData = _getMockForecastData();
         forecastSummary = _getForecastSummary(selectedCategory);
@@ -63,10 +63,11 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
 
   ForecastSummary _getForecastSummary(String category) {
     final mockData = _getMockForecastData();
-    final totalDemand = mockData.fold<double>(0, (sum, item) => sum + item.demand);
+    final totalDemand =
+        mockData.fold<double>(0, (sum, item) => sum + item.demand);
     final avgDemand = totalDemand / mockData.length;
     final peakData = mockData.reduce((a, b) => a.demand > b.demand ? a : b);
-    
+
     return ForecastSummary(
       category: category,
       totalDemand: totalDemand,
@@ -91,13 +92,13 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
         elevation: 0,
       ),
       body: isLoading
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Generating forecast...'),
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text('generating_forecast'.tr()),
                 ],
               ),
             )
@@ -136,7 +137,7 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     Text(
-                                      'AI-powered predictions for optimal donation timing',
+                                      'ai_powered_predictions'.tr(),
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: Colors.grey[600],
@@ -166,7 +167,7 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'Plan your donations based on predicted demand patterns',
+                                    'plan_donations'.tr(),
                                     style: TextStyle(
                                       color: Colors.blue.shade700,
                                       fontWeight: FontWeight.w500,
@@ -185,9 +186,9 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
                   const SizedBox(height: 20),
 
                   // Category Selection
-                  const Text(
-                    'Select Category',
-                    style: TextStyle(
+                  Text(
+                    'select_category'.tr(),
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -204,13 +205,17 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
                           child: FilterChip(
                             label: Text(category),
                             selected: isSelected,
-                            onSelected: (selected) => _onCategoryChanged(category),
+                            onSelected: (selected) =>
+                                _onCategoryChanged(category),
                             backgroundColor: Colors.grey[200],
                             selectedColor: Colors.blue.shade100,
                             checkmarkColor: Colors.blue,
                             labelStyle: TextStyle(
-                              color: isSelected ? Colors.blue : Colors.grey[700],
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color:
+                                  isSelected ? Colors.blue : Colors.grey[700],
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                         );
@@ -315,9 +320,9 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
                   const SizedBox(height: 24),
 
                   // Insights Section
-                  const Text(
-                    'AI Insights',
-                    style: TextStyle(
+                  Text(
+                    'ai_insights'.tr(),
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -327,9 +332,9 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
                   const SizedBox(height: 24),
 
                   // Recommendations
-                  const Text(
-                    'Donation Recommendations',
-                    style: TextStyle(
+                  Text(
+                    'donation_recommendations'.tr(),
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
@@ -342,7 +347,8 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
     );
   }
 
-  Widget _buildSummaryCard(String title, String value, IconData icon, Color color) {
+  Widget _buildSummaryCard(
+      String title, String value, IconData icon, Color color) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -422,8 +428,10 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
               reservedSize: 30,
               interval: 1,
               getTitlesWidget: (double value, TitleMeta meta) {
-                if (value.toInt() >= 0 && value.toInt() < forecastSummary!.dailyForecasts.length) {
-                  final date = forecastSummary!.dailyForecasts[value.toInt()].date;
+                if (value.toInt() >= 0 &&
+                    value.toInt() < forecastSummary!.dailyForecasts.length) {
+                  final date =
+                      forecastSummary!.dailyForecasts[value.toInt()].date;
                   return SideTitleWidget(
                     axisSide: meta.axisSide,
                     child: Text(
@@ -629,7 +637,8 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
     );
   }
 
-  Widget _buildRecommendationItem(String title, String description, IconData icon) {
+  Widget _buildRecommendationItem(
+      String title, String description, IconData icon) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -675,8 +684,21 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
 
   String _formatDate(DateTime date) {
     final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+
     return '${weekdays[date.weekday - 1]}, ${date.day} ${months[date.month - 1]}';
   }
 }

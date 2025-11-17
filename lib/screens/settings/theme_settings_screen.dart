@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../providers/theme_provider.dart';
 import '../../theme/app_theme.dart';
 
@@ -12,7 +13,7 @@ class ThemeSettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Theme & Appearance'),
+        title: Text('theme_appearance'.tr()),
         elevation: 0,
       ),
       body: Consumer<ThemeProvider>(
@@ -29,26 +30,26 @@ class ThemeSettingsScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Theme Mode Section
-                _buildSectionHeader('Brightness Mode'),
+                _buildSectionHeader('brightness_mode'.tr()),
                 const SizedBox(height: 12),
                 _buildThemeModeSelector(context, themeProvider),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // Theme Variant Section
-                _buildSectionHeader('Color Theme'),
+                _buildSectionHeader('color_theme'.tr()),
                 const SizedBox(height: 12),
                 _buildThemeVariantSelector(context, themeProvider),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // Preview Section
-                _buildSectionHeader('Preview'),
+                _buildSectionHeader('preview'.tr()),
                 const SizedBox(height: 12),
                 _buildPreviewSection(context, themeProvider),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // Reset Button
                 _buildResetButton(context, themeProvider),
               ],
@@ -69,27 +70,29 @@ class ThemeSettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildThemeModeSelector(BuildContext context, ThemeProvider themeProvider) {
+  Widget _buildThemeModeSelector(
+      BuildContext context, ThemeProvider themeProvider) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: themeProvider.availableThemeModes.map((mode) {
             final isSelected = themeProvider.themeMode == mode['value'];
-            
+
             return ListTile(
               leading: Icon(
                 mode['icon'] as IconData,
                 color: isSelected ? themeProvider.primaryColor : null,
               ),
               title: Text(mode['name'] as String),
-              trailing: isSelected 
-                ? Icon(
-                    Icons.check_circle,
-                    color: themeProvider.primaryColor,
-                  )
-                : null,
-              onTap: () => themeProvider.setThemeMode(mode['value'] as ThemeMode),
+              trailing: isSelected
+                  ? Icon(
+                      Icons.check_circle,
+                      color: themeProvider.primaryColor,
+                    )
+                  : null,
+              onTap: () =>
+                  themeProvider.setThemeMode(mode['value'] as ThemeMode),
               selected: isSelected,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -101,7 +104,8 @@ class ThemeSettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildThemeVariantSelector(BuildContext context, ThemeProvider themeProvider) {
+  Widget _buildThemeVariantSelector(
+      BuildContext context, ThemeProvider themeProvider) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -119,7 +123,7 @@ class ThemeSettingsScreen extends StatelessWidget {
             final theme = themeProvider.availableThemes[index];
             final isSelected = themeProvider.currentTheme == theme['value'];
             final primaryColor = AppTheme.getPrimaryColor(theme['value']!);
-            
+
             return InkWell(
               onTap: () => themeProvider.setThemeVariant(theme['value']!),
               borderRadius: BorderRadius.circular(12),
@@ -159,7 +163,8 @@ class ThemeSettingsScreen extends StatelessWidget {
                       child: Text(
                         theme['name']!,
                         style: TextStyle(
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
                           color: isSelected ? primaryColor : null,
                         ),
                       ),
@@ -182,43 +187,44 @@ class ThemeSettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPreviewSection(BuildContext context, ThemeProvider themeProvider) {
+  Widget _buildPreviewSection(
+      BuildContext context, ThemeProvider themeProvider) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Preview',
-              style: TextStyle(
+            Text(
+              'preview'.tr(),
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Sample UI elements
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {},
-                    child: const Text('Primary Button'),
+                    child: Text('primary_button'.tr()),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {},
-                    child: const Text('Outlined Button'),
+                    child: Text('outlined_button'.tr()),
                   ),
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Sample card
             Container(
               width: double.infinity,
@@ -241,7 +247,7 @@ class ThemeSettingsScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Sample Donation Card',
+                        'sample_donation_card'.tr(),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: themeProvider.primaryColor,
@@ -250,7 +256,7 @@ class ThemeSettingsScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text('This is how cards will look with the selected theme.'),
+                  Text('cards_preview_text'.tr()),
                 ],
               ),
             ),
@@ -266,7 +272,7 @@ class ThemeSettingsScreen extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: () => _showResetDialog(context, themeProvider),
         icon: const Icon(Icons.refresh),
-        label: const Text('Reset to Default'),
+        label: Text('reset_to_default'.tr()),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
@@ -278,27 +284,24 @@ class ThemeSettingsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Reset Theme'),
-        content: const Text(
-          'Are you sure you want to reset the theme to default settings? '
-          'This will change the theme to Ocean Blue with system brightness.',
-        ),
+        title: Text('reset_theme'.tr()),
+        content: Text('reset_theme_confirmation'.tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
               themeProvider.resetTheme();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Theme reset to default'),
+                SnackBar(
+                  content: Text('theme_reset_success'.tr()),
                 ),
               );
             },
-            child: const Text('Reset'),
+            child: Text('reset'.tr()),
           ),
         ],
       ),

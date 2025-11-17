@@ -8,6 +8,7 @@ import '../../widgets/dashboard_card.dart';
 import '../../widgets/custom_button.dart';
 import '../auth/sign_in_screen.dart';
 import '../history/history_screen.dart';
+
 class NGODashboard extends StatefulWidget {
   const NGODashboard({super.key});
 
@@ -16,7 +17,6 @@ class NGODashboard extends StatefulWidget {
 }
 
 class _NGODashboardState extends State<NGODashboard> {
-
   @override
   Widget build(BuildContext context) {
     return Consumer2<AuthProvider, ThemeProvider>(
@@ -42,7 +42,8 @@ class _NGODashboardState extends State<NGODashboard> {
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       minHeight: constraints.maxHeight - 32,
-                      maxWidth: constraints.maxWidth > 800 ? 800 : double.infinity,
+                      maxWidth:
+                          constraints.maxWidth > 800 ? 800 : double.infinity,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,7 +97,8 @@ class _NGODashboardState extends State<NGODashboard> {
                 Row(
                   children: [
                     Text(
-                      'Welcome, ${user.email.split('@')[0]}',
+                      'welcome_user'
+                          .tr(namedArgs: {'name': user.email.split('@')[0]}),
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -105,15 +107,16 @@ class _NGODashboardState extends State<NGODashboard> {
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: Colors.green.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.green),
                       ),
-                      child: const Text(
-                        '✓ Verified',
-                        style: TextStyle(
+                      child: Text(
+                        'verified'.tr(),
+                        style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: Colors.green,
@@ -124,7 +127,7 @@ class _NGODashboardState extends State<NGODashboard> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Ready to help collect surplus food?',
+                  'ready_to_collect'.tr(),
                   style: TextStyle(
                     fontSize: 14,
                     color: colorScheme.onSurfaceVariant,
@@ -144,7 +147,7 @@ class _NGODashboardState extends State<NGODashboard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Today\'s Overview',
+          'todays_overview'.tr(),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -156,21 +159,21 @@ class _NGODashboardState extends State<NGODashboard> {
           children: [
             Expanded(
               child: MetricCard(
-                title: 'Available',
+                title: 'available'.tr(),
                 value: '8',
                 icon: Icons.restaurant,
                 iconColor: Colors.green,
-                subtitle: 'Surplus nearby',
+                subtitle: 'surplus_nearby'.tr(),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: MetricCard(
-                title: 'Pending',
+                title: 'pending'.tr(),
                 value: '2',
                 icon: Icons.schedule,
                 iconColor: Colors.orange,
-                subtitle: 'Pickups waiting',
+                subtitle: 'pickups_waiting'.tr(),
               ),
             ),
           ],
@@ -180,21 +183,21 @@ class _NGODashboardState extends State<NGODashboard> {
           children: [
             Expanded(
               child: MetricCard(
-                title: 'This Month',
+                title: 'this_month'.tr(),
                 value: '45',
                 icon: Icons.check_circle,
                 iconColor: Colors.blue,
-                subtitle: 'Completed',
+                subtitle: 'completed'.tr(),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: MetricCard(
-                title: 'People Served',
+                title: 'people_helped'.tr(),
                 value: '1,230',
                 icon: Icons.people,
                 iconColor: Colors.purple,
-                subtitle: 'Lives impacted',
+                subtitle: 'lives_impacted'.tr(),
               ),
             ),
           ],
@@ -206,14 +209,14 @@ class _NGODashboardState extends State<NGODashboard> {
   // 3. Available Surplus List (Main Feature)
   Widget _buildAvailableSurplusSection(ColorScheme colorScheme) {
     final availableSurplus = _generateAvailableSurplus();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Text(
-              'Available Surplus',
+              'available_surplus'.tr(),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -228,12 +231,14 @@ class _NGODashboardState extends State<NGODashboard> {
           ],
         ),
         const SizedBox(height: 16),
-        ...availableSurplus.map((surplus) => _buildAvailableSurplusCard(surplus, colorScheme)),
+        ...availableSurplus
+            .map((surplus) => _buildAvailableSurplusCard(surplus, colorScheme)),
       ],
     );
   }
 
-  Widget _buildAvailableSurplusCard(Map<String, dynamic> surplus, ColorScheme colorScheme) {
+  Widget _buildAvailableSurplusCard(
+      Map<String, dynamic> surplus, ColorScheme colorScheme) {
     return DashboardCard(
       margin: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -280,9 +285,11 @@ class _NGODashboardState extends State<NGODashboard> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _getExpiryColor(surplus['expiryHours']).withOpacity(0.1),
+                      color: _getExpiryColor(surplus['expiryHours'])
+                          .withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -331,7 +338,8 @@ class _NGODashboardState extends State<NGODashboard> {
           const SizedBox(height: 8),
           Row(
             children: [
-              Icon(Icons.location_on, size: 16, color: colorScheme.onSurfaceVariant),
+              Icon(Icons.location_on,
+                  size: 16, color: colorScheme.onSurfaceVariant),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
@@ -374,14 +382,14 @@ class _NGODashboardState extends State<NGODashboard> {
   // 4. Active Requests
   Widget _buildActiveRequestsSection(ColorScheme colorScheme) {
     final activeRequests = _generateActiveRequests();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Text(
-              'Active Requests',
+              'active_requests'.tr(),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -399,12 +407,14 @@ class _NGODashboardState extends State<NGODashboard> {
           ],
         ),
         const SizedBox(height: 16),
-        ...activeRequests.map((request) => _buildActiveRequestCard(request, colorScheme)),
+        ...activeRequests
+            .map((request) => _buildActiveRequestCard(request, colorScheme)),
       ],
     );
   }
 
-  Widget _buildActiveRequestCard(Map<String, dynamic> request, ColorScheme colorScheme) {
+  Widget _buildActiveRequestCard(
+      Map<String, dynamic> request, ColorScheme colorScheme) {
     return DashboardCard(
       margin: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -502,7 +512,7 @@ class _NGODashboardState extends State<NGODashboard> {
   List<Map<String, dynamic>> _generateAvailableSurplus() {
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     if (user == null) return [];
-    
+
     // All surplus data with status tracking
     final allSurplus = [
       {
@@ -558,13 +568,15 @@ class _NGODashboardState extends State<NGODashboard> {
         'acceptedBy': user.uid, // Accepted by current NGO
       },
     ];
-    
+
     // Filter to show only available surplus (not accepted by any NGO)
     // This prevents duplication - once accepted, it's not visible to other NGOs
-    return allSurplus.where((surplus) => 
-      surplus['status'] == 'Available' || 
-      (surplus['status'] == 'Accepted' && surplus['acceptedBy'] == user.uid)
-    ).toList();
+    return allSurplus
+        .where((surplus) =>
+            surplus['status'] == 'Available' ||
+            (surplus['status'] == 'Accepted' &&
+                surplus['acceptedBy'] == user.uid))
+        .toList();
   }
 
   List<Map<String, dynamic>> _generateActiveRequests() {
@@ -591,11 +603,12 @@ class _NGODashboardState extends State<NGODashboard> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Quantity: ${surplus['quantity']}'),
-            Text('Expiry: ${surplus['expiryHours']} hours left'),
-            Text('Distance: ${surplus['distance']} km'),
-            Text('Donor: ${surplus['donorName']}'),
-            Text('Location: ${surplus['location']}'),
+            Text('${'quantity'.tr()}: ${surplus['quantity']}'),
+            Text(
+                '${'expiry'.tr()}: ${surplus['expiryHours']} ${'hours_left'.tr()}'),
+            Text('${'distance'.tr()}: ${surplus['distance']} km'),
+            Text('${'donor'.tr()}: ${surplus['donorName']}'),
+            Text('${'location'.tr()}: ${surplus['location']}'),
             const SizedBox(height: 16),
             Container(
               height: 120,
@@ -604,12 +617,12 @@ class _NGODashboardState extends State<NGODashboard> {
                 color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.map, size: 40, color: Colors.grey),
-                    Text('Map Preview'),
+                    const Icon(Icons.map, size: 40, color: Colors.grey),
+                    Text('map_preview'.tr()),
                   ],
                 ),
               ),
@@ -638,7 +651,7 @@ class _NGODashboardState extends State<NGODashboard> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('accept_pickup'.tr()),
-        content: Text('Accept pickup for ${surplus['foodType']}?'),
+        content: Text('${'accept_pickup_for'.tr()} ${surplus['foodType']}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -649,12 +662,13 @@ class _NGODashboardState extends State<NGODashboard> {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Pickup accepted for ${surplus['foodType']}!'),
+                  content: Text(
+                      '${'pickup_accepted_for'.tr()} ${surplus['foodType']}!'),
                   backgroundColor: Colors.green,
                 ),
               );
             },
-            child: const Text('Accept'),
+            child: Text('accept'.tr()),
           ),
         ],
       ),
@@ -665,31 +679,33 @@ class _NGODashboardState extends State<NGODashboard> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Mark as Collected'),
+        title: Text('mark_as_collected'.tr()),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Mark ${request['foodType']} as collected?'),
+            Text(
+                '${'mark_as_collected_question'.tr().replaceAll('{foodType}', request['foodType'])}'),
             const SizedBox(height: 16),
-            const Text('Please upload photo proof and get donor signature.'),
+            Text('upload_photo_signature'.tr()),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('${request['foodType']} marked as collected!'),
+                  content: Text(
+                      '${request['foodType']} ${'marked_as_collected'.tr()}!'),
                   backgroundColor: Colors.green,
                 ),
               );
             },
-            child: const Text('Mark Collected'),
+            child: Text('mark_collected'.tr()),
           ),
         ],
       ),

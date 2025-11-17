@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../theme/app_theme.dart';
 
 class GradientButton extends StatelessWidget {
@@ -33,7 +34,8 @@ class GradientButton extends StatelessWidget {
       width: width,
       height: height ?? 56,
       decoration: BoxDecoration(
-        gradient: onPressed != null ? (gradient ?? AppTheme.accentGradient) : null,
+        gradient:
+            onPressed != null ? (gradient ?? AppTheme.accentGradient) : null,
         color: onPressed == null ? Colors.grey[300] : null,
         borderRadius: borderRadius ?? BorderRadius.circular(12),
         boxShadow: onPressed != null ? AppTheme.buttonShadow : null,
@@ -44,26 +46,28 @@ class GradientButton extends StatelessWidget {
           onTap: isLoading ? null : onPressed,
           borderRadius: borderRadius ?? BorderRadius.circular(12),
           child: Container(
-            padding: padding ?? const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: padding ??
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: isLoading
-                ? const Row(
+                ? Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       Text(
-                        'Loading...',
-                        style: TextStyle(
+                        'loading_text'.tr(),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -82,11 +86,12 @@ class GradientButton extends StatelessWidget {
                       ],
                       Text(
                         text,
-                        style: textStyle ?? const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: textStyle ??
+                            const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                     ],
                   ),
@@ -121,7 +126,8 @@ class GradientIconButton extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: onPressed != null ? (gradient ?? AppTheme.accentGradient) : null,
+        gradient:
+            onPressed != null ? (gradient ?? AppTheme.accentGradient) : null,
         color: onPressed == null ? Colors.grey[300] : null,
         borderRadius: BorderRadius.circular(size / 2),
         boxShadow: onPressed != null ? AppTheme.buttonShadow : null,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'dart:io';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -52,7 +52,7 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
 
   Future<void> _loadProfileData() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final user = Provider.of<AuthProvider>(context, listen: false).user;
       if (user != null) {
@@ -60,7 +60,7 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
             .collection('users')
             .doc(user.uid)
             .get();
-        
+
         if (doc.exists) {
           _profileData = doc.data();
           _populateControllers();
@@ -116,7 +116,8 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
           'role': 'ngo',
           'verified': _profileData?['verified'] ?? false,
           'updatedAt': DateTime.now().toIso8601String(),
-          'createdAt': _profileData?['createdAt'] ?? DateTime.now().toIso8601String(),
+          'createdAt':
+              _profileData?['createdAt'] ?? DateTime.now().toIso8601String(),
         };
 
         await FirebaseFirestore.instance
@@ -126,7 +127,7 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
 
         _profileData = updatedData;
         setState(() => _isEditing = false);
-        
+
         _showSuccessSnackBar('Profile updated successfully!');
       }
     } catch (e) {
@@ -161,7 +162,8 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Change Profile Picture'),
-        content: const Text('Choose how you want to update your profile picture'),
+        content:
+            const Text('Choose how you want to update your profile picture'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -194,7 +196,7 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
         maxHeight: 512,
         imageQuality: 75,
       );
-      
+
       if (image != null) {
         setState(() {
           _selectedImage = File(image.path);
@@ -214,7 +216,7 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
         maxHeight: 512,
         imageQuality: 75,
       );
-      
+
       if (image != null) {
         setState(() {
           _selectedImage = File(image.path);
@@ -322,7 +324,7 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
 
   Widget _buildProfileHeader(ColorScheme colorScheme) {
     final isVerified = _profileData?['verified'] ?? false;
-    
+
     return Card(
       elevation: 2,
       child: Padding(
@@ -334,10 +336,10 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
                 CircleAvatar(
                   radius: 50,
                   backgroundColor: colorScheme.primaryContainer,
-                  backgroundImage: _selectedImage != null 
-                      ? FileImage(_selectedImage!) 
+                  backgroundImage: _selectedImage != null
+                      ? FileImage(_selectedImage!)
                       : null,
-                  child: _selectedImage == null 
+                  child: _selectedImage == null
                       ? Text(
                           _getInitials(),
                           style: TextStyle(
@@ -391,8 +393,8 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
             Text(
               _profileData?['organization'] ?? 'Organization Name',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
@@ -400,9 +402,12 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: isVerified ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                    color: isVerified
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isVerified ? Colors.green : Colors.orange,
@@ -445,98 +450,93 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Organization Information',
+              'organization_information'.tr(),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 24),
-            
             CustomTextField(
               controller: _organizationController,
-              label: 'Organization Name',
-              hint: 'Enter your organization name',
+              label: 'organization_name'.tr(),
+              hint: 'enter_organization_name'.tr(),
               prefixIcon: Icons.business,
               enabled: _isEditing,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Organization name is required';
+                  return 'organization_name_required'.tr();
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
-
             CustomTextField(
               controller: _nameController,
-              label: 'Contact Person Name',
-              hint: 'Enter contact person name',
+              label: 'contact_person_name'.tr(),
+              hint: 'enter_contact_person_name'.tr(),
               prefixIcon: Icons.person,
               enabled: _isEditing,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Contact person name is required';
+                  return 'contact_person_name_required'.tr();
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
-
             CustomTextField(
               controller: _emailController,
-              label: 'Email Address',
-              hint: 'Enter email address',
+              label: 'email_address'.tr(),
+              hint: 'enter_email_address'.tr(),
               prefixIcon: Icons.email,
               keyboardType: TextInputType.emailAddress,
               enabled: false, // Email should not be editable
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Email is required';
+                  return 'email_required'.tr();
                 }
-                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                  return 'Please enter a valid email';
+                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                    .hasMatch(value)) {
+                  return 'enter_valid_email'.tr();
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
-
             CustomTextField(
               controller: _phoneController,
-              label: 'Phone Number',
-              hint: 'Enter phone number',
+              label: 'phone_number'.tr(),
+              hint: 'enter_phone_number'.tr(),
               prefixIcon: Icons.phone,
               keyboardType: TextInputType.phone,
               enabled: _isEditing,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Phone number is required';
+                  return 'phone_number_required'.tr();
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
-
             CustomTextField(
               controller: _addressController,
-              label: 'Address',
-              hint: 'Enter organization address',
+              label: 'address'.tr(),
+              hint: 'enter_organization_address'.tr(),
               prefixIcon: Icons.location_on,
               maxLines: 3,
               enabled: _isEditing,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Address is required';
+                  return 'address_required'.tr();
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
-
             CustomTextField(
               controller: _bioController,
-              label: 'About Organization',
-              hint: 'Tell us about your organization and mission',
+              label: 'about_organization'.tr(),
+              hint: 'tell_about_organization'.tr(),
               prefixIcon: Icons.info,
               maxLines: 4,
               enabled: _isEditing,
@@ -552,7 +552,7 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
       children: [
         if (_isEditing) ...[
           CustomButton(
-            text: _isLoading ? 'Saving...' : 'Save Changes',
+            text: _isLoading ? 'saving'.tr() : 'save_changes'.tr(),
             onPressed: _isLoading ? null : _saveProfile,
             fullWidth: true,
             icon: Icons.save,
@@ -573,21 +573,21 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
                     const Icon(Icons.palette),
                     const SizedBox(width: 8),
                     Text(
-                      'Theme Settings',
+                      'theme_settings'.tr(),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Theme Colors
                 Text(
-                  'Color Theme',
+                  'color_theme'.tr(),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                        fontWeight: FontWeight.w500,
+                      ),
                 ),
                 const SizedBox(height: 8),
                 Consumer<ThemeProvider>(
@@ -595,7 +595,8 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
                     return Wrap(
                       spacing: 8,
                       children: ThemeVariant.values.map((variant) {
-                        final isSelected = themeProvider.currentVariant == variant;
+                        final isSelected =
+                            themeProvider.currentVariant == variant;
                         return GestureDetector(
                           onTap: () => themeProvider.setThemeVariant(variant),
                           child: Container(
@@ -605,7 +606,9 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
                               color: variant.primaryColor,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: isSelected ? Colors.black : Colors.grey.shade300,
+                                color: isSelected
+                                    ? Colors.black
+                                    : Colors.grey.shade300,
                                 width: isSelected ? 3 : 1,
                               ),
                             ),
@@ -619,13 +622,13 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Theme Mode
                 Text(
-                  'Appearance',
+                  'appearance'.tr(),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                        fontWeight: FontWeight.w500,
+                      ),
                 ),
                 const SizedBox(height: 8),
                 Consumer<ThemeProvider>(
@@ -637,14 +640,14 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
                           themeProvider.setThemeMode(mode);
                         }
                       },
-                      items: const [
+                      items: [
                         DropdownMenuItem(
                           value: ThemeMode.light,
-                          child: Text('Light Appearance'),
+                          child: Text('light_appearance'.tr()),
                         ),
                         DropdownMenuItem(
                           value: ThemeMode.dark,
-                          child: Text('Dark Appearance'),
+                          child: Text('dark_appearance'.tr()),
                         ),
                       ],
                     );
@@ -704,7 +707,7 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
   String _getInitials() {
     final orgName = _profileData?['organization'] ?? '';
     final contactName = _profileData?['name'] ?? '';
-    
+
     if (orgName.isNotEmpty) {
       final words = orgName.split(' ');
       if (words.length >= 2) {
@@ -713,11 +716,11 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
         return words[0][0].toUpperCase();
       }
     }
-    
+
     if (contactName.isNotEmpty) {
       return contactName[0].toUpperCase();
     }
-    
+
     return 'N';
   }
 }

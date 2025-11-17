@@ -21,7 +21,6 @@ class DonorDashboard extends StatefulWidget {
 }
 
 class _DonorDashboardState extends State<DonorDashboard> {
-
   @override
   Widget build(BuildContext context) {
     return Consumer2<AuthProvider, ThemeProvider>(
@@ -47,7 +46,8 @@ class _DonorDashboardState extends State<DonorDashboard> {
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       minHeight: constraints.maxHeight - 32,
-                      maxWidth: constraints.maxWidth > 800 ? 800 : double.infinity,
+                      maxWidth:
+                          constraints.maxWidth > 800 ? 800 : double.infinity,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,7 +103,8 @@ class _DonorDashboardState extends State<DonorDashboard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Hello, ${user.email.split('@')[0]} 👋',
+                  'hello_user'
+                      .tr(namedArgs: {'name': user.email.split('@')[0]}),
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -112,7 +113,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Ready to help reduce food waste today?',
+                  'ready_to_help_today'.tr(),
                   style: TextStyle(
                     fontSize: 14,
                     color: colorScheme.onSurfaceVariant,
@@ -132,7 +133,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Today\'s Overview',
+          'todays_overview'.tr(),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -144,21 +145,21 @@ class _DonorDashboardState extends State<DonorDashboard> {
           children: [
             Expanded(
               child: MetricCard(
-                title: 'Surplus Risk',
-                value: 'High',
+                title: 'surplus_risk'.tr(),
+                value: 'high'.tr(),
                 icon: Icons.warning,
                 iconColor: Colors.orange,
-                subtitle: 'Check forecast',
+                subtitle: 'check_forecast'.tr(),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: MetricCard(
-                title: 'This Month',
+                title: 'this_month'.tr(),
                 value: '12',
                 icon: Icons.restaurant,
                 iconColor: Colors.green,
-                subtitle: 'Food donated',
+                subtitle: 'food_donated'.tr(),
               ),
             ),
           ],
@@ -168,21 +169,21 @@ class _DonorDashboardState extends State<DonorDashboard> {
           children: [
             Expanded(
               child: MetricCard(
-                title: 'Meals Helped',
+                title: 'meals_helped'.tr(),
                 value: '156',
                 icon: Icons.people,
                 iconColor: Colors.blue,
-                subtitle: 'People fed',
+                subtitle: 'people_fed'.tr(),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: MetricCard(
-                title: 'Pending',
+                title: 'pending'.tr(),
                 value: '3',
                 icon: Icons.schedule,
                 iconColor: Colors.purple,
-                subtitle: 'Pickups waiting',
+                subtitle: 'pickups_waiting'.tr(),
               ),
             ),
           ],
@@ -202,7 +203,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
               Icon(Icons.analytics, color: colorScheme.primary),
               const SizedBox(width: 8),
               Text(
-                '📊 Demand Forecast',
+                'demand_forecast'.tr(),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -213,9 +214,10 @@ class _DonorDashboardState extends State<DonorDashboard> {
               TextButton(
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ForecastDashboard()),
+                  MaterialPageRoute(
+                      builder: (context) => const ForecastDashboard()),
                 ),
-                child: Text('Report'),
+                child: Text('report'.tr()),
               ),
             ],
           ),
@@ -242,7 +244,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Surplus Alert: High demand expected tomorrow',
+                    'surplus_alert'.tr(),
                     style: TextStyle(
                       color: Colors.orange[800],
                       fontWeight: FontWeight.w500,
@@ -258,12 +260,13 @@ class _DonorDashboardState extends State<DonorDashboard> {
   }
 
   // 4. Main Actions
-  Widget _buildMainActionsSection(BuildContext context, ColorScheme colorScheme) {
+  Widget _buildMainActionsSection(
+      BuildContext context, ColorScheme colorScheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Quick Actions',
+          'quick_actions'.tr(),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -281,20 +284,22 @@ class _DonorDashboardState extends State<DonorDashboard> {
                 iconColor: Colors.green,
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const CreateSurplusScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const CreateSurplusScreen()),
                 ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: QuickActionCard(
-                title: 'View History',
-                subtitle: 'Past donations',
+                title: 'view_history'.tr(),
+                subtitle: 'my_donations'.tr(),
                 icon: Icons.history,
                 iconColor: Colors.blue,
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const HistoryScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const HistoryScreen()),
                 ),
               ),
             ),
@@ -302,13 +307,14 @@ class _DonorDashboardState extends State<DonorDashboard> {
         ),
         const SizedBox(height: 12),
         CustomButton(
-          text: '🔔 Notifications',
+          text: '🔔 ' + 'notifications'.tr(),
           icon: Icons.notifications,
           fullWidth: true,
           variant: ButtonVariant.outlined,
           onPressed: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+            MaterialPageRoute(
+                builder: (context) => const NotificationsScreen()),
           ),
         ),
       ],
@@ -318,14 +324,14 @@ class _DonorDashboardState extends State<DonorDashboard> {
   // 5. Active Surplus List
   Widget _buildActiveSurplusSection(ColorScheme colorScheme) {
     final mockSurplus = _generateMockSurplus();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Text(
-              'Active Surplus',
+              'active_surplus'.tr(),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -338,17 +344,19 @@ class _DonorDashboardState extends State<DonorDashboard> {
                 context,
                 MaterialPageRoute(builder: (context) => const HistoryScreen()),
               ),
-              child: const Text('View All'),
+              child: Text('view_all'.tr()),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        ...mockSurplus.map((surplus) => _buildSurplusCard(surplus, colorScheme)),
+        ...mockSurplus
+            .map((surplus) => _buildSurplusCard(surplus, colorScheme)),
       ],
     );
   }
 
-  Widget _buildSurplusCard(Map<String, dynamic> surplus, ColorScheme colorScheme) {
+  Widget _buildSurplusCard(
+      Map<String, dynamic> surplus, ColorScheme colorScheme) {
     return DashboardCard(
       margin: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -412,7 +420,8 @@ class _DonorDashboardState extends State<DonorDashboard> {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.business, size: 16, color: colorScheme.onSurfaceVariant),
+                Icon(Icons.business,
+                    size: 16, color: colorScheme.onSurfaceVariant),
                 const SizedBox(width: 4),
                 Text(
                   'NGO: ${surplus['ngoName']}',
@@ -504,7 +513,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
   List<Map<String, dynamic>> _generateMockSurplus() {
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     if (user == null) return [];
-    
+
     // All surplus data with donor IDs
     final allSurplus = [
       {
@@ -536,7 +545,8 @@ class _DonorDashboardState extends State<DonorDashboard> {
       },
       {
         'id': '4',
-        'donorId': 'other_donor_id', // Other donor's surplus - should not be visible
+        'donorId':
+            'other_donor_id', // Other donor's surplus - should not be visible
         'foodName': 'Other Donor Food',
         'quantity': '3 kg',
         'status': 'Available',
@@ -544,44 +554,46 @@ class _DonorDashboardState extends State<DonorDashboard> {
         'eta': null,
       },
     ];
-    
+
     // Filter to show only current user's surplus
-    return allSurplus.where((surplus) => surplus['donorId'] == user.uid).toList();
+    return allSurplus
+        .where((surplus) => surplus['donorId'] == user.uid)
+        .toList();
   }
 
   void _showTrackingDialog(BuildContext context, Map<String, dynamic> surplus) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Tracking: ${surplus['foodName']}'),
+        title: Text('${'tracking'.tr()}: ${surplus['foodName']}'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: const Icon(Icons.check_circle, color: Colors.green),
-              title: Text('Accepted by ${surplus['ngoName']}'),
+              title: Text('${'accepted_by'.tr()} ${surplus['ngoName']}'),
               subtitle: const Text('10:30 AM'),
             ),
             ListTile(
               leading: const Icon(Icons.directions_car, color: Colors.blue),
-              title: const Text('On the way'),
-              subtitle: Text('ETA: ${surplus['eta']}'),
+              title: Text('on_the_way'.tr()),
+              subtitle: Text('${'eta'.tr()}: ${surplus['eta']}'),
             ),
-            const ListTile(
-              leading: Icon(Icons.schedule, color: Colors.grey),
-              title: Text('Pickup pending'),
-              subtitle: Text('Waiting for collection'),
+            ListTile(
+              leading: const Icon(Icons.schedule, color: Colors.grey),
+              title: Text('pickup_pending'.tr()),
+              subtitle: Text('waiting_for_collection'.tr()),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Contact NGO'),
+            child: Text('contact_ngo'.tr()),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text('close'.tr()),
           ),
         ],
       ),

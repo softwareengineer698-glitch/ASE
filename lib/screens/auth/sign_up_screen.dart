@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/user_model.dart';
 import '../../widgets/custom_text_field.dart';
@@ -34,7 +35,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void _signUp() async {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
+
       await authProvider.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
@@ -51,12 +52,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
           );
         } else if (authProvider.user != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Account created successfully!'),
+            SnackBar(
+              content: Text('signed_in_successfully'.tr()),
               backgroundColor: Colors.green,
             ),
           );
-          
+
           // Navigate to role-based dashboard
           _navigateToDashboard();
         }
@@ -95,19 +96,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Create Account',
+                    'create_account'.tr(),
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Join our community today',
+                    'welcome'.tr(),
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey[600],
-                    ),
+                          color: Colors.grey[600],
+                        ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
@@ -115,15 +116,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   // Email Field
                   CustomTextField(
                     controller: _emailController,
-                    label: 'Email',
+                    label: 'email'.tr(),
                     keyboardType: TextInputType.emailAddress,
                     prefixIcon: Icons.email_outlined,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
+                        return 'email_required'.tr();
                       }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                        return 'Please enter a valid email';
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value)) {
+                        return 'invalid_email'.tr();
                       }
                       return null;
                     },
@@ -133,11 +135,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   // Password Field
                   CustomTextField(
                     controller: _passwordController,
-                    label: 'Password',
+                    label: 'password'.tr(),
                     obscureText: _obscurePassword,
                     prefixIcon: Icons.lock_outline,
                     suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                      icon: Icon(_obscurePassword
+                          ? Icons.visibility
+                          : Icons.visibility_off),
                       onPressed: () {
                         setState(() {
                           _obscurePassword = !_obscurePassword;
@@ -146,10 +150,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter a password';
+                        return 'password_required'.tr();
                       }
                       if (value.length < 6) {
-                        return 'Password must be at least 6 characters';
+                        return 'password_too_short'.tr();
                       }
                       return null;
                     },
@@ -159,11 +163,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   // Confirm Password Field
                   CustomTextField(
                     controller: _confirmPasswordController,
-                    label: 'Confirm Password',
+                    label: 'confirm_password'.tr(),
                     obscureText: _obscureConfirmPassword,
                     prefixIcon: Icons.lock_outline,
                     suffixIcon: IconButton(
-                      icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                      icon: Icon(_obscureConfirmPassword
+                          ? Icons.visibility
+                          : Icons.visibility_off),
                       onPressed: () {
                         setState(() {
                           _obscureConfirmPassword = !_obscureConfirmPassword;
@@ -172,10 +178,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please confirm your password';
+                        return 'password_required'.tr();
                       }
                       if (value != _passwordController.text) {
-                        return 'Passwords do not match';
+                        return 'passwords_dont_match'.tr();
                       }
                       return null;
                     },
@@ -184,18 +190,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                   // Role Selection
                   Text(
-                    'Select Your Role',
+                    'select_role'.tr(),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
                         child: RadioListTile<UserRole>(
-                          title: const Text('Donor'),
-                          subtitle: const Text('I want to donate'),
+                          title: Text('donor_name'.tr()),
+                          subtitle:
+                              Text('i_am_a'.tr() + ' ' + 'donor_name'.tr()),
                           value: UserRole.donor,
                           groupValue: _selectedRole,
                           onChanged: (UserRole? value) {
@@ -207,8 +214,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       Expanded(
                         child: RadioListTile<UserRole>(
-                          title: const Text('NGO'),
-                          subtitle: const Text('I represent an NGO'),
+                          title: Text('ngo_name'.tr()),
+                          subtitle: Text('i_am_a'.tr() + ' ' + 'ngo_name'.tr()),
                           value: UserRole.ngo,
                           groupValue: _selectedRole,
                           onChanged: (UserRole? value) {
@@ -226,7 +233,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   Consumer<AuthProvider>(
                     builder: (context, authProvider, child) {
                       return CustomButton(
-                        text: 'Create Account',
+                        text: 'create_account'.tr(),
                         onPressed: authProvider.isLoading ? null : _signUp,
                         isLoading: authProvider.isLoading,
                       );
@@ -239,7 +246,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Already have an account? ",
+                        'already_have_account'.tr(),
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                       TextButton(
@@ -251,7 +258,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                           );
                         },
-                        child: const Text('Sign In'),
+                        child: Text('sign_in'.tr()),
                       ),
                     ],
                   ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum AppLanguage {
   english,
@@ -47,20 +49,48 @@ class LanguageProvider extends ChangeNotifier {
   }
 
   Future<void> _loadSavedLanguage() async {
-    // Load saved language preferences
-    // This would typically load from SharedPreferences
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedLanguageCode = prefs.getString('app_language') ?? 'en';
+
+      _currentLanguage =
+          savedLanguageCode == 'ur' ? AppLanguage.urdu : AppLanguage.english;
+    } catch (e) {
+      debugPrint('Error loading saved language: $e');
+      _currentLanguage = AppLanguage.english;
+    }
     notifyListeners();
   }
 
-  void setLanguage(AppLanguage language) {
-    _currentLanguage = language;
-    _saveLanguage();
+  Future<void> setLanguage(AppLanguage language, BuildContext context) async {
+    if (_currentLanguage == language) return;
+
+    _isLoading = true;
     notifyListeners();
+
+    try {
+      _currentLanguage = language;
+      await _saveLanguage();
+
+      // Change EasyLocalization locale
+      await context.setLocale(language.locale);
+
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error setting language: $e');
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _saveLanguage() async {
-    // Save language preferences
-    // This would typically save to SharedPreferences
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('app_language', _currentLanguage.code);
+    } catch (e) {
+      debugPrint('Error saving language: $e');
+    }
   }
 
   List<AppLanguage> get availableLanguages => AppLanguage.values;

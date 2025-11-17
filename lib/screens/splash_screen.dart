@@ -118,7 +118,7 @@ class _SplashScreenState extends State<SplashScreen>
         _navigateToAuth();
       }
     } catch (e) {
-      print('Navigation error: $e');
+      debugPrint('Navigation error: $e');
 
       if (!mounted) return;
 

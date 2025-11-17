@@ -68,7 +68,7 @@ class _SignInScreenState extends State<SignInScreen> {
   void _signIn() async {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
+
       await authProvider.signIn(
         email: _emailController.text.trim(),
         password: _passwordController.text,
@@ -86,12 +86,12 @@ class _SignInScreenState extends State<SignInScreen> {
           // Save credentials if remember me is checked
           await _saveCredentials();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Signed in successfully!'),
+            SnackBar(
+              content: Text('signed_in_successfully'.tr()),
               backgroundColor: Colors.green,
             ),
           );
-          
+
           // Navigate to role-based dashboard
           _navigateToDashboard(authProvider.user!.role);
         }
@@ -122,137 +122,140 @@ class _SignInScreenState extends State<SignInScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SizedBox(height: MediaQuery.of(context).size.height * 0.1),
-                // Logo/Title
-                const Icon(
-                  Icons.volunteer_activism,
-                  size: 80,
-                  color: Colors.blue,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Welcome Back',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                  // Logo/Title
+                  const Icon(
+                    Icons.volunteer_activism,
+                    size: 80,
                     color: Colors.blue,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Sign in to continue',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.grey[600],
+                  const SizedBox(height: 24),
+                  Text(
+                    'welcome_back'.tr(),
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 48),
+                  const SizedBox(height: 8),
+                  Text(
+                    'sign_in'.tr(),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 48),
 
-                // Email Field
-                CustomTextField(
-                  controller: _emailController,
-                  label: 'email'.tr(),
-                  keyboardType: TextInputType.emailAddress,
-                  prefixIcon: Icons.email_outlined,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Password Field
-                CustomTextField(
-                  controller: _passwordController,
-                  label: 'password'.tr(),
-                  obscureText: _obscurePassword,
-                  prefixIcon: Icons.lock_outline,
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
+                  // Email Field
+                  CustomTextField(
+                    controller: _emailController,
+                    label: 'email'.tr(),
+                    keyboardType: TextInputType.emailAddress,
+                    prefixIcon: Icons.email_outlined,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'email_required'.tr();
+                      }
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value)) {
+                        return 'invalid_email'.tr();
+                      }
+                      return null;
                     },
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // Remember Me Checkbox
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _rememberMe,
-                      onChanged: (value) {
+                  // Password Field
+                  CustomTextField(
+                    controller: _passwordController,
+                    label: 'password'.tr(),
+                    obscureText: _obscurePassword,
+                    prefixIcon: Icons.lock_outline,
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword
+                          ? Icons.visibility
+                          : Icons.visibility_off),
+                      onPressed: () {
                         setState(() {
-                          _rememberMe = value ?? false;
+                          _obscurePassword = !_obscurePassword;
                         });
                       },
                     ),
-                    Text('remember_me'.tr()),
-                  ],
-                ),
-                const SizedBox(height: 24),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'password_required'.tr();
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
 
-                // Sign In Button
-                Consumer<AuthProvider>(
-                  builder: (context, authProvider, child) {
-                    return CustomButton(
-                      text: 'sign_in'.tr(),
-                      onPressed: authProvider.isLoading ? null : _signIn,
-                      isLoading: authProvider.isLoading,
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Forgot Password
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ForgotPasswordScreen(),
+                  // Remember Me Checkbox
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _rememberMe,
+                        onChanged: (value) {
+                          setState(() {
+                            _rememberMe = value ?? false;
+                          });
+                        },
                       ),
-                    );
-                  },
-                  child: const Text('Forgot Password?'),
-                ),
-                const SizedBox(height: 24),
+                      Text('remember_me'.tr()),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
 
-                // Sign Up Link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Don't have an account? ",
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SignUpScreen(),
-                          ),
-                        );
-                      },
-                      child: const Text('Sign Up'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 40),
-              ],
+                  // Sign In Button
+                  Consumer<AuthProvider>(
+                    builder: (context, authProvider, child) {
+                      return CustomButton(
+                        text: 'sign_in'.tr(),
+                        onPressed: authProvider.isLoading ? null : _signIn,
+                        isLoading: authProvider.isLoading,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Forgot Password
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ForgotPasswordScreen(),
+                        ),
+                      );
+                    },
+                    child: Text('forgot_password'.tr()),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Sign Up Link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'dont_have_account'.tr(),
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SignUpScreen(),
+                            ),
+                          );
+                        },
+                        child: Text('sign_up'.tr()),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
             ),
           ),

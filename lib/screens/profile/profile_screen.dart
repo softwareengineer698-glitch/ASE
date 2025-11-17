@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../models/user_model.dart';
@@ -24,10 +25,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Consumer2<AuthProvider, ThemeProvider>(
       builder: (context, authProvider, themeProvider, child) {
         final user = authProvider.user;
-        
+
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Profile'),
+            title: Text('profile'.tr()),
             automaticallyImplyLeading: false,
             actions: [
               IconButton(
@@ -42,14 +43,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 // Profile Header
                 _buildProfileHeader(user, themeProvider),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Settings Section
                 _buildSettingsSection(context, themeProvider, user),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Account Section
                 _buildAccountSection(context, authProvider),
               ],
@@ -79,9 +80,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Email
             Text(
               user?.email ?? 'No email',
@@ -90,9 +91,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            
+
             const SizedBox(height: 8),
-            
+
             // Role Badge
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -115,7 +116,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSettingsSection(BuildContext context, ThemeProvider themeProvider, UserModel? user) {
+  Widget _buildSettingsSection(
+      BuildContext context, ThemeProvider themeProvider, UserModel? user) {
     return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,8 +147,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (user?.role == UserRole.donor)
             _buildSettingsItem(
               icon: Icons.psychology,
-              title: 'AI Forecast Dashboard',
-              subtitle: 'Predict surplus patterns with AI insights',
+              title: 'ai_forecast'.tr(),
+              subtitle: 'smart_predictions'.tr(),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -156,8 +158,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           _buildSettingsItem(
             icon: Icons.leaderboard,
-            title: 'Leaderboards',
-            subtitle: 'See top performers and your ranking',
+            title: 'leaderboards'.tr(),
+            subtitle: 'see_top_performers'.tr(),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -167,8 +169,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           _buildSettingsItem(
             icon: Icons.assignment_turned_in,
-            title: 'Delivery Confirmations',
-            subtitle: 'Manage delivery verifications and signatures',
+            title: 'delivery_confirmations'.tr(),
+            subtitle: 'manage_delivery'.tr(),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -178,8 +180,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           _buildSettingsItem(
             icon: Icons.palette,
-            title: 'Theme & Appearance',
-            subtitle: 'Customize app colors and brightness',
+            title: 'theme_appearance'.tr(),
+            subtitle: 'customize_app'.tr(),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -189,8 +191,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           _buildSettingsItem(
             icon: Icons.language,
-            title: 'Language / زبان',
-            subtitle: 'English / اردو',
+            title: 'language_settings'.tr(),
+            subtitle: 'english_urdu'.tr(),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -200,8 +202,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           _buildSettingsItem(
             icon: Icons.notifications,
-            title: 'Notifications',
-            subtitle: 'Manage notification preferences',
+            title: 'notifications'.tr(),
+            subtitle: 'manage_notifications'.tr(),
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -211,8 +213,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           _buildSettingsItem(
             icon: Icons.privacy_tip,
-            title: 'Privacy',
-            subtitle: 'Privacy and security settings',
+            title: 'privacy'.tr(),
+            subtitle: 'privacy_security_settings'.tr(),
             onTap: () => _showComingSoonDialog(context),
           ),
         ],
@@ -225,11 +227,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.all(16.0),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
             child: Text(
-              'Account',
-              style: TextStyle(
+              'account'.tr(),
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -237,20 +239,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           _buildSettingsItem(
             icon: Icons.help,
-            title: 'Help & Support',
-            subtitle: 'Get help and contact support',
+            title: 'help_support'.tr(),
+            subtitle: 'get_help_contact_support'.tr(),
             onTap: () => _showComingSoonDialog(context),
           ),
           _buildSettingsItem(
             icon: Icons.info,
-            title: 'About',
-            subtitle: 'App version and information',
+            title: 'about'.tr(),
+            subtitle: 'app_version_info'.tr(),
             onTap: () => _showAboutDialog(context),
           ),
           _buildSettingsItem(
             icon: Icons.logout,
-            title: 'Sign Out',
-            subtitle: 'Sign out of your account',
+            title: 'sign_out'.tr(),
+            subtitle: 'sign_out_account'.tr(),
             onTap: () => _showLogoutDialog(context, authProvider),
             isDestructive: true,
           ),
@@ -288,12 +290,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out?'),
+        title: Text('sign_out'.tr()),
+        content: Text('confirm_sign_out'.tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: () {
@@ -304,7 +306,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Sign Out'),
+            child: Text('sign_out'.tr()),
           ),
         ],
       ),
@@ -315,12 +317,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Coming Soon'),
-        content: const Text('This feature is coming in a future update.'),
+        title: Text('coming_soon'.tr()),
+        content: Text('feature_coming_soon'.tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text('ok'.tr()),
           ),
         ],
       ),
@@ -330,7 +332,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showAboutDialog(BuildContext context) {
     showAboutDialog(
       context: context,
-      applicationName: 'FoodBridge',
+      applicationName: 'app_name'.tr(),
       applicationVersion: '1.0.0',
       applicationIcon: const Icon(
         Icons.volunteer_activism,
@@ -338,8 +340,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         color: Colors.blue,
       ),
       children: [
-        const Text(
-          'Connecting food donors with NGOs to reduce waste and feed communities.',
+        Text(
+          'app_description'.tr(),
         ),
       ],
     );

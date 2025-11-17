@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum ThemeVariant {
   white,
@@ -52,29 +53,30 @@ extension ThemeVariantExtension on ThemeVariant {
 }
 
 class ThemeProvider extends ChangeNotifier {
-  
   ThemeVariant _currentVariant = ThemeVariant.white;
   ThemeMode _themeMode = ThemeMode.light;
   bool _isLoading = false;
-  
+
   ThemeVariant get currentVariant => _currentVariant;
   ThemeMode get themeMode => _themeMode;
   bool get isLoading => _isLoading;
   String get currentTheme => _currentVariant.name;
-  
+
   ThemeData get lightTheme => _generateThemeData(Brightness.light);
   ThemeData get darkTheme => _generateThemeData(Brightness.dark);
-  
+
   Color get primaryColor => _currentVariant.primaryColor;
-  
+
   List<Map<String, dynamic>> get availableThemes {
-    return ThemeVariant.values.map((variant) => {
-      'name': variant.name,
-      'displayName': variant.displayName,
-      'primaryColor': variant.primaryColor,
-    }).toList();
+    return ThemeVariant.values
+        .map((variant) => {
+              'name': variant.name,
+              'displayName': variant.displayName,
+              'primaryColor': variant.primaryColor,
+            })
+        .toList();
   }
-  
+
   List<Map<String, dynamic>> get availableThemeModes {
     return [
       {
@@ -87,59 +89,99 @@ class ThemeProvider extends ChangeNotifier {
         'name': 'Dark Appearance',
         'icon': Icons.brightness_2,
       },
+      {
+        'value': ThemeMode.system,
+        'name': 'System Default',
+        'icon': Icons.brightness_auto,
+      },
     ];
   }
-  
+
   Future<void> initialize() async {
     await _loadSavedPreferences();
   }
-  
+
   Future<void> _loadSavedPreferences() async {
-    // Load saved theme preferences
-    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Load theme variant
+      final savedVariant = prefs.getString('theme_variant');
+      if (savedVariant != null) {
+        final variant = ThemeVariant.values.firstWhere(
+          (v) => v.name == savedVariant,
+          orElse: () => ThemeVariant.white,
+        );
+        _currentVariant = variant;
+      }
+
+      // Load theme mode
+      final savedMode = prefs.getString('theme_mode');
+      if (savedMode != null) {
+        switch (savedMode) {
+          case 'light':
+            _themeMode = ThemeMode.light;
+            break;
+          case 'dark':
+            _themeMode = ThemeMode.dark;
+            break;
+          case 'system':
+            _themeMode = ThemeMode.system;
+            break;
+        }
+      }
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading theme preferences: $e');
+    }
   }
-  
+
   void setThemeVariant(ThemeVariant variant) {
     _currentVariant = variant;
     _savePreferences();
     notifyListeners();
   }
-  
+
   void setThemeMode(ThemeMode mode) {
     _themeMode = mode;
     _savePreferences();
     notifyListeners();
   }
-  
+
   Future<void> _savePreferences() async {
-    // Save theme preferences
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('theme_variant', _currentVariant.name);
+      await prefs.setString('theme_mode', _themeMode.name);
+    } catch (e) {
+      debugPrint('Error saving theme preferences: $e');
+    }
   }
-  
+
   void resetTheme() {
     _currentVariant = ThemeVariant.white;
     _themeMode = ThemeMode.light;
     _savePreferences();
     notifyListeners();
   }
-  
+
   List<ThemeVariant> get availableVariants => ThemeVariant.values;
-  
+
   ThemeData _generateThemeData(Brightness brightness) {
     final primaryColor = _currentVariant.primaryColor;
     final isLight = brightness == Brightness.light;
-    
+
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       primarySwatch: _createMaterialColor(primaryColor),
       primaryColor: primaryColor,
       scaffoldBackgroundColor: isLight ? Colors.white : const Color(0xFF121212),
-      
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryColor,
         brightness: brightness,
       ),
-      
       appBarTheme: AppBarTheme(
         elevation: 0,
         centerTitle: true,
@@ -156,7 +198,6 @@ class ThemeProvider extends ChangeNotifier {
           color: Colors.white,
         ),
       ),
-      
       cardTheme: CardTheme(
         elevation: 4,
         shape: RoundedRectangleBorder(
@@ -164,7 +205,6 @@ class ThemeProvider extends ChangeNotifier {
         ),
         color: isLight ? Colors.white : const Color(0xFF1E1E1E),
       ),
-      
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 2,
@@ -180,7 +220,6 @@ class ThemeProvider extends ChangeNotifier {
           ),
         ),
       ),
-      
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -200,9 +239,9 @@ class ThemeProvider extends ChangeNotifier {
         ),
         filled: true,
         fillColor: isLight ? Colors.white : const Color(0xFF1E1E1E),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
-      
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         selectedItemColor: primaryColor,
         unselectedItemColor: Colors.grey,
@@ -211,7 +250,7 @@ class ThemeProvider extends ChangeNotifier {
       ),
     );
   }
-  
+
   MaterialColor _createMaterialColor(Color color) {
     List strengths = <double>[.05];
     final swatch = <int, Color>{};

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'dart:io';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -50,7 +50,7 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
 
   Future<void> _loadProfileData() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final user = Provider.of<AuthProvider>(context, listen: false).user;
       if (user != null) {
@@ -58,7 +58,7 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
             .collection('users')
             .doc(user.uid)
             .get();
-        
+
         if (doc.exists) {
           _profileData = doc.data();
           _populateControllers();
@@ -109,7 +109,8 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
           'bio': _bioController.text.trim(),
           'role': 'donor',
           'updatedAt': DateTime.now().toIso8601String(),
-          'createdAt': _profileData?['createdAt'] ?? DateTime.now().toIso8601String(),
+          'createdAt':
+              _profileData?['createdAt'] ?? DateTime.now().toIso8601String(),
         };
 
         await FirebaseFirestore.instance
@@ -119,7 +120,7 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
 
         _profileData = updatedData;
         setState(() => _isEditing = false);
-        
+
         _showSuccessSnackBar('Profile updated successfully!');
       }
     } catch (e) {
@@ -154,7 +155,8 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Change Profile Picture'),
-        content: const Text('Choose how you want to update your profile picture'),
+        content:
+            const Text('Choose how you want to update your profile picture'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -187,7 +189,7 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
         maxHeight: 512,
         imageQuality: 75,
       );
-      
+
       if (image != null) {
         setState(() {
           _selectedImage = File(image.path);
@@ -207,7 +209,7 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
         maxHeight: 512,
         imageQuality: 75,
       );
-      
+
       if (image != null) {
         setState(() {
           _selectedImage = File(image.path);
@@ -325,10 +327,10 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
                 CircleAvatar(
                   radius: 50,
                   backgroundColor: colorScheme.primaryContainer,
-                  backgroundImage: _selectedImage != null 
-                      ? FileImage(_selectedImage!) 
+                  backgroundImage: _selectedImage != null
+                      ? FileImage(_selectedImage!)
                       : null,
-                  child: _selectedImage == null 
+                  child: _selectedImage == null
                       ? Text(
                           _getInitials(),
                           style: TextStyle(
@@ -364,8 +366,8 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
             Text(
               _profileData?['name'] ?? 'Your Name',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
@@ -413,11 +415,10 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
             Text(
               'Personal Information',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 24),
-            
             CustomTextField(
               controller: _nameController,
               label: 'Full Name',
@@ -432,7 +433,6 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
               },
             ),
             const SizedBox(height: 16),
-
             CustomTextField(
               controller: _emailController,
               label: 'Email Address',
@@ -444,14 +444,14 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
                 if (value == null || value.trim().isEmpty) {
                   return 'Email is required';
                 }
-                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                    .hasMatch(value)) {
                   return 'Please enter a valid email';
                 }
                 return null;
               },
             ),
             const SizedBox(height: 16),
-
             CustomTextField(
               controller: _phoneController,
               label: 'Phone Number',
@@ -467,7 +467,6 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
               },
             ),
             const SizedBox(height: 16),
-
             CustomTextField(
               controller: _addressController,
               label: 'Address',
@@ -483,7 +482,6 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
               },
             ),
             const SizedBox(height: 16),
-
             CustomTextField(
               controller: _bioController,
               label: 'About You',
@@ -503,14 +501,14 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
       children: [
         if (_isEditing) ...[
           CustomButton(
-            text: _isLoading ? 'Saving...' : 'Save Changes',
+            text: _isLoading ? 'saving'.tr() : 'save_changes'.tr(),
             onPressed: _isLoading ? null : _saveProfile,
             fullWidth: true,
             icon: Icons.save,
           ),
           const SizedBox(height: 16),
         ],
-        
+
         // Impact Stats Card
         Card(
           elevation: 2,
@@ -520,20 +518,22 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Your Impact',
+                  'your_impact'.tr(),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
-                      child: _buildStatCard('12', 'Donations', Icons.restaurant, Colors.green),
+                      child: _buildStatCard('12', 'donations'.tr(),
+                          Icons.restaurant, Colors.green),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildStatCard('156', 'Meals Served', Icons.people, Colors.blue),
+                      child: _buildStatCard('156', 'meals_served'.tr(),
+                          Icons.people, Colors.blue),
                     ),
                   ],
                 ),
@@ -541,11 +541,13 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildStatCard('2.5kg', 'Food Saved', Icons.eco, Colors.orange),
+                      child: _buildStatCard(
+                          '2.5kg', 'food_saved'.tr(), Icons.eco, Colors.orange),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildStatCard('5', 'NGOs Helped', Icons.business, Colors.purple),
+                      child: _buildStatCard('5', 'ngos_helped'.tr(),
+                          Icons.business, Colors.purple),
                     ),
                   ],
                 ),
@@ -568,21 +570,21 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
                     const Icon(Icons.palette),
                     const SizedBox(width: 8),
                     Text(
-                      'Theme Settings',
+                      'theme_settings'.tr(),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Theme Colors
                 Text(
-                  'Color Theme',
+                  'color_theme'.tr(),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                        fontWeight: FontWeight.w500,
+                      ),
                 ),
                 const SizedBox(height: 8),
                 Consumer<ThemeProvider>(
@@ -590,7 +592,8 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
                     return Wrap(
                       spacing: 8,
                       children: ThemeVariant.values.map((variant) {
-                        final isSelected = themeProvider.currentVariant == variant;
+                        final isSelected =
+                            themeProvider.currentVariant == variant;
                         return GestureDetector(
                           onTap: () => themeProvider.setThemeVariant(variant),
                           child: Container(
@@ -600,7 +603,9 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
                               color: variant.primaryColor,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: isSelected ? Colors.black : Colors.grey.shade300,
+                                color: isSelected
+                                    ? Colors.black
+                                    : Colors.grey.shade300,
                                 width: isSelected ? 3 : 1,
                               ),
                             ),
@@ -614,13 +619,13 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Theme Mode
                 Text(
-                  'Appearance',
+                  'appearance'.tr(),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                        fontWeight: FontWeight.w500,
+                      ),
                 ),
                 const SizedBox(height: 8),
                 Consumer<ThemeProvider>(
@@ -632,14 +637,14 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
                           themeProvider.setThemeMode(mode);
                         }
                       },
-                      items: const [
+                      items: [
                         DropdownMenuItem(
                           value: ThemeMode.light,
-                          child: Text('Light Appearance'),
+                          child: Text('light_appearance'.tr()),
                         ),
                         DropdownMenuItem(
                           value: ThemeMode.dark,
-                          child: Text('Dark Appearance'),
+                          child: Text('dark_appearance'.tr()),
                         ),
                       ],
                     );
@@ -696,7 +701,8 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
     );
   }
 
-  Widget _buildStatCard(String value, String label, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String value, String label, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -731,7 +737,7 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
 
   String _getInitials() {
     final name = _profileData?['name'] ?? '';
-    
+
     if (name.isNotEmpty) {
       final words = name.split(' ');
       if (words.length >= 2) {
@@ -740,7 +746,7 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
         return words[0][0].toUpperCase();
       }
     }
-    
+
     return 'D';
   }
 }

@@ -27,12 +27,12 @@ class _LoadingWidgetState extends State<LoadingWidget>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(
-      begin: 0.0,
+      begin: 0.3,
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: _animationController,
@@ -70,7 +70,8 @@ class _LoadingWidgetState extends State<LoadingWidget>
                     height: widget.size ?? 80,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: (widget.color ?? colorScheme.primary).withOpacity(0.1),
+                      color: (widget.color ?? colorScheme.primary)
+                          .withOpacity(0.1),
                     ),
                     child: Center(
                       child: CircularProgressIndicator(
@@ -84,7 +85,7 @@ class _LoadingWidgetState extends State<LoadingWidget>
                 );
               },
             ),
-            
+
             // Loading Message
             if (widget.message != null) ...[
               const SizedBox(height: 24),
@@ -126,7 +127,7 @@ class LoadingOverlay extends StatelessWidget {
         child,
         if (isLoading)
           Container(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black54,
             child: LoadingWidget(message: loadingMessage),
           ),
       ],
