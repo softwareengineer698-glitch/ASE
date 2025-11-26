@@ -463,6 +463,9 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
                 if (value == null || value.trim().isEmpty) {
                   return 'Phone number is required';
                 }
+                if (value.trim().length != 11) {
+                  return 'Phone number must be exactly 11 characters';
+                }
                 return null;
               },
             ),

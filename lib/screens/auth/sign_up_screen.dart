@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:animate_do/animate_do.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/user_model.dart';
 import '../../widgets/custom_text_field.dart';
@@ -89,10 +90,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 children: [
                   const SizedBox(height: 40),
                   // Logo/Title
-                  const Icon(
-                    Icons.volunteer_activism,
-                    size: 80,
-                    color: Colors.blue,
+                  FadeInDown(
+                    duration: const Duration(milliseconds: 800),
+                    child: const Icon(
+                      Icons.volunteer_activism,
+                      size: 80,
+                      color: Colors.blue,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Text(
@@ -114,77 +118,88 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 48),
 
                   // Email Field
-                  CustomTextField(
-                    controller: _emailController,
-                    label: 'email'.tr(),
-                    keyboardType: TextInputType.emailAddress,
-                    prefixIcon: Icons.email_outlined,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'email_required'.tr();
-                      }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                          .hasMatch(value)) {
-                        return 'invalid_email'.tr();
-                      }
-                      return null;
-                    },
+                  SlideInLeft(
+                    duration: const Duration(milliseconds: 800),
+                    child: CustomTextField(
+                      controller: _emailController,
+                      label: 'email'.tr(),
+                      keyboardType: TextInputType.emailAddress,
+                      prefixIcon: Icons.email_outlined,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'email_required'.tr();
+                        }
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            .hasMatch(value)) {
+                          return 'invalid_email'.tr();
+                        }
+                        return null;
+                      },
+                    ),
                   ),
                   const SizedBox(height: 16),
 
                   // Password Field
-                  CustomTextField(
-                    controller: _passwordController,
-                    label: 'password'.tr(),
-                    obscureText: _obscurePassword,
-                    prefixIcon: Icons.lock_outline,
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword
-                          ? Icons.visibility
-                          : Icons.visibility_off),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
+                  SlideInLeft(
+                    duration: const Duration(milliseconds: 800),
+                    delay: const Duration(milliseconds: 200),
+                    child: CustomTextField(
+                      controller: _passwordController,
+                      label: 'password'.tr(),
+                      obscureText: _obscurePassword,
+                      prefixIcon: Icons.lock_outline,
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscurePassword
+                            ? Icons.visibility
+                            : Icons.visibility_off),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'password_required'.tr();
+                        }
+                        if (value.length < 6) {
+                          return 'password_too_short'.tr();
+                        }
+                        return null;
                       },
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'password_required'.tr();
-                      }
-                      if (value.length < 6) {
-                        return 'password_too_short'.tr();
-                      }
-                      return null;
-                    },
                   ),
                   const SizedBox(height: 16),
 
                   // Confirm Password Field
-                  CustomTextField(
-                    controller: _confirmPasswordController,
-                    label: 'confirm_password'.tr(),
-                    obscureText: _obscureConfirmPassword,
-                    prefixIcon: Icons.lock_outline,
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscureConfirmPassword
-                          ? Icons.visibility
-                          : Icons.visibility_off),
-                      onPressed: () {
-                        setState(() {
-                          _obscureConfirmPassword = !_obscureConfirmPassword;
-                        });
+                  SlideInLeft(
+                    duration: const Duration(milliseconds: 800),
+                    delay: const Duration(milliseconds: 400),
+                    child: CustomTextField(
+                      controller: _confirmPasswordController,
+                      label: 'confirm_password'.tr(),
+                      obscureText: _obscureConfirmPassword,
+                      prefixIcon: Icons.lock_outline,
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscureConfirmPassword
+                            ? Icons.visibility
+                            : Icons.visibility_off),
+                        onPressed: () {
+                          setState(() {
+                            _obscureConfirmPassword = !_obscureConfirmPassword;
+                          });
+                        },
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'password_required'.tr();
+                        }
+                        if (value != _passwordController.text) {
+                          return 'passwords_dont_match'.tr();
+                        }
+                        return null;
                       },
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'password_required'.tr();
-                      }
-                      if (value != _passwordController.text) {
-                        return 'passwords_dont_match'.tr();
-                      }
-                      return null;
-                    },
                   ),
                   const SizedBox(height: 24),
 
@@ -232,10 +247,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   // Sign Up Button
                   Consumer<AuthProvider>(
                     builder: (context, authProvider, child) {
-                      return CustomButton(
-                        text: 'create_account'.tr(),
-                        onPressed: authProvider.isLoading ? null : _signUp,
-                        isLoading: authProvider.isLoading,
+                      return FadeInUp(
+                        duration: const Duration(milliseconds: 800),
+                        delay: const Duration(milliseconds: 600),
+                        child: CustomButton(
+                          text: 'create_account'.tr(),
+                          onPressed: authProvider.isLoading ? null : _signUp,
+                          isLoading: authProvider.isLoading,
+                        ),
                       );
                     },
                   ),

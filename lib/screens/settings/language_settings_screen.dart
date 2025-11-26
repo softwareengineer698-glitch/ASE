@@ -112,18 +112,24 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
         onTap: languageProvider.isLoading
             ? null
             : () async {
-                await languageProvider.setLanguage(language, context);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        language == AppLanguage.urdu
-                            ? 'زبان اردو میں تبدیل ہو گئی'
-                            : 'Language changed to English',
+                debugPrint('Language option tapped: ${language.code}');
+                try {
+                  await languageProvider.setLanguage(language, context);
+                  debugPrint('Language set successfully to: ${language.code}');
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          language == AppLanguage.urdu
+                              ? 'زبان اردو میں تبدیل ہو گئی'
+                              : 'Language changed to English',
+                        ),
+                        duration: const Duration(seconds: 2),
                       ),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
+                    );
+                  }
+                } catch (e) {
+                  debugPrint('Error changing language: $e');
                 }
               },
       ),

@@ -106,6 +106,50 @@ service cloud.firestore {
 
     // ===== NEW FEATURE COLLECTIONS =====
 
+    // Donations collection - Real-time donation system
+    match /donations/{donationId} {
+      allow create: if isDonor()
+        && request.resource.data.donorId == request.auth.uid
+        && request.resource.data.title != null
+        && request.resource.data.description != null
+        && request.resource.data.category != null
+        && request.resource.data.quantity is number
+        && request.resource.data.quantity > 0
+        && request.resource.data.unit != null
+        && request.resource.data.location != null
+        && request.resource.data.imageUrls is list
+        && request.resource.data.expiryTime != null
+        && request.resource.data.status == 'available'
+        && request.resource.data.timestamp != null;
+
+      allow read: if isSignedIn();
+
+      allow update: if isSignedIn() && (
+        // Donors can update their own donations (only description, images, location, expiry)
+        (resource.data.donorId == request.auth.uid && 
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['description', 'imageUrls', 'location', 'expiryTime', 'updatedAt'])) ||
+        // NGOs can claim available donations
+        (isNGO() && 
+         resource.data.status == 'available' &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['status', 'claimedBy', 'claimedAt', 'updatedAt']) &&
+         request.resource.data.status == 'claimed' &&
+         request.resource.data.claimedBy == request.auth.uid) ||
+        // Donors can complete claimed donations
+        (isDonor() && 
+         resource.data.donorId == request.auth.uid &&
+         resource.data.status == 'claimed' &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['status', 'completedAt', 'updatedAt']) &&
+         request.resource.data.status == 'completed')
+      );
+
+      allow delete: if isDonor() && 
+        resource.data.donorId == request.auth.uid &&
+        resource.data.status == 'available';
+    }
+
     // Analytics data collection
     match /analytics/{userId} {
       allow create, read, update: if isSignedIn() && isOwner(userId);

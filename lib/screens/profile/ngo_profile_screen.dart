@@ -514,6 +514,9 @@ class _NGOProfileScreenState extends State<NGOProfileScreen> {
                 if (value == null || value.trim().isEmpty) {
                   return 'phone_number_required'.tr();
                 }
+                if (value.trim().length != 11) {
+                  return 'Phone number must be exactly 11 characters';
+                }
                 return null;
               },
             ),

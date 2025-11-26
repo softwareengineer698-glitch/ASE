@@ -50,10 +50,10 @@ class UserProfile {
   // Create from map for future database integration
   factory UserProfile.fromMap(Map<String, dynamic> map) {
     return UserProfile(
-      id: map['id'],
-      name: map['name'],
-      email: map['email'],
-      phone: map['phone'],
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      email: map['email'] ?? '',
+      phone: map['phone'] ?? '',
       role: UserRole.values.firstWhere(
         (e) => e.toString() == map['role'],
         orElse: () => UserRole.donor,
@@ -62,8 +62,10 @@ class UserProfile {
       address: map['address'],
       bio: map['bio'],
       profileImageUrl: map['profileImageUrl'],
-      createdAt: DateTime.parse(map['createdAt']),
-      updatedAt: DateTime.parse(map['updatedAt']),
+      createdAt:
+          DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
+      updatedAt:
+          DateTime.parse(map['updatedAt'] ?? DateTime.now().toIso8601String()),
     );
   }
 
@@ -124,10 +126,11 @@ class UserProfile {
   }
 
   bool get isComplete {
-    return name.isNotEmpty && 
-           email.isNotEmpty && 
-           phone.isNotEmpty &&
-           (role == UserRole.donor || (organization != null && organization!.isNotEmpty));
+    return name.isNotEmpty &&
+        email.isNotEmpty &&
+        phone.isNotEmpty &&
+        (role == UserRole.donor ||
+            (organization != null && organization!.isNotEmpty));
   }
 
   // Validation methods

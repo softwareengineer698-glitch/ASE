@@ -17,14 +17,14 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _profileService = ProfileService();
-  
+
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   late TextEditingController _organizationController;
   late TextEditingController _addressController;
   late TextEditingController _bioController;
-  
+
   UserRole _selectedRole = UserRole.donor;
   bool _isLoading = false;
   bool _isNewProfile = false;
@@ -42,10 +42,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController = TextEditingController(text: profile?.name ?? '');
     _emailController = TextEditingController(text: profile?.email ?? '');
     _phoneController = TextEditingController(text: profile?.phone ?? '');
-    _organizationController = TextEditingController(text: profile?.organization ?? '');
+    _organizationController =
+        TextEditingController(text: profile?.organization ?? '');
     _addressController = TextEditingController(text: profile?.address ?? '');
     _bioController = TextEditingController(text: profile?.bio ?? '');
-    
+
     _selectedRole = profile?.role ?? UserRole.donor;
   }
 
@@ -184,15 +185,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   prefixIcon: Icon(Icons.phone),
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) => UserProfile(
-                  id: '',
-                  name: '',
-                  email: '',
-                  phone: '',
-                  role: _selectedRole,
-                  createdAt: DateTime.now(),
-                  updatedAt: DateTime.now(),
-                ).validatePhone(value),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Phone number is required';
+                  }
+                  if (value.trim().length != 11) {
+                    return 'Phone number must be exactly 11 characters';
+                  }
+                  return null;
+                },
                 keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 24),
@@ -214,11 +215,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       subtitle: const Text('Restaurant, store, individual'),
                       value: UserRole.donor,
                       groupValue: _selectedRole,
-                      onChanged: _isNewProfile ? (value) {
-                        setState(() {
-                          _selectedRole = value!;
-                        });
-                      } : null,
+                      onChanged: _isNewProfile
+                          ? (value) {
+                              setState(() {
+                                _selectedRole = value!;
+                              });
+                            }
+                          : null,
                     ),
                   ),
                   Expanded(
@@ -227,11 +230,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       subtitle: const Text('Non-profit organization'),
                       value: UserRole.ngo,
                       groupValue: _selectedRole,
-                      onChanged: _isNewProfile ? (value) {
-                        setState(() {
-                          _selectedRole = value!;
-                        });
-                      } : null,
+                      onChanged: _isNewProfile
+                          ? (value) {
+                              setState(() {
+                                _selectedRole = value!;
+                              });
+                            }
+                          : null,
                     ),
                   ),
                 ],
@@ -329,7 +334,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             ),
                             SizedBox(width: 12),
@@ -353,7 +359,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   width: double.infinity,
                   height: 48,
                   child: OutlinedButton(
-                    onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                    onPressed:
+                        _isLoading ? null : () => Navigator.of(context).pop(),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.grey[700],
                       side: BorderSide(color: Colors.grey[300]!),
@@ -375,7 +382,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String _getInitials() {
     final name = _nameController.text.trim();
     if (name.isEmpty) return 'U';
-    
+
     final nameParts = name.split(' ');
     if (nameParts.length >= 2) {
       return '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase();
@@ -395,21 +402,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       bool success;
-      
+
       if (_isNewProfile) {
         success = await _profileService.createProfile(
           name: _nameController.text.trim(),
           email: _emailController.text.trim(),
           phone: _phoneController.text.trim(),
           role: _selectedRole,
-          organization: _organizationController.text.trim().isEmpty 
-              ? null 
+          organization: _organizationController.text.trim().isEmpty
+              ? null
               : _organizationController.text.trim(),
-          address: _addressController.text.trim().isEmpty 
-              ? null 
+          address: _addressController.text.trim().isEmpty
+              ? null
               : _addressController.text.trim(),
-          bio: _bioController.text.trim().isEmpty 
-              ? null 
+          bio: _bioController.text.trim().isEmpty
+              ? null
               : _bioController.text.trim(),
         );
       } else {
@@ -418,24 +425,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           email: _emailController.text.trim(),
           phone: _phoneController.text.trim(),
           role: _selectedRole,
-          organization: _organizationController.text.trim().isEmpty 
-              ? null 
+          organization: _organizationController.text.trim().isEmpty
+              ? null
               : _organizationController.text.trim(),
-          address: _addressController.text.trim().isEmpty 
-              ? null 
+          address: _addressController.text.trim().isEmpty
+              ? null
               : _addressController.text.trim(),
-          bio: _bioController.text.trim().isEmpty 
-              ? null 
+          bio: _bioController.text.trim().isEmpty
+              ? null
               : _bioController.text.trim(),
         );
-        
+
         success = await _profileService.updateProfile(updatedProfile);
       }
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isNewProfile ? 'Profile created successfully!' : 'Profile updated successfully!'),
+            content: Text(_isNewProfile
+                ? 'Profile created successfully!'
+                : 'Profile updated successfully!'),
             backgroundColor: Colors.green,
           ),
         );

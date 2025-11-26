@@ -50,6 +50,16 @@ dependencies:
   
   # Localization
   easy_localization: ^3.0.3
+  
+  # HTTP requests
+  http: ^1.2.1
+  
+  # URL launcher for maps
+  url_launcher: ^6.2.6
+  
+  # Animations
+  animate_do: ^3.1.2
+  flutter_animate: ^4.2.0+1
 
 dev_dependencies:
   flutter_test:

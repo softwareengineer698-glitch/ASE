@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:animate_do/animate_do.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
@@ -72,10 +73,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 children: [
                   SizedBox(height: MediaQuery.of(context).size.height * 0.15),
                   // Icon
-                  const Icon(
-                    Icons.lock_reset,
-                    size: 80,
-                    color: Colors.blue,
+                  FadeInDown(
+                    duration: const Duration(milliseconds: 800),
+                    child: const Icon(
+                      Icons.lock_reset,
+                      size: 80,
+                      color: Colors.blue,
+                    ),
                   ),
                   const SizedBox(height: 24),
 
@@ -104,32 +108,39 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                   if (!_emailSent) ...[
                     // Email Field
-                    CustomTextField(
-                      controller: _emailController,
-                      label: 'email'.tr(),
-                      keyboardType: TextInputType.emailAddress,
-                      prefixIcon: Icons.email_outlined,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'email_required'.tr();
-                        }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                            .hasMatch(value)) {
-                          return 'invalid_email'.tr();
-                        }
-                        return null;
-                      },
+                    SlideInLeft(
+                      duration: const Duration(milliseconds: 800),
+                      child: CustomTextField(
+                        controller: _emailController,
+                        label: 'email'.tr(),
+                        keyboardType: TextInputType.emailAddress,
+                        prefixIcon: Icons.email_outlined,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'email_required'.tr();
+                          }
+                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                              .hasMatch(value)) {
+                            return 'invalid_email'.tr();
+                          }
+                          return null;
+                        },
+                      ),
                     ),
                     const SizedBox(height: 24),
 
                     // Send Reset Email Button
                     Consumer<AuthProvider>(
                       builder: (context, authProvider, child) {
-                        return CustomButton(
-                          text: 'send_reset_link'.tr(),
-                          onPressed:
-                              authProvider.isLoading ? null : _sendResetEmail,
-                          isLoading: authProvider.isLoading,
+                        return FadeInUp(
+                          duration: const Duration(milliseconds: 800),
+                          delay: const Duration(milliseconds: 200),
+                          child: CustomButton(
+                            text: 'send_reset_link'.tr(),
+                            onPressed:
+                                authProvider.isLoading ? null : _sendResetEmail,
+                            isLoading: authProvider.isLoading,
+                          ),
                         );
                       },
                     ),

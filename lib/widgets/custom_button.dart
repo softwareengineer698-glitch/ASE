@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 enum ButtonVariant { filled, outlined, text, tonal }
+
 enum ButtonSize { small, medium, large }
 
 class CustomButton extends StatefulWidget {
@@ -117,9 +118,9 @@ class _CustomButtonState extends State<CustomButton>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     Widget button = _buildButton(context, theme, colorScheme);
-    
+
     if (widget.tooltip != null) {
       button = Tooltip(
         message: widget.tooltip!,
@@ -138,7 +139,8 @@ class _CustomButtonState extends State<CustomButton>
     );
   }
 
-  Widget _buildButton(BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildButton(
+      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
     final width = widget.fullWidth ? double.infinity : widget.width;
     final height = widget.height ?? _buttonHeight;
     final borderRadius = widget.borderRadius ?? 12.0;
@@ -147,17 +149,21 @@ class _CustomButtonState extends State<CustomButton>
       width: width,
       height: height,
       child: GestureDetector(
-        onTapDown: widget.onPressed != null && !widget.isLoading ? _onTapDown : null,
-        onTapUp: widget.onPressed != null && !widget.isLoading ? _onTapUp : null,
-        onTapCancel: widget.onPressed != null && !widget.isLoading ? _onTapCancel : null,
+        onTapDown:
+            widget.onPressed != null && !widget.isLoading ? _onTapDown : null,
+        onTapUp:
+            widget.onPressed != null && !widget.isLoading ? _onTapUp : null,
+        onTapCancel:
+            widget.onPressed != null && !widget.isLoading ? _onTapCancel : null,
         child: _buildButtonByVariant(context, theme, colorScheme, borderRadius),
       ),
     );
   }
 
-  Widget _buildButtonByVariant(BuildContext context, ThemeData theme, ColorScheme colorScheme, double borderRadius) {
+  Widget _buildButtonByVariant(BuildContext context, ThemeData theme,
+      ColorScheme colorScheme, double borderRadius) {
     final buttonChild = _buildButtonContent(colorScheme);
-    
+
     switch (widget.variant) {
       case ButtonVariant.filled:
         return ElevatedButton(
@@ -222,8 +228,10 @@ class _CustomButtonState extends State<CustomButton>
         return FilledButton.tonal(
           onPressed: widget.isLoading ? null : widget.onPressed,
           style: FilledButton.styleFrom(
-            backgroundColor: widget.backgroundColor ?? colorScheme.secondaryContainer,
-            foregroundColor: widget.textColor ?? colorScheme.onSecondaryContainer,
+            backgroundColor:
+                widget.backgroundColor ?? colorScheme.secondaryContainer,
+            foregroundColor:
+                widget.textColor ?? colorScheme.onSecondaryContainer,
             disabledBackgroundColor: colorScheme.onSurface.withOpacity(0.12),
             disabledForegroundColor: colorScheme.onSurface.withOpacity(0.38),
             shape: RoundedRectangleBorder(
@@ -248,9 +256,9 @@ class _CustomButtonState extends State<CustomButton>
         child: CircularProgressIndicator(
           strokeWidth: 2,
           valueColor: AlwaysStoppedAnimation<Color>(
-            widget.variant == ButtonVariant.filled 
-              ? colorScheme.onPrimary 
-              : colorScheme.primary,
+            widget.variant == ButtonVariant.filled
+                ? colorScheme.onPrimary
+                : colorScheme.primary,
           ),
         ),
       );

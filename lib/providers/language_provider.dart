@@ -48,6 +48,14 @@ class LanguageProvider extends ChangeNotifier {
     await _loadSavedLanguage();
   }
 
+  // Initialize with EasyLocalization context
+  Future<void> initializeWithContext(BuildContext context) async {
+    await _loadSavedLanguage();
+    // Sync with EasyLocalization
+    await context.setLocale(_currentLanguage.locale);
+    notifyListeners();
+  }
+
   Future<void> _loadSavedLanguage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -55,6 +63,8 @@ class LanguageProvider extends ChangeNotifier {
 
       _currentLanguage =
           savedLanguageCode == 'ur' ? AppLanguage.urdu : AppLanguage.english;
+
+      debugPrint('Loaded saved language: ${_currentLanguage.code}');
     } catch (e) {
       debugPrint('Error loading saved language: $e');
       _currentLanguage = AppLanguage.english;
@@ -69,14 +79,29 @@ class LanguageProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Update the current language
       _currentLanguage = language;
+
+      // Save to SharedPreferences
       await _saveLanguage();
 
-      // Change EasyLocalization locale
+      // Change EasyLocalization locale - this is the key part
       await context.setLocale(language.locale);
 
+      // Force a complete app rebuild
       _isLoading = false;
       notifyListeners();
+
+      // Additional rebuild to ensure all widgets refresh
+      if (context.mounted) {
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (context.mounted) {
+            notifyListeners();
+          }
+        });
+      }
+
+      debugPrint('Language changed to: ${language.code}');
     } catch (e) {
       debugPrint('Error setting language: $e');
       _isLoading = false;

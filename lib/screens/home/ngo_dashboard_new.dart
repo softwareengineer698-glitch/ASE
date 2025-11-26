@@ -3,11 +3,13 @@ import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/language_provider.dart';
 import '../../models/user_model.dart';
+import '../../models/donation_model.dart';
+import '../../services/donation_service.dart';
 import '../../widgets/dashboard_card.dart';
 import '../../widgets/custom_button.dart';
 import '../auth/sign_in_screen.dart';
-import '../history/history_screen.dart';
 
 class NGODashboard extends StatefulWidget {
   const NGODashboard({super.key});
@@ -17,10 +19,31 @@ class NGODashboard extends StatefulWidget {
 }
 
 class _NGODashboardState extends State<NGODashboard> {
+  final DonationService _donationService = DonationService();
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _browseKey = GlobalKey();
+  final GlobalKey _claimsKey = GlobalKey();
+
   @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToSection(GlobalKey key) {
+    final context = key.currentContext;
+    if (context != null) {
+      Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   Widget build(BuildContext context) {
-    return Consumer2<AuthProvider, ThemeProvider>(
-      builder: (context, authProvider, themeProvider, child) {
+    return Consumer3<AuthProvider, ThemeProvider, LanguageProvider>(
+      builder: (context, authProvider, themeProvider, languageProvider, child) {
         final user = authProvider.user;
         final theme = Theme.of(context);
         final colorScheme = theme.colorScheme;
@@ -52,16 +75,24 @@ class _NGODashboardState extends State<NGODashboard> {
                         _buildHeaderSection(user, colorScheme),
                         SizedBox(height: constraints.maxHeight * 0.03),
 
-                        // 2. Quick Stats Dashboard
-                        _buildQuickStatsSection(colorScheme),
+                        // 2. Real-time Stats Dashboard Cards
+                        _buildRealTimeStatsSection(user, colorScheme),
                         SizedBox(height: constraints.maxHeight * 0.03),
 
-                        // 3. Available Surplus List (Main Feature)
-                        _buildAvailableSurplusSection(colorScheme),
+                        // 3. Available Donations Count
+                        _buildAvailableCountSection(colorScheme),
                         SizedBox(height: constraints.maxHeight * 0.03),
 
-                        // 4. Active Requests
-                        _buildActiveRequestsSection(colorScheme),
+                        // 4. Main Actions
+                        _buildMainActionsSection(context, colorScheme),
+                        SizedBox(height: constraints.maxHeight * 0.03),
+
+                        // 5. Available Donations List
+                        _buildAvailableDonationsSection(colorScheme),
+                        SizedBox(height: constraints.maxHeight * 0.02),
+
+                        // 6. My Claims Section
+                        _buildMyClaimsSection(user, colorScheme),
                         SizedBox(height: constraints.maxHeight * 0.02),
                       ],
                     ),
@@ -94,40 +125,18 @@ class _NGODashboardState extends State<NGODashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      'welcome_user'
-                          .tr(namedArgs: {'name': user.email.split('@')[0]}),
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.green),
-                      ),
-                      child: Text(
-                        'verified'.tr(),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ),
-                  ],
+                Text(
+                  'welcome_ngo'
+                      .tr(namedArgs: {'name': user.email.split('@')[0]}),
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'ready_to_collect'.tr(),
+                  'ready_to_receive'.tr(),
                   style: TextStyle(
                     fontSize: 14,
                     color: colorScheme.onSurfaceVariant,
@@ -141,13 +150,205 @@ class _NGODashboardState extends State<NGODashboard> {
     );
   }
 
-  // 2. Quick Stats Dashboard
-  Widget _buildQuickStatsSection(ColorScheme colorScheme) {
+  // 2. Real-time Stats Dashboard Cards
+  Widget _buildRealTimeStatsSection(UserModel user, ColorScheme colorScheme) {
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: _donationService.getNGOStatistics(user.uid),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return DashboardCard(
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(Icons.error_outline, size: 48, color: Colors.red[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error loading statistics',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final stats = snapshot.data ?? {};
+        final claimedDonations = stats['claimedDonations'] ?? 0;
+        final completedPickups = stats['completedPickups'] ?? 0;
+        final pendingPickups = stats['pendingPickups'] ?? 0;
+        final totalQuantityReceived = stats['totalQuantityReceived'] ?? 0.0;
+        final recentActivity = stats['recentActivity'];
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'your_impact'.tr(),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: MetricCard(
+                    title: 'claimed'.tr(),
+                    value: '$claimedDonations',
+                    icon: Icons.shopping_cart,
+                    color: Colors.blue,
+                    subtitle: 'total_claims'.tr(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: MetricCard(
+                    title: 'pending'.tr(),
+                    value: '$pendingPickups',
+                    icon: Icons.hourglass_empty,
+                    color: Colors.orange,
+                    subtitle: 'awaiting_pickup'.tr(),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: MetricCard(
+                    title: 'completed'.tr(),
+                    value: '$completedPickups',
+                    icon: Icons.check_circle,
+                    color: Colors.green,
+                    subtitle: 'successful_pickups'.tr(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: MetricCard(
+                    title: 'food_received'.tr(),
+                    value: '${totalQuantityReceived.toStringAsFixed(1)} kg',
+                    icon: Icons.inventory,
+                    color: Colors.purple,
+                    subtitle: 'total_quantity'.tr(),
+                  ),
+                ),
+              ],
+            ),
+            if (recentActivity != null) ...[
+              const SizedBox(height: 16),
+              DashboardCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.history, color: colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'recent_activity'.tr(),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      recentActivity['title'] ?? 'No title',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${recentActivity['quantity']} ${recentActivity['unit']} - ${recentActivity['category']}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  // 3. Available Donations Count
+  Widget _buildAvailableCountSection(ColorScheme colorScheme) {
+    return StreamBuilder<int>(
+      stream: _donationService.getAvailableDonationsCount(),
+      builder: (context, snapshot) {
+        final availableCount = snapshot.data ?? 0;
+
+        return DashboardCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.fastfood, color: colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'available_donations'.tr(),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Text(
+                    '$availableCount',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'items_ready_for_pickup'.tr(),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // 4. Main Actions
+  Widget _buildMainActionsSection(
+      BuildContext context, ColorScheme colorScheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'todays_overview'.tr(),
+          'quick_actions'.tr(),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -158,46 +359,24 @@ class _NGODashboardState extends State<NGODashboard> {
         Row(
           children: [
             Expanded(
-              child: MetricCard(
-                title: 'available'.tr(),
-                value: '8',
-                icon: Icons.restaurant,
-                iconColor: Colors.green,
-                subtitle: 'surplus_nearby'.tr(),
+              child: CustomButton(
+                text: 'browse_donations'.tr(),
+                icon: Icons.search,
+                onPressed: () {
+                  _scrollToSection(_browseKey);
+                },
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: MetricCard(
-                title: 'pending'.tr(),
-                value: '2',
-                icon: Icons.schedule,
-                iconColor: Colors.orange,
-                subtitle: 'pickups_waiting'.tr(),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: MetricCard(
-                title: 'this_month'.tr(),
-                value: '45',
-                icon: Icons.check_circle,
-                iconColor: Colors.blue,
-                subtitle: 'completed'.tr(),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: MetricCard(
-                title: 'people_helped'.tr(),
-                value: '1,230',
-                icon: Icons.people,
-                iconColor: Colors.purple,
-                subtitle: 'lives_impacted'.tr(),
+              child: CustomButton(
+                text: 'my_claims'.tr(),
+                icon: Icons.list,
+                onPressed: () {
+                  _scrollToSection(_claimsKey);
+                },
+                backgroundColor: Colors.grey[300],
+                textColor: Colors.black87,
               ),
             ),
           ],
@@ -206,217 +385,482 @@ class _NGODashboardState extends State<NGODashboard> {
     );
   }
 
-  // 3. Available Surplus List (Main Feature)
-  Widget _buildAvailableSurplusSection(ColorScheme colorScheme) {
-    final availableSurplus = _generateAvailableSurplus();
+  // 5. Available Donations List
+  Widget _buildAvailableDonationsSection(ColorScheme colorScheme) {
+    return Container(
+      key: _browseKey,
+      child: StreamBuilder<List<DonationModel>>(
+        stream: _donationService.getAvailableDonations(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'available_surplus'.tr(),
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            const Spacer(),
-            TextButton(
-              onPressed: () {},
-              child: const Text('View All'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        ...availableSurplus
-            .map((surplus) => _buildAvailableSurplusCard(surplus, colorScheme)),
-      ],
-    );
-  }
-
-  Widget _buildAvailableSurplusCard(
-      Map<String, dynamic> surplus, ColorScheme colorScheme) {
-    return DashboardCard(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.restaurant,
-                  color: Colors.green,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
+          if (snapshot.hasError) {
+            return DashboardCard(
+              child: Center(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Icon(Icons.error_outline, size: 48, color: Colors.red[400]),
+                    const SizedBox(height: 16),
                     Text(
-                      surplus['foodType'],
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    Text(
-                      'Quantity: ${surplus['quantity']}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                      'Error loading donations',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                     ),
                   ],
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+            );
+          }
+
+          final donations = snapshot.data ?? [];
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getExpiryColor(surplus['expiryHours'])
-                          .withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${surplus['expiryHours']}h left',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: _getExpiryColor(surplus['expiryHours']),
-                      ),
+                  Text(
+                    'available_donations'.tr(),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
                     ),
                   ),
-                  const SizedBox(height: 4),
                   Text(
-                    '${surplus['distance']} km',
+                    '${donations.length} ${'items'.tr()}',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 14,
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              if (donations.isEmpty)
+                DashboardCard(
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.inventory_2_outlined,
+                            size: 48, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          'no_available_donations'.tr(),
+                          style:
+                              TextStyle(fontSize: 16, color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'check_back_later'.tr(),
+                          style:
+                              TextStyle(fontSize: 14, color: Colors.grey[500]),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                ...donations.map((donation) =>
+                    _buildAvailableDonationCard(donation, colorScheme)),
             ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(Icons.person, size: 16, color: colorScheme.onSurfaceVariant),
-              const SizedBox(width: 4),
-              Text(
-                'Donor: ${surplus['donorName']}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: colorScheme.onSurfaceVariant,
+          );
+        },
+      ),
+    );
+  }
+
+  // 6. My Claims Section
+  Widget _buildMyClaimsSection(UserModel user, ColorScheme colorScheme) {
+    return Container(
+      key: _claimsKey,
+      child: StreamBuilder<List<DonationModel>>(
+        stream: _donationService.getNGOClaimedDonations(user.uid),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return DashboardCard(
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: Colors.red[400]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error loading claims',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
               ),
-              const Spacer(),
-              Text(
-                'Posted: ${surplus['timePosted']}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
+            );
+          }
+
+          final donations = snapshot.data ?? [];
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.location_on,
-                  size: 16, color: colorScheme.onSurfaceVariant),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  surplus['location'],
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: colorScheme.onSurfaceVariant,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'my_claims'.tr(),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  Text(
+                    '${donations.length} ${'items'.tr()}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (donations.isEmpty)
+                DashboardCard(
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.shopping_cart_outlined,
+                            size: 48, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          'no_claims_yet'.tr(),
+                          style:
+                              TextStyle(fontSize: 16, color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'claim_donations_above'.tr(),
+                          style:
+                              TextStyle(fontSize: 14, color: Colors.grey[500]),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                ...donations.map((donation) =>
+                    _buildClaimedDonationCard(donation, colorScheme)),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAvailableDonationCard(
+      DonationModel donation, ColorScheme colorScheme) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: DashboardCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'available'.tr(),
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
+                const Spacer(),
+                if (donation.isExpiringSoon)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'expiring_soon'.tr(),
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                Text(
+                  donation.formattedExpiryDate,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              donation.title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
               ),
-            ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              donation.description,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.category, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  donation.category,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+                const SizedBox(width: 16),
+                Icon(Icons.scale, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  '${donation.quantity} ${donation.unit}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+                const SizedBox(width: 16),
+                Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    donation.location,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _claimDonation(donation),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: Colors.white,
+                ),
+                child: Text('claim_donation'.tr()),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClaimedDonationCard(
+      DonationModel donation, ColorScheme colorScheme) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: DashboardCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(donation.status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    donation.statusDisplayName,
+                    style: TextStyle(
+                      color: _getStatusColor(donation.status),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  donation.formattedTimestamp,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              donation.title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              donation.description,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.category, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  donation.category,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+                const SizedBox(width: 16),
+                Icon(Icons.scale, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  '${donation.quantity} ${donation.unit}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+                const Spacer(),
+                if (donation.claimedAt != null)
+                  Text(
+                    'claimed_on'.tr() +
+                        ': ${donation.claimedAt!.day}/${donation.claimedAt!.month}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getStatusColor(DonationStatus status) {
+    switch (status) {
+      case DonationStatus.available:
+        return Colors.green;
+      case DonationStatus.claimed:
+        return Colors.blue;
+      case DonationStatus.completed:
+        return Colors.purple;
+      case DonationStatus.expired:
+        return Colors.red;
+    }
+  }
+
+  void _claimDonation(DonationModel donation) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+
+    if (user == null) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('claim_donation'.tr()),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('confirm_claim_donation'.tr()),
+            const SizedBox(height: 12),
+            Text(
+              donation.title,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              '${donation.quantity} ${donation.unit} - ${donation.category}',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            Text(
+              'Location: ${donation.location}',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('cancel'.tr()),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: CustomButton(
-                  text: 'view_details'.tr(),
-                  variant: ButtonVariant.outlined,
-                  size: ButtonSize.small,
-                  onPressed: () => _showSurplusDetails(context, surplus),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: CustomButton(
-                  text: 'accept_pickup'.tr(),
-                  variant: ButtonVariant.filled,
-                  size: ButtonSize.small,
-                  onPressed: () => _acceptPickup(context, surplus),
-                ),
-              ),
-            ],
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await _donationService.claimDonation(donation.id, user.uid);
+                if (mounted && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('donation_claimed'.tr()),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('error_claiming_donation'.tr()),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text('confirm'.tr()),
           ),
         ],
       ),
     );
   }
+}
 
-  // 4. Active Requests
-  Widget _buildActiveRequestsSection(ColorScheme colorScheme) {
-    final activeRequests = _generateActiveRequests();
+class MetricCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final String? subtitle;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'active_requests'.tr(),
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            const Spacer(),
-            TextButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const HistoryScreen()),
-              ),
-              child: const Text('View All'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        ...activeRequests
-            .map((request) => _buildActiveRequestCard(request, colorScheme)),
-      ],
-    );
-  }
+  const MetricCard({
+    super.key,
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.subtitle,
+  });
 
-  Widget _buildActiveRequestCard(
-      Map<String, dynamic> request, ColorScheme colorScheme) {
+  @override
+  Widget build(BuildContext context) {
     return DashboardCard(
-      margin: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -425,288 +869,40 @@ class _NGODashboardState extends State<NGODashboard> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
-                  Icons.directions_car,
-                  color: Colors.blue,
-                  size: 20,
-                ),
+                child: Icon(icon, color: color, size: 20),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      request['foodType'],
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    Text(
-                      'Status: ${request['status']}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  request['eta'],
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.blue,
-                  ),
-                ),
-              ),
+              const Spacer(),
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: CustomButton(
-                  text: 'Contact Donor',
-                  icon: Icons.phone,
-                  variant: ButtonVariant.outlined,
-                  size: ButtonSize.small,
-                  onPressed: () {},
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: CustomButton(
-                  text: 'Mark Collected',
-                  icon: Icons.check,
-                  variant: ButtonVariant.tonal,
-                  size: ButtonSize.small,
-                  onPressed: () => _markAsCollected(context, request),
-                ),
-              ),
-            ],
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+            ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Color _getExpiryColor(int hours) {
-    if (hours <= 2) return Colors.red;
-    if (hours <= 6) return Colors.orange;
-    return Colors.green;
-  }
-
-  List<Map<String, dynamic>> _generateAvailableSurplus() {
-    final user = Provider.of<AuthProvider>(context, listen: false).user;
-    if (user == null) return [];
-
-    // All surplus data with status tracking
-    final allSurplus = [
-      {
-        'id': '1',
-        'foodType': 'Fresh Vegetables',
-        'quantity': '5 kg',
-        'expiryHours': 4,
-        'distance': 2.3,
-        'donorName': 'Ali Restaurant',
-        'donorId': 'donor_1',
-        'timePosted': '30 min ago',
-        'location': 'Gulshan-e-Iqbal, Karachi',
-        'status': 'Available', // Available, Requested, Accepted, Collected
-        'acceptedBy': null, // NGO ID that accepted this
-      },
-      {
-        'id': '2',
-        'foodType': 'Cooked Rice & Curry',
-        'quantity': '15 portions',
-        'expiryHours': 2,
-        'distance': 1.8,
-        'donorName': 'Wedding Hall',
-        'donorId': 'donor_2',
-        'timePosted': '1 hour ago',
-        'location': 'Defence Phase 2, Karachi',
-        'status': 'Available',
-        'acceptedBy': null,
-      },
-      {
-        'id': '3',
-        'foodType': 'Bread & Bakery Items',
-        'quantity': '30 pieces',
-        'expiryHours': 8,
-        'distance': 3.5,
-        'donorName': 'City Bakery',
-        'donorId': 'donor_3',
-        'timePosted': '2 hours ago',
-        'location': 'Clifton Block 5, Karachi',
-        'status': 'Accepted',
-        'acceptedBy': 'other_ngo_id', // Already accepted by another NGO
-      },
-      {
-        'id': '4',
-        'foodType': 'Mixed Fruits',
-        'quantity': '8 kg',
-        'expiryHours': 6,
-        'distance': 1.2,
-        'donorName': 'Fruit Market',
-        'donorId': 'donor_4',
-        'timePosted': '45 min ago',
-        'location': 'Saddar, Karachi',
-        'status': 'Accepted',
-        'acceptedBy': user.uid, // Accepted by current NGO
-      },
-    ];
-
-    // Filter to show only available surplus (not accepted by any NGO)
-    // This prevents duplication - once accepted, it's not visible to other NGOs
-    return allSurplus
-        .where((surplus) =>
-            surplus['status'] == 'Available' ||
-            (surplus['status'] == 'Accepted' &&
-                surplus['acceptedBy'] == user.uid))
-        .toList();
-  }
-
-  List<Map<String, dynamic>> _generateActiveRequests() {
-    return [
-      {
-        'foodType': 'Mixed Vegetables',
-        'status': 'On the way',
-        'eta': '15 min',
-      },
-      {
-        'foodType': 'Fruit Basket',
-        'status': 'Accepted',
-        'eta': '45 min',
-      },
-    ];
-  }
-
-  void _showSurplusDetails(BuildContext context, Map<String, dynamic> surplus) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(surplus['foodType']),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${'quantity'.tr()}: ${surplus['quantity']}'),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 2),
             Text(
-                '${'expiry'.tr()}: ${surplus['expiryHours']} ${'hours_left'.tr()}'),
-            Text('${'distance'.tr()}: ${surplus['distance']} km'),
-            Text('${'donor'.tr()}: ${surplus['donorName']}'),
-            Text('${'location'.tr()}: ${surplus['location']}'),
-            const SizedBox(height: 16),
-            Container(
-              height: 120,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.map, size: 40, color: Colors.grey),
-                    Text('map_preview'.tr()),
-                  ],
-                ),
+              subtitle!,
+              style: const TextStyle(
+                fontSize: 10,
+                color: Colors.grey,
               ),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('close'.tr()),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _acceptPickup(context, surplus);
-            },
-            child: Text('accept_pickup'.tr()),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _acceptPickup(BuildContext context, Map<String, dynamic> surplus) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('accept_pickup'.tr()),
-        content: Text('${'accept_pickup_for'.tr()} ${surplus['foodType']}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('cancel'.tr()),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                      '${'pickup_accepted_for'.tr()} ${surplus['foodType']}!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            },
-            child: Text('accept'.tr()),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _markAsCollected(BuildContext context, Map<String, dynamic> request) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('mark_as_collected'.tr()),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-                '${'mark_as_collected_question'.tr().replaceAll('{foodType}', request['foodType'])}'),
-            const SizedBox(height: 16),
-            Text('upload_photo_signature'.tr()),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('cancel'.tr()),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                      '${request['foodType']} ${'marked_as_collected'.tr()}!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            },
-            child: Text('mark_collected'.tr()),
-          ),
         ],
       ),
     );

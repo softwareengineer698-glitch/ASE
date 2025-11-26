@@ -12,6 +12,7 @@ import 'screens/splash_screen.dart';
 import 'services/notification_service.dart';
 import 'services/profile_service.dart';
 import 'services/local_surplus_service.dart';
+import 'services/donation_expiry_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,20 +20,19 @@ void main() async {
   // Initialize EasyLocalization
   await EasyLocalization.ensureInitialized();
 
-  // Initialize services
-  await _initializeServices();
-
-  // Initialize Firebase
+  // Initialize Firebase FIRST before any services
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-
-    // Brief delay to ensure Firebase is fully ready
-    await Future.delayed(const Duration(milliseconds: 300));
+    debugPrint('Firebase initialized successfully');
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
+    return;
   }
+
+  // Initialize services AFTER Firebase is ready
+  await _initializeServices();
 
   runApp(
     EasyLocalization(
@@ -52,6 +52,9 @@ Future<void> _initializeServices() async {
   NotificationService();
   ProfileService();
   LocalSurplusService();
+
+  // Start the donation expiry service
+  DonationExpiryService().start();
 }
 
 class MyApp extends StatelessWidget {
@@ -88,14 +91,14 @@ class MyApp extends StatelessWidget {
           create: (context) => ForecastProvider(),
         ),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
+      child: Consumer2<ThemeProvider, LanguageProvider>(
+        builder: (context, themeProvider, languageProvider, child) {
           return MaterialApp(
-            title: 'app_title'.tr(),
+            title: 'FoodBridge',
             theme: themeProvider.lightTheme,
             darkTheme: themeProvider.darkTheme,
             themeMode: themeProvider.themeMode,
-            locale: context.locale,
+            locale: context.locale, // Use EasyLocalization's locale
             supportedLocales: context.supportedLocales,
             localizationsDelegates: context.localizationDelegates,
             home: const SplashScreen(),

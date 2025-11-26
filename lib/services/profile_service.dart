@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_profile_model.dart';
 
 class ProfileService {
@@ -9,7 +10,7 @@ class ProfileService {
 
   // Current user profile (in-memory storage)
   UserProfile? _currentProfile;
-  
+
   // Listeners for profile updates
   final List<Function(UserProfile?)> _listeners = [];
 
@@ -26,12 +27,30 @@ class ProfileService {
     return _currentProfile;
   }
 
+  // Get user profile by ID from Firestore
+  Future<UserProfile?> getUserProfile(String userId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (doc.exists) {
+        return UserProfile.fromMap(doc.data()!);
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching user profile: $e');
+      return null;
+    }
+  }
+
   // Update user profile
   Future<bool> updateProfile(UserProfile updatedProfile) async {
     try {
       // Simulate network delay
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       _currentProfile = updatedProfile.copyWith(updatedAt: DateTime.now());
       _notifyListeners();
       return true;
@@ -145,7 +164,8 @@ class ProfileService {
           role: UserRole.donor,
           organization: 'Green Grocery Store',
           address: '123 Main Street, City, State 12345',
-          bio: 'Passionate about reducing food waste and helping the community. Owner of Green Grocery Store.',
+          bio:
+              'Passionate about reducing food waste and helping the community. Owner of Green Grocery Store.',
           createdAt: DateTime.now().subtract(const Duration(days: 30)),
           updatedAt: DateTime.now().subtract(const Duration(days: 1)),
         );
@@ -158,7 +178,8 @@ class ProfileService {
           role: UserRole.ngo,
           organization: 'Helping Hands NGO',
           address: '456 Community Ave, City, State 12345',
-          bio: 'Dedicated to fighting hunger and food insecurity in our community. Coordinator at Helping Hands NGO.',
+          bio:
+              'Dedicated to fighting hunger and food insecurity in our community. Coordinator at Helping Hands NGO.',
           createdAt: DateTime.now().subtract(const Duration(days: 45)),
           updatedAt: DateTime.now().subtract(const Duration(hours: 2)),
         );
@@ -200,9 +221,9 @@ class ProfileService {
   // Validation helpers
   bool isValidProfile(UserProfile profile) {
     return profile.validateName(profile.name) == null &&
-           profile.validateEmail(profile.email) == null &&
-           profile.validatePhone(profile.phone) == null &&
-           profile.validateOrganization(profile.organization) == null;
+        profile.validateEmail(profile.email) == null &&
+        profile.validatePhone(profile.phone) == null &&
+        profile.validateOrganization(profile.organization) == null;
   }
 
   // Demo mode helpers

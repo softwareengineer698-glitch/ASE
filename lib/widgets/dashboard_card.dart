@@ -53,7 +53,7 @@ class _DashboardCardState extends State<DashboardCard>
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-    
+
     _scaleAnimation = Tween<double>(
       begin: 1.0,
       end: 0.98,
@@ -117,9 +117,10 @@ class _DashboardCardState extends State<DashboardCard>
     return card;
   }
 
-  Widget _buildCard(BuildContext context, ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildCard(
+      BuildContext context, ThemeData theme, ColorScheme colorScheme) {
     final cardContent = _buildCardContent();
-    
+
     return Container(
       width: widget.width,
       height: widget.height,
@@ -134,16 +135,18 @@ class _DashboardCardState extends State<DashboardCard>
     );
   }
 
-  Widget _buildCardByVariant(BuildContext context, ThemeData theme, ColorScheme colorScheme, Widget content) {
+  Widget _buildCardByVariant(BuildContext context, ThemeData theme,
+      ColorScheme colorScheme, Widget content) {
     final borderRadius = BorderRadius.circular(widget.borderRadius);
-    
+
     switch (widget.variant) {
       case CardVariant.elevated:
         return AnimatedBuilder(
           animation: _elevationAnimation,
           builder: (context, child) {
             return Material(
-              elevation: widget.showShadow ? (4 * _elevationAnimation.value) : 0,
+              elevation:
+                  widget.showShadow ? (4 * _elevationAnimation.value) : 0,
               borderRadius: borderRadius,
               shadowColor: colorScheme.shadow.withOpacity(0.15),
               child: Container(
@@ -186,7 +189,7 @@ class _DashboardCardState extends State<DashboardCard>
 
   Widget _buildCardContent() {
     final padding = widget.padding ?? const EdgeInsets.all(16);
-    
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(widget.borderRadius),
       child: Column(
@@ -271,9 +274,7 @@ class MetricCard extends StatelessWidget {
               if (trailing != null) trailing!,
             ],
           ),
-          
           const SizedBox(height: 16),
-          
           Text(
             title,
             style: theme.textTheme.bodyMedium?.copyWith(
@@ -281,9 +282,7 @@ class MetricCard extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          
           const SizedBox(height: 4),
-          
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -296,21 +295,23 @@ class MetricCard extends StatelessWidget {
                   ),
                 ),
               ),
-              
               if (showTrend && trendValue != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: isPositiveTrend 
-                      ? Colors.green.withOpacity(0.1)
-                      : Colors.red.withOpacity(0.1),
+                    color: isPositiveTrend
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.red.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isPositiveTrend ? Icons.trending_up : Icons.trending_down,
+                        isPositiveTrend
+                            ? Icons.trending_up
+                            : Icons.trending_down,
                         size: 16,
                         color: isPositiveTrend ? Colors.green : Colors.red,
                       ),
@@ -328,7 +329,6 @@ class MetricCard extends StatelessWidget {
                 ),
             ],
           ),
-          
           if (subtitle != null) ...[
             const SizedBox(height: 4),
             Text(
@@ -392,13 +392,13 @@ class QuickActionCard extends StatelessWidget {
                   size: 32,
                 ),
               ),
-              
               if (showBadge && badgeText != null)
                 Positioned(
                   right: 0,
                   top: 0,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.red,
                       borderRadius: BorderRadius.circular(10),
@@ -415,9 +415,7 @@ class QuickActionCard extends StatelessWidget {
                 ),
             ],
           ),
-          
           const SizedBox(height: 12),
-          
           Text(
             title,
             style: theme.textTheme.titleMedium?.copyWith(
@@ -426,7 +424,6 @@ class QuickActionCard extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          
           if (subtitle != null) ...[
             const SizedBox(height: 4),
             Text(
