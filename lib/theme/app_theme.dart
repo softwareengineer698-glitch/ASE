@@ -117,7 +117,7 @@ class AppTheme {
       primarySwatch: Colors.blue,
       primaryColor: primaryBlue,
       scaffoldBackgroundColor: backgroundLight,
-      
+
       // Color Scheme
       colorScheme: const ColorScheme.light(
         primary: primaryBlue,
@@ -146,7 +146,7 @@ class AppTheme {
       ),
 
       // Card Theme
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -189,7 +189,8 @@ class AppTheme {
         ),
         filled: true,
         fillColor: surfaceLight,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
 
       // Text Theme
@@ -314,31 +315,31 @@ class AppTheme {
 
   // Shadow Definitions
   static List<BoxShadow> get cardShadow => [
-    BoxShadow(
-      color: Colors.black.withOpacity(0.1),
-      blurRadius: 8,
-      offset: const Offset(0, 2),
-    ),
-  ];
+        BoxShadow(
+          color: Colors.black.withOpacity(0.1),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ];
 
   static List<BoxShadow> get elevatedShadow => [
-    BoxShadow(
-      color: Colors.black.withOpacity(0.15),
-      blurRadius: 12,
-      offset: const Offset(0, 4),
-    ),
-  ];
+        BoxShadow(
+          color: Colors.black.withOpacity(0.15),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+        ),
+      ];
 
   static List<BoxShadow> get buttonShadow => [
-    BoxShadow(
-      color: Colors.black.withOpacity(0.2),
-      blurRadius: 6,
-      offset: const Offset(0, 3),
-    ),
-  ];
+        BoxShadow(
+          color: Colors.black.withOpacity(0.2),
+          blurRadius: 6,
+          offset: const Offset(0, 3),
+        ),
+      ];
 
   // New Theme Variant Methods
-  
+
   /// Get primary color for theme variant
   static Color getPrimaryColor(String variant) {
     return themeColors[variant]?['primary'] ?? themeColors['blue']!['primary']!;
@@ -346,7 +347,8 @@ class AppTheme {
 
   /// Get secondary color for theme variant
   static Color getSecondaryColor(String variant) {
-    return themeColors[variant]?['secondary'] ?? themeColors['blue']!['secondary']!;
+    return themeColors[variant]?['secondary'] ??
+        themeColors['blue']!['secondary']!;
   }
 
   /// Get accent color for theme variant
@@ -366,7 +368,7 @@ class AppTheme {
       primarySwatch: _createMaterialColor(primaryColor),
       primaryColor: primaryColor,
       scaffoldBackgroundColor: backgroundLight,
-      
+
       // Color Scheme
       colorScheme: ColorScheme.light(
         primary: primaryColor,
@@ -396,7 +398,7 @@ class AppTheme {
       ),
 
       // Card Theme
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -441,7 +443,8 @@ class AppTheme {
         ),
         filled: true,
         fillColor: surfaceLight,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
 
       // Text Theme
@@ -519,7 +522,7 @@ class AppTheme {
       primarySwatch: _createMaterialColor(primaryColor),
       primaryColor: primaryColor,
       scaffoldBackgroundColor: backgroundDark,
-      
+
       // Color Scheme
       colorScheme: ColorScheme.dark(
         primary: primaryColor,
@@ -549,7 +552,7 @@ class AppTheme {
       ),
 
       // Card Theme
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -594,7 +597,8 @@ class AppTheme {
         ),
         filled: true,
         fillColor: surfaceDark,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
 
       // Text Theme
@@ -659,7 +663,6 @@ class AppTheme {
       ),
     );
   }
-
 
   /// Helper method to create MaterialColor from Color
   static MaterialColor _createMaterialColor(Color color) {
