@@ -84,7 +84,7 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: Text('create_donation'.tr()),
+            title: Text('create donation'.tr()),
             backgroundColor: themeProvider.primaryColor,
             foregroundColor: Colors.white,
           ),
@@ -98,7 +98,7 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Basic Information Section
-                        _buildSectionHeader('basic_information'.tr()),
+                        _buildSectionHeader('basic information'.tr()),
                         const SizedBox(height: 16),
                         _buildTitleField(),
                         const SizedBox(height: 16),
@@ -106,7 +106,7 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
                         const SizedBox(height: 24),
 
                         // Category Section
-                        _buildSectionHeader('category_details'.tr()),
+                        _buildSectionHeader('category details'.tr()),
                         const SizedBox(height: 16),
                         _buildCategoryDropdown(),
                         const SizedBox(height: 16),
@@ -114,13 +114,13 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
                         const SizedBox(height: 24),
 
                         // Location Section
-                        _buildSectionHeader('location_details'.tr()),
+                        _buildSectionHeader('location details'.tr()),
                         const SizedBox(height: 16),
                         _buildLocationField(),
                         const SizedBox(height: 24),
 
                         // Expiry Section
-                        _buildSectionHeader('expiry_details'.tr()),
+                        _buildSectionHeader('expiry details'.tr()),
                         const SizedBox(height: 16),
                         _buildExpirySelector(),
                         const SizedBox(height: 24),
@@ -142,7 +142,7 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
                               padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                             child: Text(
-                              'create_donation'.tr(),
+                              'create donation'.tr(),
                               style: const TextStyle(fontSize: 16),
                             ),
                           ),
@@ -170,16 +170,16 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
     return TextFormField(
       controller: _titleController,
       decoration: InputDecoration(
-        labelText: 'donation_title'.tr(),
-        hintText: 'enter_donation_title'.tr(),
+        labelText: 'donation title'.tr(),
+        hintText: 'enter donation title'.tr(),
         border: const OutlineInputBorder(),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return 'please_enter_title'.tr();
+          return 'please enter title'.tr();
         }
         if (value.trim().length < 3) {
-          return 'title_too_short'.tr();
+          return 'title too short'.tr();
         }
         return null;
       },
@@ -191,7 +191,7 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
       controller: _descriptionController,
       decoration: InputDecoration(
         labelText: 'description'.tr(),
-        hintText: 'enter_description'.tr() + ' (min 100 characters)',
+        hintText: 'enter description'.tr() + ' (min 100 characters)',
         border: const OutlineInputBorder(),
         helperText:
             '${_descriptionController.text.length}/100 characters minimum',
@@ -207,7 +207,7 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
       },
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return 'please_enter_description'.tr();
+          return 'please enter description'.tr();
         }
         if (value.trim().length < 100) {
           return 'Description must be at least 100 characters long (${value.trim().length}/100)';
@@ -241,40 +241,50 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
   Widget _buildQuantityFields() {
     return Row(
       children: [
-        Expanded(
-          flex: 2,
+        Flexible(
+          flex: 3,
           child: TextFormField(
             controller: _quantityController,
             decoration: InputDecoration(
               labelText: 'quantity'.tr(),
               hintText: '0',
               border: const OutlineInputBorder(),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
             keyboardType: TextInputType.number,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'please_enter_quantity'.tr();
+                return 'please enter quantity'.tr();
               }
               final quantity = double.tryParse(value);
               if (quantity == null || quantity <= 0) {
-                return 'invalid_quantity'.tr();
+                return 'invalid quantity'.tr();
               }
               return null;
             },
           ),
         ),
-        const SizedBox(width: 16),
-        Expanded(
+        const SizedBox(width: 8),
+        Flexible(
+          flex: 2,
           child: DropdownButtonFormField<String>(
             value: _unitController.text.isEmpty ? 'kg' : _unitController.text,
             decoration: InputDecoration(
               labelText: 'unit'.tr(),
               border: const OutlineInputBorder(),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
             ),
+            isExpanded: true,
             items: _commonUnits.map((unit) {
               return DropdownMenuItem(
                 value: unit,
-                child: Text(unit),
+                child: Text(
+                  unit,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
               );
             }).toList(),
             onChanged: (value) {

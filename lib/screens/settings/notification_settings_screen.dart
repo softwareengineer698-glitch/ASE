@@ -10,10 +10,12 @@ class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
 
   @override
-  State<NotificationSettingsScreen> createState() => _NotificationSettingsScreenState();
+  State<NotificationSettingsScreen> createState() =>
+      _NotificationSettingsScreenState();
 }
 
-class _NotificationSettingsScreenState extends State<NotificationSettingsScreen> {
+class _NotificationSettingsScreenState
+    extends State<NotificationSettingsScreen> {
   late EnhancedNotificationService _notificationService;
   late NotificationPreferences _preferences;
 
@@ -46,29 +48,29 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               children: [
                 // Master Toggle
                 _buildMasterToggle(themeProvider),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // General Settings
                 _buildGeneralSettings(themeProvider),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Channel Settings
                 _buildChannelSettings(themeProvider),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Quiet Hours
                 _buildQuietHoursSettings(themeProvider),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Notification Statistics
                 _buildNotificationStats(themeProvider),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Test Section
                 _buildTestSection(themeProvider),
               ],
@@ -102,7 +104,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
             const SizedBox(height: 16),
             SwitchListTile(
               title: const Text('Enable Notifications'),
-              subtitle: const Text('Receive push notifications from FoodBridge'),
+              subtitle:
+                  const Text('Receive push notifications from FoodBridge'),
               value: _preferences.pushNotificationsEnabled,
               onChanged: (value) => _updateMasterToggle(value),
               activeColor: themeProvider.primaryColor,
@@ -160,27 +163,27 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               title: const Text('Sound'),
               subtitle: const Text('Play sound for notifications'),
               value: _preferences.soundEnabled,
-              onChanged: _preferences.pushNotificationsEnabled 
-                ? (value) => _updateSoundPreference(value)
-                : null,
+              onChanged: _preferences.pushNotificationsEnabled
+                  ? (value) => _updateSoundPreference(value)
+                  : null,
               activeColor: themeProvider.primaryColor,
             ),
             SwitchListTile(
               title: const Text('Vibration'),
               subtitle: const Text('Vibrate device for notifications'),
               value: _preferences.vibrationEnabled,
-              onChanged: _preferences.pushNotificationsEnabled 
-                ? (value) => _updateVibrationPreference(value)
-                : null,
+              onChanged: _preferences.pushNotificationsEnabled
+                  ? (value) => _updateVibrationPreference(value)
+                  : null,
               activeColor: themeProvider.primaryColor,
             ),
             SwitchListTile(
               title: const Text('Badge Count'),
               subtitle: const Text('Show unread count on app icon'),
               value: _preferences.badgeEnabled,
-              onChanged: _preferences.pushNotificationsEnabled 
-                ? (value) => _updateBadgePreference(value)
-                : null,
+              onChanged: _preferences.pushNotificationsEnabled
+                  ? (value) => _updateBadgePreference(value)
+                  : null,
               activeColor: themeProvider.primaryColor,
             ),
           ],
@@ -227,16 +230,17 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     );
   }
 
-  Widget _buildChannelTile(NotificationChannel channel, ThemeProvider themeProvider) {
+  Widget _buildChannelTile(
+      NotificationChannel channel, ThemeProvider themeProvider) {
     final isEnabled = _preferences.channelPreferences[channel] ?? true;
     final canChange = _preferences.pushNotificationsEnabled;
-    
+
     return ListTile(
       leading: Icon(
         _getChannelIcon(channel),
-        color: canChange 
-          ? (isEnabled ? themeProvider.primaryColor : Colors.grey)
-          : Colors.grey[400],
+        color: canChange
+            ? (isEnabled ? themeProvider.primaryColor : Colors.grey)
+            : Colors.grey[400],
       ),
       title: Text(
         channel.displayName,
@@ -254,9 +258,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       ),
       trailing: Switch(
         value: isEnabled,
-        onChanged: canChange 
-          ? (value) => _updateChannelPreference(channel, value)
-          : null,
+        onChanged: canChange
+            ? (value) => _updateChannelPreference(channel, value)
+            : null,
         activeColor: themeProvider.primaryColor,
       ),
     );
@@ -294,9 +298,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
             SwitchListTile(
               title: const Text('Enable Quiet Hours'),
               value: _preferences.quietHoursEnabled,
-              onChanged: _preferences.pushNotificationsEnabled 
-                ? (value) => _updateQuietHoursEnabled(value)
-                : null,
+              onChanged: _preferences.pushNotificationsEnabled
+                  ? (value) => _updateQuietHoursEnabled(value)
+                  : null,
               activeColor: themeProvider.primaryColor,
             ),
             if (_preferences.quietHoursEnabled) ...[
@@ -356,7 +360,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
             ),
             child: Row(
               children: [
-                Icon(Icons.access_time, size: 16, color: themeProvider.primaryColor),
+                Icon(Icons.access_time,
+                    size: 16, color: themeProvider.primaryColor),
                 const SizedBox(width: 8),
                 Text(currentTime),
               ],
@@ -369,7 +374,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
 
   Widget _buildNotificationStats(ThemeProvider themeProvider) {
     final stats = _notificationService.getNotificationStats();
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -417,7 +422,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String title, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -474,9 +480,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _preferences.pushNotificationsEnabled 
-                  ? () => _sendTestNotification()
-                  : null,
+                onPressed: _preferences.pushNotificationsEnabled
+                    ? () => _sendTestNotification()
+                    : null,
                 icon: const Icon(Icons.send),
                 label: const Text('Send Test Notification'),
                 style: ElevatedButton.styleFrom(
@@ -548,7 +554,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
 
   void _updateChannelPreference(NotificationChannel channel, bool enabled) {
     setState(() {
-      final newChannelPrefs = Map<NotificationChannel, bool>.from(_preferences.channelPreferences);
+      final newChannelPrefs =
+          Map<NotificationChannel, bool>.from(_preferences.channelPreferences);
       newChannelPrefs[channel] = enabled;
       _preferences = _preferences.copyWith(channelPreferences: newChannelPrefs);
     });
@@ -584,7 +591,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     );
   }
 
-  Future<void> _selectTime(String currentTime, Function(String) onTimeChanged) async {
+  Future<void> _selectTime(
+      String currentTime, Function(String) onTimeChanged) async {
     final parts = currentTime.split(':');
     final initialTime = TimeOfDay(
       hour: int.parse(parts[0]),
@@ -597,7 +605,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     );
 
     if (selectedTime != null) {
-      final formattedTime = '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}';
+      final formattedTime =
+          '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}';
       onTimeChanged(formattedTime);
     }
   }

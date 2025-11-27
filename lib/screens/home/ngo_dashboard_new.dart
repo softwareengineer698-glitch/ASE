@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/language_provider.dart';
@@ -20,6 +21,29 @@ class NGODashboard extends StatefulWidget {
 
 class _NGODashboardState extends State<NGODashboard> {
   final DonationService _donationService = DonationService();
+
+  // Random food icon list
+  final List<IconData> _foodIcons = [
+    Icons.fastfood,
+    Icons.local_pizza,
+    Icons.restaurant,
+    Icons.emoji_food_beverage,
+    Icons.lunch_dining,
+    Icons.dinner_dining,
+    Icons.cake,
+    Icons.icecream,
+  ];
+
+  IconData _selectedFoodIcon = Icons.fastfood; // Default fallback
+
+  @override
+  void initState() {
+    super.initState();
+    // Select a random food icon for animation
+    _selectedFoodIcon =
+        _foodIcons[(DateTime.now().millisecondsSinceEpoch) % _foodIcons.length];
+  }
+
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _browseKey = GlobalKey();
   final GlobalKey _claimsKey = GlobalKey();
@@ -125,15 +149,49 @@ class _NGODashboardState extends State<NGODashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'welcome_ngo'
-                      .tr(namedArgs: {'name': user.email.split('@')[0]}),
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      'hello_user'.tr(namedArgs: {
+                        'name': user.userName ?? user.email.split('@')[0]
+                      }),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      _selectedFoodIcon,
+                      size: 24,
+                      color: colorScheme.primary,
+                    )
+                        .animate()
+                        .scale(duration: 700.ms)
+                        .then()
+                        .scale(
+                            begin: const Offset(1.1, 1.1),
+                            end: const Offset(1, 1))
+                        .then(delay: 1000.ms)
+                        .scale(duration: 700.ms)
+                        .then(delay: 1000.ms)
+                        .scale(
+                            begin: const Offset(1, 1),
+                            end: const Offset(1.1, 1.1)),
+                  ],
                 ),
+                if (user.organizationName != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    user.organizationName!,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 4),
                 Text(
                   'ready_to_receive'.tr(),
@@ -187,7 +245,7 @@ class _NGODashboardState extends State<NGODashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'your_impact'.tr(),
+              'your impact'.tr(),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -203,7 +261,7 @@ class _NGODashboardState extends State<NGODashboard> {
                     value: '$claimedDonations',
                     icon: Icons.shopping_cart,
                     color: Colors.blue,
-                    subtitle: 'total_claims'.tr(),
+                    subtitle: 'total claims'.tr(),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -213,7 +271,7 @@ class _NGODashboardState extends State<NGODashboard> {
                     value: '$pendingPickups',
                     icon: Icons.hourglass_empty,
                     color: Colors.orange,
-                    subtitle: 'awaiting_pickup'.tr(),
+                    subtitle: 'awaiting pickup'.tr(),
                   ),
                 ),
               ],
@@ -227,17 +285,17 @@ class _NGODashboardState extends State<NGODashboard> {
                     value: '$completedPickups',
                     icon: Icons.check_circle,
                     color: Colors.green,
-                    subtitle: 'successful_pickups'.tr(),
+                    subtitle: 'successful pickups'.tr(),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: MetricCard(
-                    title: 'food_received'.tr(),
+                    title: 'food received'.tr(),
                     value: '${totalQuantityReceived.toStringAsFixed(1)} kg',
                     icon: Icons.inventory,
                     color: Colors.purple,
-                    subtitle: 'total_quantity'.tr(),
+                    subtitle: 'total quantity'.tr(),
                   ),
                 ),
               ],
@@ -253,7 +311,7 @@ class _NGODashboardState extends State<NGODashboard> {
                         Icon(Icons.history, color: colorScheme.primary),
                         const SizedBox(width: 8),
                         Text(
-                          'recent_activity'.tr(),
+                          'recent activity'.tr(),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -325,7 +383,7 @@ class _NGODashboardState extends State<NGODashboard> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'items_ready_for_pickup'.tr(),
+                      'items ready for pickup'.tr(),
                       style: TextStyle(
                         fontSize: 14,
                         color: colorScheme.onSurfaceVariant,
@@ -348,7 +406,7 @@ class _NGODashboardState extends State<NGODashboard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'quick_actions'.tr(),
+          'quick actions'.tr(),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -360,7 +418,7 @@ class _NGODashboardState extends State<NGODashboard> {
           children: [
             Expanded(
               child: CustomButton(
-                text: 'browse_donations'.tr(),
+                text: 'browse donations'.tr(),
                 icon: Icons.search,
                 onPressed: () {
                   _scrollToSection(_browseKey);
@@ -370,7 +428,7 @@ class _NGODashboardState extends State<NGODashboard> {
             const SizedBox(width: 12),
             Expanded(
               child: CustomButton(
-                text: 'my_claims'.tr(),
+                text: 'my claims'.tr(),
                 icon: Icons.list,
                 onPressed: () {
                   _scrollToSection(_claimsKey);
@@ -448,13 +506,13 @@ class _NGODashboardState extends State<NGODashboard> {
                             size: 48, color: Colors.grey[400]),
                         const SizedBox(height: 16),
                         Text(
-                          'no_available_donations'.tr(),
+                          'no available donations'.tr(),
                           style:
                               TextStyle(fontSize: 16, color: Colors.grey[600]),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'check_back_later'.tr(),
+                          'check back later'.tr(),
                           style:
                               TextStyle(fontSize: 14, color: Colors.grey[500]),
                         ),
@@ -509,7 +567,7 @@ class _NGODashboardState extends State<NGODashboard> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'my_claims'.tr(),
+                    'my claims'.tr(),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -535,13 +593,13 @@ class _NGODashboardState extends State<NGODashboard> {
                             size: 48, color: Colors.grey[400]),
                         const SizedBox(height: 16),
                         Text(
-                          'no_claims_yet'.tr(),
+                          'no claims yet'.tr(),
                           style:
                               TextStyle(fontSize: 16, color: Colors.grey[600]),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'claim_donations_above'.tr(),
+                          'claim donations above'.tr(),
                           style:
                               TextStyle(fontSize: 14, color: Colors.grey[500]),
                         ),
@@ -595,7 +653,7 @@ class _NGODashboardState extends State<NGODashboard> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      'expiring_soon'.tr(),
+                      'expiring soon'.tr(),
                       style: const TextStyle(
                         color: Colors.orange,
                         fontSize: 12,
@@ -668,7 +726,7 @@ class _NGODashboardState extends State<NGODashboard> {
                   backgroundColor: colorScheme.primary,
                   foregroundColor: Colors.white,
                 ),
-                child: Text('claim_donation'.tr()),
+                child: Text('claim donation'.tr()),
               ),
             ),
           ],
@@ -732,30 +790,59 @@ class _NGODashboardState extends State<NGODashboard> {
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 12),
-            Row(
+            Wrap(
+              spacing: 16,
+              runSpacing: 4,
               children: [
-                Icon(Icons.category, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  donation.category,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.category, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      donation.category,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Icon(Icons.scale, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  '${donation.quantity} ${donation.unit}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.scale, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${donation.quantity} ${donation.unit}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
-                const Spacer(),
                 if (donation.claimedAt != null)
-                  Text(
-                    'claimed_on'.tr() +
-                        ': ${donation.claimedAt!.day}/${donation.claimedAt!.month}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.access_time,
+                          size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        'claimed on'.tr() +
+                            ': ${donation.claimedAt!.day}/${donation.claimedAt!.month}',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ],
                   ),
               ],
             ),
+            const SizedBox(height: 12),
+            if (donation.status == DonationStatus.claimed)
+              OutlinedButton.icon(
+                onPressed: () => _releaseDonation(donation),
+                icon: const Icon(Icons.refresh, size: 16),
+                label: Text('release'.tr()),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.orange),
+                  foregroundColor: Colors.orange,
+                ),
+              ),
           ],
         ),
       ),
@@ -784,12 +871,12 @@ class _NGODashboardState extends State<NGODashboard> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('claim_donation'.tr()),
+        title: Text('claim donation'.tr()),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('confirm_claim_donation'.tr()),
+            Text('confirm claim donation'.tr()),
             const SizedBox(height: 12),
             Text(
               donation.title,
@@ -818,7 +905,7 @@ class _NGODashboardState extends State<NGODashboard> {
                 if (mounted && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('donation_claimed'.tr()),
+                      content: Text('donation claimed'.tr()),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -827,7 +914,7 @@ class _NGODashboardState extends State<NGODashboard> {
                 if (mounted && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('error_claiming_donation'.tr()),
+                      content: Text('error claiming donation'.tr()),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -835,6 +922,98 @@ class _NGODashboardState extends State<NGODashboard> {
               }
             },
             child: Text('confirm'.tr()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _releaseDonation(DonationModel donation) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('release donation'.tr()),
+        content: Text('confirm release donation'.tr()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('cancel'.tr()),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await _donationService.releaseDonation(donation.id);
+                if (mounted && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('donation released'.tr()),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('error releasing donation'.tr()),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('release'.tr()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _completeClaimedDonation(DonationModel donation) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('complete pickup'.tr()),
+        content: Text('confirm complete pickup'.tr()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('cancel'.tr()),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await _donationService.completeDonation(donation.id);
+                if (mounted && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('pickup completed'.tr()),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('error completing pickup'.tr()),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('complete'.tr()),
           ),
         ],
       ),

@@ -211,7 +211,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'your_impact'.tr(),
+              'your impact'.tr(),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -223,11 +223,11 @@ class _DonorDashboardState extends State<DonorDashboard> {
               children: [
                 Expanded(
                   child: MetricCard(
-                    title: 'total_donations'.tr(),
+                    title: 'total donations'.tr(),
                     value: '$totalDonations',
                     icon: Icons.volunteer_activism,
                     color: Colors.blue,
-                    subtitle: 'all_time'.tr(),
+                    subtitle: 'all time'.tr(),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -237,7 +237,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
                     value: '$pendingDonations',
                     icon: Icons.hourglass_empty,
                     color: Colors.orange,
-                    subtitle: 'awaiting_pickup'.tr(),
+                    subtitle: 'awaiting pickup'.tr(),
                   ),
                 ),
               ],
@@ -251,17 +251,17 @@ class _DonorDashboardState extends State<DonorDashboard> {
                     value: '$completedDonations',
                     icon: Icons.check_circle,
                     color: Colors.green,
-                    subtitle: 'successfully_donated'.tr(),
+                    subtitle: 'successfully donated'.tr(),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: MetricCard(
-                    title: 'food_saved'.tr(),
+                    title: 'food saved'.tr(),
                     value: '${totalQuantitySaved.toStringAsFixed(1)} kg',
                     icon: Icons.eco,
                     color: Colors.purple,
-                    subtitle: 'total_quantity'.tr(),
+                    subtitle: 'total quantity'.tr(),
                   ),
                 ),
               ],
@@ -277,7 +277,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
                         Icon(Icons.history, color: colorScheme.primary),
                         const SizedBox(width: 8),
                         Text(
-                          'recent_activity'.tr(),
+                          'recent activity'.tr(),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -322,7 +322,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
               Icon(Icons.insights, color: colorScheme.primary),
               const SizedBox(width: 8),
               Text(
-                'forecast_insights'.tr(),
+                'forecast insights'.tr(),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -358,7 +358,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
           ),
           const SizedBox(height: 12),
           Text(
-            'donation_trend_increasing'.tr(),
+            'donation trend increasing'.tr(),
             style: TextStyle(
               fontSize: 14,
               color: colorScheme.primary,
@@ -377,7 +377,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'quick_actions'.tr(),
+          'quick actions'.tr(),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -389,7 +389,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
           children: [
             Expanded(
               child: CustomButton(
-                text: 'create_donation'.tr(),
+                text: 'create donation'.tr(),
                 icon: Icons.add_circle,
                 onPressed: () {
                   Navigator.push(
@@ -404,7 +404,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
             const SizedBox(width: 12),
             Expanded(
               child: CustomButton(
-                text: 'view_history'.tr(),
+                text: 'view history'.tr(),
                 icon: Icons.history,
                 onPressed: () {
                   Navigator.push(
@@ -466,7 +466,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'active_donations'.tr(),
+                    'active donations'.tr(),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -494,13 +494,13 @@ class _DonorDashboardState extends State<DonorDashboard> {
                                   size: 48, color: Colors.grey[400]),
                               const SizedBox(height: 16),
                               Text(
-                                'no_active_donations'.tr(),
+                                'no active donations'.tr(),
                                 style: TextStyle(
                                     fontSize: 16, color: Colors.grey[600]),
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'create_first_donation'.tr(),
+                                'create first donation'.tr(),
                                 style: TextStyle(
                                     fontSize: 14, color: Colors.grey[500]),
                               ),
@@ -610,29 +610,61 @@ class _DonorDashboardState extends State<DonorDashboard> {
                   ElevatedButton.icon(
                     onPressed: () => _completeDonation(donation),
                     icon: const Icon(Icons.check, size: 16),
-                    label: Text('mark_complete'.tr()),
+                    label: Text('complete'.tr()),
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton.icon(
                     onPressed: () => _showDonationDetails(donation),
-                    icon: const Icon(Icons.info, size: 16),
-                    label: const Text('Details'),
+                    icon: const Icon(Icons.info_outline, size: 16),
+                    label: const Text(''),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
+                      minimumSize: const Size(40, 36),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => _deleteDonation(donation),
+                    icon: const Icon(Icons.delete_outline, size: 16),
+                    label: const Text(''),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      minimumSize: const Size(40, 36),
+                      side: const BorderSide(color: Colors.red),
+                      foregroundColor: Colors.red,
                     ),
                   ),
                 ],
               ),
             ] else if (donation.status == DonationStatus.available) ...[
-              OutlinedButton.icon(
-                onPressed: () => _showDonationDetails(donation),
-                icon: const Icon(Icons.info, size: 16),
-                label: const Text('Details'),
-                style: OutlinedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _showDonationDetails(donation),
+                    icon: const Icon(Icons.info_outline, size: 16),
+                    label: const Text(''),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      minimumSize: const Size(40, 36),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => _deleteDonation(donation),
+                    icon: const Icon(Icons.delete_outline, size: 16),
+                    label: const Text(''),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      minimumSize: const Size(40, 36),
+                      side: const BorderSide(color: Colors.red),
+                      foregroundColor: Colors.red,
+                    ),
+                  ),
+                ],
               ),
             ],
           ],
@@ -696,12 +728,58 @@ class _DonorDashboardState extends State<DonorDashboard> {
     );
   }
 
+  void _deleteDonation(DonationModel donation) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('delete donation'.tr()),
+        content: Text('confirm delete donation'.tr()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('cancel'.tr()),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await _donationService.deleteDonation(donation.id);
+                if (mounted && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('donation deleted'.tr()),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('error deleting donation'.tr()),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('delete'.tr()),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _completeDonation(DonationModel donation) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('complete_donation'.tr()),
-        content: Text('confirm_complete_donation'.tr()),
+        title: Text('complete donation'.tr()),
+        content: Text('confirm complete donation'.tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -715,7 +793,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
                 if (mounted && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('donation_completed'.tr()),
+                      content: Text('donation completed'.tr()),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -724,7 +802,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
                 if (mounted && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('error_completing_donation'.tr()),
+                      content: Text('error completing donation'.tr()),
                       backgroundColor: Colors.red,
                     ),
                   );

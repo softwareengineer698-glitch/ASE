@@ -3,12 +3,16 @@ class UserModel {
   final String email;
   final UserRole role;
   final DateTime createdAt;
+  final String? organizationName;
+  final String? userName;
 
   UserModel({
     required this.uid,
     required this.email,
     required this.role,
     required this.createdAt,
+    this.organizationName,
+    this.userName,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
@@ -16,15 +20,18 @@ class UserModel {
       uid: map['uid'] ?? '',
       email: map['email'] ?? '',
       role: _parseRole(map['role']),
-      createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt:
+          DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
+      organizationName: map['organizationName'],
+      userName: map['userName'],
     );
   }
 
   static UserRole _parseRole(dynamic roleValue) {
     if (roleValue == null) return UserRole.donor;
-    
+
     final roleString = roleValue.toString().toLowerCase();
-    
+
     // Handle "donor"/"ngo" format from Firestore
     switch (roleString) {
       case 'donor':
@@ -42,6 +49,8 @@ class UserModel {
       'email': email,
       'role': role.name, // Uses "donor"/"ngo" to match Firestore security rules
       'createdAt': createdAt.toIso8601String(),
+      'organizationName': organizationName,
+      'userName': userName,
     };
   }
 
@@ -50,12 +59,16 @@ class UserModel {
     String? email,
     UserRole? role,
     DateTime? createdAt,
+    String? organizationName,
+    String? userName,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
       email: email ?? this.email,
       role: role ?? this.role,
       createdAt: createdAt ?? this.createdAt,
+      organizationName: organizationName ?? this.organizationName,
+      userName: userName ?? this.userName,
     );
   }
 }

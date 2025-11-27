@@ -347,6 +347,28 @@ class DonationService {
     });
   }
 
+  // Delete a donation permanently (for donors)
+  Future<void> deleteDonation(String donationId) async {
+    try {
+      await _firestore.collection('donations').doc(donationId).delete();
+    } catch (e) {
+      throw 'Failed to delete donation: $e';
+    }
+  }
+
+  // Release a claimed donation back to available (for NGOs)
+  Future<void> releaseDonation(String donationId) async {
+    try {
+      await _firestore.collection('donations').doc(donationId).update({
+        'status': 'available',
+        'claimedBy': null,
+        'claimedAt': null,
+      });
+    } catch (e) {
+      throw 'Failed to release donation: $e';
+    }
+  }
+
   // Get leaderboard data for NGOs
   Stream<List<Map<String, dynamic>>> getNGOLeaderboard() {
     return _firestore
