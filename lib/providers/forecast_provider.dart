@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import '../models/forecast_model.dart';
 import '../services/forecast_service.dart';
+import '../services/enhanced_forecast_service.dart';
 
 /// Provider for managing AI forecast state and data
 /// Handles forecast generation, covariate updates, and alert management
 class ForecastProvider extends ChangeNotifier {
   final ForecastService _forecastService = ForecastService();
+  final EnhancedForecastService _enhancedService = EnhancedForecastService();
 
   AIForecast? _currentForecast;
   ForecastCovariates? _currentCovariates;
   bool _isLoading = false;
   String? _error;
+  bool _useEnhancedService = true; // Toggle between services
 
   // Getters
   AIForecast? get currentForecast => _currentForecast;
@@ -29,14 +32,39 @@ class ForecastProvider extends ChangeNotifier {
       // Get current covariates if not set
       _currentCovariates ??= _forecastService.getCurrentCovariates();
 
-      // Generate forecast
-      _currentForecast = await _forecastService.generateForecast(
-        donorId,
-        _currentCovariates!,
-      );
+      // Generate forecast using enhanced service if available
+      if (_useEnhancedService) {
+        // Generate mock historical data for enhanced service
+        final historicalData = _generateMockHistoricalData();
+
+        _currentForecast = await _enhancedService.generateProphetForecast(
+          donorId,
+          historicalData,
+          _currentCovariates!,
+        );
+      } else {
+        // Fallback to original service
+        _currentForecast = await _forecastService.generateForecast(
+          donorId,
+          _currentCovariates!,
+        );
+      }
     } catch (e) {
-      _error = 'Failed to load forecast: $e';
-      print('Error loading forecast: $e');
+      // If enhanced service fails, try fallback
+      if (_useEnhancedService) {
+        try {
+          _currentForecast = await _forecastService.generateForecast(
+            donorId,
+            _currentCovariates!,
+          );
+        } catch (fallbackError) {
+          _error = 'Failed to load forecast: $fallbackError';
+          print('Error loading forecast: $fallbackError');
+        }
+      } else {
+        _error = 'Failed to load forecast: $e';
+        print('Error loading forecast: $e');
+      }
     }
 
     _isLoading = false;
@@ -183,23 +211,23 @@ class ForecastProvider extends ChangeNotifier {
   /// Get high priority alerts (high and critical)
   List<SurplusAlert> get highPriorityAlerts {
     if (_currentForecast == null) return [];
-    return _currentForecast!.alerts.where((alert) => 
-      alert.severity == SurplusRiskLevel.high || 
-      alert.severity == SurplusRiskLevel.critical
-    ).toList();
+    return _currentForecast!.alerts
+        .where((alert) =>
+            alert.severity == SurplusRiskLevel.high ||
+            alert.severity == SurplusRiskLevel.critical)
+        .toList();
   }
 
   /// Get today's forecast point
   ForecastPoint? get todaysForecast {
     if (_currentForecast == null) return null;
-    
+
     final today = DateTime.now();
     try {
       return _currentForecast!.weeklyForecast.firstWhere((point) =>
-        point.date.day == today.day &&
-        point.date.month == today.month &&
-        point.date.year == today.year
-      );
+          point.date.day == today.day &&
+          point.date.month == today.month &&
+          point.date.year == today.year);
     } catch (e) {
       return null;
     }
@@ -208,14 +236,13 @@ class ForecastProvider extends ChangeNotifier {
   /// Get tomorrow's forecast point
   ForecastPoint? get tomorrowsForecast {
     if (_currentForecast == null) return null;
-    
+
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     try {
       return _currentForecast!.weeklyForecast.firstWhere((point) =>
-        point.date.day == tomorrow.day &&
-        point.date.month == tomorrow.month &&
-        point.date.year == tomorrow.year
-      );
+          point.date.day == tomorrow.day &&
+          point.date.month == tomorrow.month &&
+          point.date.year == tomorrow.year);
     } catch (e) {
       return null;
     }
@@ -224,41 +251,47 @@ class ForecastProvider extends ChangeNotifier {
   /// Get weekly chart data for visualization
   List<Map<String, dynamic>> get weeklyChartData {
     if (_currentForecast == null) return [];
-    
-    return _currentForecast!.weeklyForecast.map((point) => {
-      'date': point.formattedDate,
-      'surplus': point.predictedSurplus,
-      'confidence': point.confidence,
-      'riskLevel': point.riskLevel.name,
-      'color': point.riskLevel.colorValue,
-    }).toList();
+
+    return _currentForecast!.weeklyForecast
+        .map((point) => {
+              'date': point.formattedDate,
+              'surplus': point.predictedSurplus,
+              'confidence': point.confidence,
+              'riskLevel': point.riskLevel.name,
+              'color': point.riskLevel.colorValue,
+            })
+        .toList();
   }
 
   /// Get monthly chart data for visualization
   List<Map<String, dynamic>> get monthlyChartData {
     if (_currentForecast == null) return [];
-    
-    return _currentForecast!.monthlyForecast.asMap().entries.map((entry) => {
-      'week': 'Week ${entry.key + 1}',
-      'surplus': entry.value.predictedSurplus,
-      'confidence': entry.value.confidence,
-      'riskLevel': entry.value.riskLevel.name,
-      'color': entry.value.riskLevel.colorValue,
-    }).toList();
+
+    return _currentForecast!.monthlyForecast
+        .asMap()
+        .entries
+        .map((entry) => {
+              'week': 'Week ${entry.key + 1}',
+              'surplus': entry.value.predictedSurplus,
+              'confidence': entry.value.confidence,
+              'riskLevel': entry.value.riskLevel.name,
+              'color': entry.value.riskLevel.colorValue,
+            })
+        .toList();
   }
 
   /// Get category breakdown for current week
   Map<String, double> get weeklyCategoryBreakdown {
     if (_currentForecast == null) return {};
-    
+
     final breakdown = <String, double>{};
-    
+
     for (final point in _currentForecast!.weeklyForecast) {
       for (final entry in point.categoryBreakdown.entries) {
         breakdown[entry.key] = (breakdown[entry.key] ?? 0) + entry.value;
       }
     }
-    
+
     return breakdown;
   }
 
@@ -288,10 +321,11 @@ class ForecastProvider extends ChangeNotifier {
 
     final totalWeekly = _currentForecast!.weeklyForecast
         .fold<double>(0, (sum, point) => sum + point.predictedSurplus);
-    
+
     final highRiskDays = _currentForecast!.weeklyForecast
-        .where((point) => point.riskLevel == SurplusRiskLevel.high || 
-                         point.riskLevel == SurplusRiskLevel.critical)
+        .where((point) =>
+            point.riskLevel == SurplusRiskLevel.high ||
+            point.riskLevel == SurplusRiskLevel.critical)
         .length;
 
     return {
@@ -318,4 +352,37 @@ class ForecastProvider extends ChangeNotifier {
       return '${difference.inDays} days ago';
     }
   }
+
+  /// Generate mock historical data for enhanced service
+  List<Map<String, dynamic>> _generateMockHistoricalData() {
+    final now = DateTime.now();
+    final historicalData = <Map<String, dynamic>>[];
+
+    // Generate 365 days of historical data
+    for (int i = 365; i >= 0; i--) {
+      final date = now.subtract(Duration(days: i));
+      final baseSurplus = 10.0 + (i % 30) * 0.5; // Seasonal pattern
+
+      // Add some randomness
+      final surplus = baseSurplus + (DateTime.now().millisecond % 10 - 5);
+
+      historicalData.add({
+        'date': date.toIso8601String(),
+        'surplus': surplus,
+        'category': 'Mixed',
+        'confidence': 0.8 + (DateTime.now().millisecond % 20) / 100,
+      });
+    }
+
+    return historicalData;
+  }
+
+  /// Toggle between enhanced and fallback service
+  void toggleServiceMode() {
+    _useEnhancedService = !_useEnhancedService;
+    notifyListeners();
+  }
+
+  /// Get current service mode
+  String get serviceMode => _useEnhancedService ? 'Enhanced AI' : 'Standard';
 }

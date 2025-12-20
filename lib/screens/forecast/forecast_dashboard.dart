@@ -432,15 +432,12 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
                     value.toInt() < forecastSummary!.dailyForecasts.length) {
                   final date =
                       forecastSummary!.dailyForecasts[value.toInt()].date;
-                  return SideTitleWidget(
-                    axisSide: meta.axisSide,
-                    child: Text(
-                      '${date.day}/${date.month}',
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10,
-                      ),
+                  return Text(
+                    '${date.day}/${date.month}',
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 10,
                     ),
                   );
                 }

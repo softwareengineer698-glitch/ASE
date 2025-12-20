@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/auth_provider.dart';
@@ -10,7 +9,8 @@ import '../../models/user_model.dart';
 import '../../models/donation_model.dart';
 import '../../services/donation_service.dart';
 import '../../widgets/dashboard_card.dart';
-import '../../widgets/custom_button.dart';
+import '../../widgets/enhanced_button.dart';
+import '../../widgets/responsive_widget.dart';
 import '../auth/sign_in_screen.dart';
 import '../history/history_screen.dart';
 import '../donor/create_donation_screen.dart';
@@ -61,46 +61,35 @@ class _DonorDashboardState extends State<DonorDashboard> {
         return Scaffold(
           backgroundColor: colorScheme.background,
           body: SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: constraints.maxWidth > 600 ? 32.0 : 16.0,
-                    vertical: 16.0,
-                  ),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight - 32,
-                      maxWidth:
-                          constraints.maxWidth > 800 ? 800 : double.infinity,
+            child: ResponsiveLayout(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. Header Section with improved spacing
+                    _buildHeaderSection(user, colorScheme),
+                    const SizedBox(height: 24),
+
+                    // 2. Real-time Stats Dashboard Cards
+                    _buildRealTimeStatsSection(user, colorScheme),
+                    const SizedBox(height: 24),
+
+                    // 3. Main Actions - Responsive layout
+                    ResponsiveWidget(
+                      mobile: _buildMainActionsMobile(context, colorScheme),
+                      tablet: _buildMainActionsDesktop(context, colorScheme),
+                      desktop: _buildMainActionsDesktop(context, colorScheme),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 1. Header Section
-                        _buildHeaderSection(user, colorScheme),
-                        SizedBox(height: constraints.maxHeight * 0.03),
+                    const SizedBox(height: 24),
 
-                        // 2. Real-time Stats Dashboard Cards
-                        _buildRealTimeStatsSection(user, colorScheme),
-                        SizedBox(height: constraints.maxHeight * 0.03),
-
-                        // 3. Forecast Section
-                        _buildForecastSection(context, colorScheme),
-                        SizedBox(height: constraints.maxHeight * 0.03),
-
-                        // 4. Main Actions
-                        _buildMainActionsSection(context, colorScheme),
-                        SizedBox(height: constraints.maxHeight * 0.03),
-
-                        // 5. Active Donations List
-                        _buildActiveDonationsSection(user, colorScheme),
-                        SizedBox(height: constraints.maxHeight * 0.02),
-                      ],
+                    // 4. Active Donations List with better spacing
+                    SizedBox(
+                      height: 300,
+                      child: _buildActiveDonationsSection(user, colorScheme),
                     ),
-                  ),
-                );
-              },
+                  ],
+                ),
+              ),
             ),
           ),
         );
@@ -311,67 +300,58 @@ class _DonorDashboardState extends State<DonorDashboard> {
     );
   }
 
-  // 3. Forecast Section
-  Widget _buildForecastSection(BuildContext context, ColorScheme colorScheme) {
-    return DashboardCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.insights, color: colorScheme.primary),
-              const SizedBox(width: 8),
-              Text(
-                'forecast insights'.tr(),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+  // 4. Main Actions - Mobile Layout
+  Widget _buildMainActionsMobile(
+      BuildContext context, ColorScheme colorScheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'quick actions'.tr(),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 200,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(show: false),
-                titlesData: FlTitlesData(show: false),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: const [
-                      FlSpot(0, 3),
-                      FlSpot(1, 5),
-                      FlSpot(2, 4),
-                      FlSpot(3, 7),
-                      FlSpot(4, 6),
-                    ],
-                    isCurved: true,
-                    color: colorScheme.primary,
-                    barWidth: 3,
-                    dotData: const FlDotData(show: false),
+        ),
+        const SizedBox(height: 16),
+        Column(
+          children: [
+            EnhancedButton(
+              text: 'create donation'.tr(),
+              icon: Icons.add_circle,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CreateDonationScreen(),
                   ),
-                ],
-              ),
+                );
+              },
+              semanticLabel: 'Create new food donation',
             ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'donation trend increasing'.tr(),
-            style: TextStyle(
-              fontSize: 14,
-              color: colorScheme.primary,
-              fontWeight: FontWeight.w500,
+            const SizedBox(height: 12),
+            EnhancedOutlinedButton(
+              text: 'view history'.tr(),
+              icon: Icons.history,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const HistoryScreen(),
+                  ),
+                );
+              },
+              semanticLabel: 'View donation history',
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 
-  // 4. Main Actions
-  Widget _buildMainActionsSection(
+  // 4. Main Actions - Desktop/Tablet Layout
+  Widget _buildMainActionsDesktop(
       BuildContext context, ColorScheme colorScheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,7 +368,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
         Row(
           children: [
             Expanded(
-              child: CustomButton(
+              child: EnhancedButton(
                 text: 'create donation'.tr(),
                 icon: Icons.add_circle,
                 onPressed: () {
@@ -399,11 +379,12 @@ class _DonorDashboardState extends State<DonorDashboard> {
                     ),
                   );
                 },
+                semanticLabel: 'Create new food donation',
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Expanded(
-              child: CustomButton(
+              child: EnhancedOutlinedButton(
                 text: 'view history'.tr(),
                 icon: Icons.history,
                 onPressed: () {
@@ -414,8 +395,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
                     ),
                   );
                 },
-                backgroundColor: Colors.grey[300],
-                textColor: Colors.black87,
+                semanticLabel: 'View donation history',
               ),
             ),
           ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:foodbridge/models/donation_model.dart';
 import 'package:foodbridge/models/user_model.dart';
 import 'package:foodbridge/providers/auth_provider.dart';
@@ -516,9 +517,62 @@ class _HistoryScreenState extends State<HistoryScreen>
               if (donorProfile?.phone != null)
                 TextButton(
                   onPressed: () async {
-                    final phoneUrl = 'tel:${donorProfile!.phone}';
-                    if (await canLaunchUrl(Uri.parse(phoneUrl))) {
-                      await launchUrl(Uri.parse(phoneUrl));
+                    try {
+                      // Clean phone number and create tel URI
+                      final donorPhone = donorProfile?.phone ?? '';
+                      final cleanPhone =
+                          donorPhone.replaceAll(RegExp(r'[^\d+]'), '');
+
+                      // Ensure phone number has proper format
+                      String formattedPhone = cleanPhone;
+                      if (!cleanPhone.startsWith('+') &&
+                          cleanPhone.length == 10) {
+                        formattedPhone =
+                            '+92$cleanPhone'; // Add Pakistan country code
+                      } else if (!cleanPhone.startsWith('+') &&
+                          cleanPhone.length == 11 &&
+                          cleanPhone.startsWith('0')) {
+                        formattedPhone =
+                            '+92${cleanPhone.substring(1)}'; // Replace 0 with +92
+                      }
+
+                      // Use DIAL intent instead of direct CALL
+                      final phoneUrl = 'tel:$formattedPhone';
+                      final uri = Uri.parse(phoneUrl);
+
+                      // Try different launch modes for DIAL
+                      bool launched = false;
+
+                      // Try external application mode first
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
+                        launched = true;
+                      }
+
+                      // Fallback to platform default mode
+                      if (!launched && await canLaunchUrl(uri)) {
+                        await launchUrl(uri);
+                        launched = true;
+                      }
+
+                      if (!launched && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'Could not open phone dialer. Please dial: $formattedPhone'),
+                            duration: const Duration(seconds: 4),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
                     }
                   },
                   child: const Text('Call'),
@@ -539,25 +593,59 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   void _openLocationInMaps(String location) async {
     try {
-      // Create Google Maps URL for the location
+      // Create multiple map URL formats for better compatibility
       final encodedLocation = Uri.encodeComponent(location);
-      final googleMapsUrl =
-          'https://www.google.com/maps/search/?api=1&query=$encodedLocation';
 
-      if (await canLaunchUrl(Uri.parse(googleMapsUrl))) {
-        await launchUrl(
-          Uri.parse(googleMapsUrl),
-          mode: LaunchMode.externalApplication,
-        );
-      } else {
-        // Fallback: show location in dialog if can't launch maps
+      // Try different map services
+      final urls = [
+        'https://www.google.com/maps/search/?api=1&query=$encodedLocation',
+        'https://www.google.com/maps/place/$encodedLocation',
+        'geo:0,0?q=$encodedLocation',
+        'https://maps.apple.com/?q=$encodedLocation', // For iOS
+      ];
+
+      bool launched = false;
+
+      for (final url in urls) {
+        try {
+          final uri = Uri.parse(url);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(
+              uri,
+              mode: LaunchMode.externalApplication,
+            );
+            launched = true;
+            break;
+          }
+        } catch (e) {
+          // Continue to next URL
+          continue;
+        }
+      }
+
+      if (!launched) {
+        // Fallback: show location in dialog with copy option
         if (context.mounted) {
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
               title: const Text('Pickup Location'),
-              content: Text(
-                  'Location: $location\n\nCould not open maps app. Please copy the location and search manually.'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                      'Could not open maps app. Please try one of these options:'),
+                  const SizedBox(height: 12),
+                  Text('Location: $location'),
+                  const SizedBox(height: 8),
+                  const Text('Google Maps Link:'),
+                  SelectableText(
+                    'https://www.google.com/maps/search/?api=1&query=$encodedLocation',
+                    style: const TextStyle(fontSize: 12, color: Colors.blue),
+                  ),
+                ],
+              ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
@@ -565,11 +653,27 @@ class _HistoryScreenState extends State<HistoryScreen>
                 ),
                 TextButton(
                   onPressed: () {
-                    // Copy location to clipboard
-                    // TODO: Add clipboard functionality if needed
+                    Clipboard.setData(ClipboardData(text: location));
                     Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Location copied to clipboard')),
+                    );
                   },
                   child: const Text('Copy Location'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(
+                        text:
+                            'https://www.google.com/maps/search/?api=1&query=$encodedLocation'));
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Maps link copied to clipboard')),
+                    );
+                  },
+                  child: const Text('Copy Maps Link'),
                 ),
               ],
             ),
@@ -646,9 +750,62 @@ class _HistoryScreenState extends State<HistoryScreen>
               if (ngoProfile?.phone != null)
                 TextButton(
                   onPressed: () async {
-                    final phoneUrl = 'tel:${ngoProfile!.phone}';
-                    if (await canLaunchUrl(Uri.parse(phoneUrl))) {
-                      await launchUrl(Uri.parse(phoneUrl));
+                    try {
+                      // Clean phone number and create tel URI
+                      final ngoPhone = ngoProfile?.phone ?? '';
+                      final cleanPhone =
+                          ngoPhone.replaceAll(RegExp(r'[^\d+]'), '');
+
+                      // Ensure phone number has proper format
+                      String formattedPhone = cleanPhone;
+                      if (!cleanPhone.startsWith('+') &&
+                          cleanPhone.length == 10) {
+                        formattedPhone =
+                            '+92$cleanPhone'; // Add Pakistan country code
+                      } else if (!cleanPhone.startsWith('+') &&
+                          cleanPhone.length == 11 &&
+                          cleanPhone.startsWith('0')) {
+                        formattedPhone =
+                            '+92${cleanPhone.substring(1)}'; // Replace 0 with +92
+                      }
+
+                      // Use DIAL intent instead of direct CALL
+                      final phoneUrl = 'tel:$formattedPhone';
+                      final uri = Uri.parse(phoneUrl);
+
+                      // Try different launch modes for DIAL
+                      bool launched = false;
+
+                      // Try external application mode first
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
+                        launched = true;
+                      }
+
+                      // Fallback to platform default mode
+                      if (!launched && await canLaunchUrl(uri)) {
+                        await launchUrl(uri);
+                        launched = true;
+                      }
+
+                      if (!launched && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'Could not open phone dialer. Please dial: $formattedPhone'),
+                            duration: const Duration(seconds: 4),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
                     }
                   },
                   child: const Text('Call'),

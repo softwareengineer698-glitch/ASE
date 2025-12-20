@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../providers/auth_provider.dart';
 import '../models/user_model.dart';
+import 'responsive_widget.dart';
 
 class AppBottomNavigation extends StatelessWidget {
   final int currentIndex;
@@ -50,56 +51,96 @@ class AppBottomNavigation extends StatelessWidget {
 
   List<NavigationDestination> get _donorDestinations => [
         NavigationDestination(
-          icon: const Icon(Icons.home_outlined),
-          selectedIcon: const Icon(Icons.home),
+          icon: TouchTargetSize(
+            child: const Icon(Icons.home_outlined),
+          ),
+          selectedIcon: TouchTargetSize(
+            child: const Icon(Icons.home),
+          ),
           label: 'home'.tr(),
         ),
         NavigationDestination(
-          icon: const Icon(Icons.inventory_outlined),
-          selectedIcon: const Icon(Icons.inventory),
+          icon: TouchTargetSize(
+            child: const Icon(Icons.inventory_outlined),
+          ),
+          selectedIcon: TouchTargetSize(
+            child: const Icon(Icons.inventory),
+          ),
           label: 'surplus'.tr(),
         ),
         NavigationDestination(
-          icon: const Icon(Icons.leaderboard_outlined),
-          selectedIcon: const Icon(Icons.leaderboard),
+          icon: TouchTargetSize(
+            child: const Icon(Icons.leaderboard_outlined),
+          ),
+          selectedIcon: TouchTargetSize(
+            child: const Icon(Icons.leaderboard),
+          ),
           label: 'leaders'.tr(),
         ),
         NavigationDestination(
-          icon: const Icon(Icons.analytics_outlined),
-          selectedIcon: const Icon(Icons.analytics),
+          icon: TouchTargetSize(
+            child: const Icon(Icons.analytics_outlined),
+          ),
+          selectedIcon: TouchTargetSize(
+            child: const Icon(Icons.analytics),
+          ),
           label: 'forecast'.tr(),
         ),
         NavigationDestination(
-          icon: const Icon(Icons.person_outline),
-          selectedIcon: const Icon(Icons.person),
+          icon: TouchTargetSize(
+            child: const Icon(Icons.person_outline),
+          ),
+          selectedIcon: TouchTargetSize(
+            child: const Icon(Icons.person),
+          ),
           label: 'profile'.tr(),
         ),
       ];
 
   List<NavigationDestination> get _ngoDestinations => [
         NavigationDestination(
-          icon: const Icon(Icons.home_outlined),
-          selectedIcon: const Icon(Icons.home),
+          icon: TouchTargetSize(
+            child: const Icon(Icons.home_outlined),
+          ),
+          selectedIcon: TouchTargetSize(
+            child: const Icon(Icons.home),
+          ),
           label: 'home'.tr(),
         ),
         NavigationDestination(
-          icon: const Icon(Icons.local_shipping_outlined),
-          selectedIcon: const Icon(Icons.local_shipping),
+          icon: TouchTargetSize(
+            child: const Icon(Icons.local_shipping_outlined),
+          ),
+          selectedIcon: TouchTargetSize(
+            child: const Icon(Icons.local_shipping),
+          ),
           label: 'pickups'.tr(),
         ),
         NavigationDestination(
-          icon: const Icon(Icons.leaderboard_outlined),
-          selectedIcon: const Icon(Icons.leaderboard),
+          icon: TouchTargetSize(
+            child: const Icon(Icons.leaderboard_outlined),
+          ),
+          selectedIcon: TouchTargetSize(
+            child: const Icon(Icons.leaderboard),
+          ),
           label: 'leaders'.tr(),
         ),
         NavigationDestination(
-          icon: const Icon(Icons.analytics_outlined),
-          selectedIcon: const Icon(Icons.analytics),
+          icon: TouchTargetSize(
+            child: const Icon(Icons.analytics_outlined),
+          ),
+          selectedIcon: TouchTargetSize(
+            child: const Icon(Icons.analytics),
+          ),
           label: 'forecast'.tr(),
         ),
         NavigationDestination(
-          icon: const Icon(Icons.business_outlined),
-          selectedIcon: const Icon(Icons.business),
+          icon: TouchTargetSize(
+            child: const Icon(Icons.business_outlined),
+          ),
+          selectedIcon: TouchTargetSize(
+            child: const Icon(Icons.business),
+          ),
           label: 'profile'.tr(),
         ),
       ];

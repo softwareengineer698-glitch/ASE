@@ -21,6 +21,9 @@ class NGODashboard extends StatefulWidget {
 
 class _NGODashboardState extends State<NGODashboard> {
   final DonationService _donationService = DonationService();
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedCategory = 'All';
+  String _selectedSortBy = 'Newest';
 
   // Random food icon list
   final List<IconData> _foodIcons = [
@@ -35,6 +38,25 @@ class _NGODashboardState extends State<NGODashboard> {
   ];
 
   IconData _selectedFoodIcon = Icons.fastfood; // Default fallback
+
+  final List<String> _categories = [
+    'All',
+    'Vegetables',
+    'Fruits',
+    'Grains',
+    'Dairy',
+    'Meat',
+    'Bakery',
+    'Other'
+  ];
+
+  final List<String> _sortOptions = [
+    'Newest',
+    'Oldest',
+    'Expiry Soon',
+    'Quantity High',
+    'Quantity Low'
+  ];
 
   @override
   void initState() {
@@ -51,6 +73,7 @@ class _NGODashboardState extends State<NGODashboard> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -472,6 +495,7 @@ class _NGODashboardState extends State<NGODashboard> {
           }
 
           final donations = snapshot.data ?? [];
+          final filteredDonations = _filterAndSortDonations(donations);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -488,7 +512,7 @@ class _NGODashboardState extends State<NGODashboard> {
                     ),
                   ),
                   Text(
-                    '${donations.length} ${'items'.tr()}',
+                    '${filteredDonations.length} ${'items'.tr()}',
                     style: TextStyle(
                       fontSize: 14,
                       color: colorScheme.onSurfaceVariant,
@@ -497,7 +521,11 @@ class _NGODashboardState extends State<NGODashboard> {
                 ],
               ),
               const SizedBox(height: 16),
-              if (donations.isEmpty)
+
+              // Search and Filter Section
+              _buildSearchAndFilterSection(colorScheme),
+              const SizedBox(height: 16),
+              if (filteredDonations.isEmpty)
                 DashboardCard(
                   child: Center(
                     child: Column(
@@ -506,13 +534,13 @@ class _NGODashboardState extends State<NGODashboard> {
                             size: 48, color: Colors.grey[400]),
                         const SizedBox(height: 16),
                         Text(
-                          'no available donations'.tr(),
+                          'no_donations_found'.tr(),
                           style:
                               TextStyle(fontSize: 16, color: Colors.grey[600]),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'check back later'.tr(),
+                          'try_adjusting_filters'.tr(),
                           style:
                               TextStyle(fontSize: 14, color: Colors.grey[500]),
                         ),
@@ -521,7 +549,7 @@ class _NGODashboardState extends State<NGODashboard> {
                   ),
                 )
               else
-                ...donations.map((donation) =>
+                ...filteredDonations.map((donation) =>
                     _buildAvailableDonationCard(donation, colorScheme)),
             ],
           );
@@ -1018,6 +1046,143 @@ class _NGODashboardState extends State<NGODashboard> {
         ],
       ),
     );
+  }
+
+  // Search and Filter Methods
+  Widget _buildSearchAndFilterSection(ColorScheme colorScheme) {
+    return DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Search Bar
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'search_donations'.tr(),
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {});
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onChanged: (value) {
+              setState(() {});
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Filter Row
+          Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  decoration: InputDecoration(
+                    labelText: 'category'.tr(),
+                    prefixIcon: const Icon(Icons.category),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: _categories.map((category) {
+                    return DropdownMenuItem(
+                      value: category,
+                      child: Text(category.tr()),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategory = value!;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: DropdownButtonFormField<String>(
+                  value: _selectedSortBy,
+                  decoration: InputDecoration(
+                    labelText: 'sort_by'.tr(),
+                    prefixIcon: const Icon(Icons.sort),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: _sortOptions.map((option) {
+                    return DropdownMenuItem(
+                      value: option,
+                      child: Text(option.tr()),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedSortBy = value!;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<DonationModel> _filterAndSortDonations(List<DonationModel> donations) {
+    List<DonationModel> filtered = List.from(donations);
+
+    // Apply search filter
+    if (_searchController.text.isNotEmpty) {
+      final searchLower = _searchController.text.toLowerCase();
+      filtered = filtered.where((donation) {
+        return donation.title.toLowerCase().contains(searchLower) ||
+            donation.description.toLowerCase().contains(searchLower) ||
+            donation.category.toLowerCase().contains(searchLower) ||
+            donation.location.toLowerCase().contains(searchLower);
+      }).toList();
+    }
+
+    // Apply category filter
+    if (_selectedCategory != 'All') {
+      filtered = filtered.where((donation) {
+        return donation.category == _selectedCategory;
+      }).toList();
+    }
+
+    // Apply sorting
+    switch (_selectedSortBy) {
+      case 'Newest':
+        filtered.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        break;
+      case 'Oldest':
+        filtered.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+        break;
+      case 'Expiry Soon':
+        filtered.sort((a, b) => a.expiryTime.compareTo(b.expiryTime));
+        break;
+      case 'Quantity High':
+        filtered.sort((a, b) => b.quantity.compareTo(a.quantity));
+        break;
+      case 'Quantity Low':
+        filtered.sort((a, b) => a.quantity.compareTo(b.quantity));
+        break;
+    }
+
+    return filtered;
   }
 }
 

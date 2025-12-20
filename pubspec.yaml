@@ -32,17 +32,17 @@ dependencies:
     sdk: flutter
 
   # Firebase dependencies
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  cloud_firestore: ^4.13.6
-  firebase_storage: ^11.5.6
+  firebase_core: ^4.2.1
+  firebase_auth: ^6.1.2
+  cloud_firestore: ^6.1.0
+  firebase_storage: ^13.0.4
 
   # State management and utilities
   provider: ^6.1.1
   shared_preferences: ^2.2.2
 
   # UI and visualization
-  fl_chart: ^0.68.0
+  fl_chart: ^1.1.1
   cupertino_icons: ^1.0.6
   
   # Media and file handling
@@ -58,8 +58,12 @@ dependencies:
   url_launcher: ^6.2.6
   
   # Animations
-  animate_do: ^3.1.2
+  animate_do: ^4.2.0
   flutter_animate: ^4.2.0+1
+  
+  # Speech to text
+  speech_to_text: ^6.6.0
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:
@@ -70,10 +74,10 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^3.0.0
+  flutter_lints: ^6.0.0
   
   # Flutter launcher icons for custom app icon
-  flutter_launcher_icons: ^0.13.1
+  flutter_launcher_icons: ^0.14.4
 
 # Flutter launcher icons configuration
 flutter_launcher_icons:
