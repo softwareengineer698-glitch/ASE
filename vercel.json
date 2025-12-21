@@ -1,1 +1,1 @@
-{"version": 2, "builds": [{"src": "build.sh", "use": "@vercel/static-build", "config": {"distDir": "build/web"}}], "installCommand": "flutter pub get", "buildCommand": "./build.sh", "outputDirectory": "build/web", "framework": null, "rewrites": [{"source": "/(.*)", "destination": "/index.html"}]}
+{"version": 2, "outputDirectory": "build/web", "installCommand": "echo No install needed", "buildCommand": "echo No build needed", "framework": null, "rewrites": [{"source": "/(.*)", "destination": "/index.html"}]}
