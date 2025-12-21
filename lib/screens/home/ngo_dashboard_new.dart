@@ -112,8 +112,8 @@ class _NGODashboardState extends State<NGODashboard> {
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       minHeight: constraints.maxHeight - 32,
-                      maxWidth:
-                          constraints.maxWidth > 800 ? 800 : double.infinity,
+                      maxWidth: double
+                          .infinity, // Remove width constraint to fill available space
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

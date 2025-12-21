@@ -119,8 +119,9 @@ class _DonorDashboardState extends State<DonorDashboard> {
                 Row(
                   children: [
                     Text(
-                      'hello_user'
-                          .tr(namedArgs: {'name': user.email.split('@')[0]}),
+                      'hello_user'.tr(namedArgs: {
+                        'name': user.userName ?? user.email.split('@')[0]
+                      }),
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
