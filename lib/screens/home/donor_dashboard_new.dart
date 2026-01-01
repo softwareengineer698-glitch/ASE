@@ -14,6 +14,7 @@ import '../../widgets/responsive_widget.dart';
 import '../auth/sign_in_screen.dart';
 import '../history/history_screen.dart';
 import '../donor/create_donation_screen.dart';
+import '../impact/donor_impact_screen.dart';
 
 class DonorDashboard extends StatefulWidget {
   const DonorDashboard({super.key});
@@ -70,11 +71,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
                     _buildHeaderSection(user, colorScheme),
                     const SizedBox(height: 24),
 
-                    // 2. Real-time Stats Dashboard Cards
-                    _buildRealTimeStatsSection(user, colorScheme),
-                    const SizedBox(height: 24),
-
-                    // 3. Main Actions - Responsive layout
+                    // 2. Main Actions - Responsive layout
                     ResponsiveWidget(
                       mobile: _buildMainActionsMobile(context, colorScheme),
                       tablet: _buildMainActionsDesktop(context, colorScheme),
@@ -82,7 +79,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
                     ),
                     const SizedBox(height: 24),
 
-                    // 4. Active Donations List with better spacing
+                    // 3. Active Donations List with better spacing
                     SizedBox(
                       height: 300,
                       child: _buildActiveDonationsSection(user, colorScheme),
@@ -164,144 +161,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
     );
   }
 
-  // 2. Real-time Stats Dashboard Cards
-  Widget _buildRealTimeStatsSection(UserModel user, ColorScheme colorScheme) {
-    return StreamBuilder<Map<String, dynamic>>(
-      stream: _donationService.getDonorStatistics(user.uid),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return DashboardCard(
-            child: Center(
-              child: Column(
-                children: [
-                  Icon(Icons.error_outline, size: 48, color: Colors.red[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error loading statistics',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        final stats = snapshot.data ?? {};
-        final totalDonations = stats['totalDonations'] ?? 0;
-        final pendingDonations = stats['pendingDonations'] ?? 0;
-        final completedDonations = stats['completedDonations'] ?? 0;
-        final totalQuantitySaved = stats['totalQuantitySaved'] ?? 0.0;
-        final recentDonation = stats['recentDonation'];
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'your impact'.tr(),
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: MetricCard(
-                    title: 'total donations'.tr(),
-                    value: '$totalDonations',
-                    icon: Icons.volunteer_activism,
-                    color: Colors.blue,
-                    subtitle: 'all time'.tr(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: MetricCard(
-                    title: 'pending'.tr(),
-                    value: '$pendingDonations',
-                    icon: Icons.hourglass_empty,
-                    color: Colors.orange,
-                    subtitle: 'awaiting pickup'.tr(),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: MetricCard(
-                    title: 'completed'.tr(),
-                    value: '$completedDonations',
-                    icon: Icons.check_circle,
-                    color: Colors.green,
-                    subtitle: 'successfully donated'.tr(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: MetricCard(
-                    title: 'food saved'.tr(),
-                    value: '${totalQuantitySaved.toStringAsFixed(1)} kg',
-                    icon: Icons.eco,
-                    color: Colors.purple,
-                    subtitle: 'total quantity'.tr(),
-                  ),
-                ),
-              ],
-            ),
-            if (recentDonation != null) ...[
-              const SizedBox(height: 16),
-              DashboardCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.history, color: colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'recent activity'.tr(),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      recentDonation['title'] ?? 'No title',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${recentDonation['quantity']} ${recentDonation['unit']} - ${recentDonation['category']}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        );
-      },
-    );
-  }
-
-  // 4. Main Actions - Mobile Layout
+  // 3. Main Actions - Mobile Layout
   Widget _buildMainActionsMobile(
       BuildContext context, ColorScheme colorScheme) {
     return Column(
@@ -351,7 +211,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
     );
   }
 
-  // 4. Main Actions - Desktop/Tablet Layout
+  // 3. Main Actions - Desktop/Tablet Layout
   Widget _buildMainActionsDesktop(
       BuildContext context, ColorScheme colorScheme) {
     return Column(

@@ -11,6 +11,10 @@ import '../screens/profile/donor_profile_screen.dart';
 import '../screens/profile/ngo_profile_screen.dart';
 import '../screens/leaderboard/leaderboard_screen.dart';
 import '../screens/forecast/forecast_dashboard.dart';
+import '../screens/impact/donor_impact_screen.dart';
+import '../screens/impact/ngo_impact_screen.dart';
+import '../screens/donor/donor_acceptance_screen.dart';
+import '../screens/donor/create_donation_screen.dart';
 import '../screens/auth/sign_in_screen.dart';
 
 class ResponsiveNavigationWrapper extends StatefulWidget {
@@ -163,6 +167,8 @@ class _ResponsiveNavigationWrapperState
   List<Widget> _getDonorScreens() {
     return [
       const DonorDashboard(), // Home
+      const DonorAcceptanceScreen(), // Accept Food
+      const DonorImpactScreen(), // Impact
       const HistoryScreen(), // Surplus/History
       const LeaderboardScreen(), // Leaderboard
       const ForecastDashboard(), // Forecast
@@ -173,6 +179,8 @@ class _ResponsiveNavigationWrapperState
   List<Widget> _getNGOScreens() {
     return [
       const NGODashboard(), // Home (Available Surplus)
+      const CreateDonationScreen(), // Donate Food
+      const NGOImpactScreen(), // Impact
       const HistoryScreen(), // Active Pickups
       const LeaderboardScreen(), // Leaderboard
       const ForecastDashboard(), // Forecast
@@ -185,6 +193,16 @@ class _ResponsiveNavigationWrapperState
           icon: const Icon(Icons.home_outlined),
           selectedIcon: const Icon(Icons.home),
           label: Text('home'.tr()),
+        ),
+        NavigationRailDestination(
+          icon: const Icon(Icons.shopping_cart_outlined),
+          selectedIcon: const Icon(Icons.shopping_cart),
+          label: Text('accept'.tr()),
+        ),
+        NavigationRailDestination(
+          icon: const Icon(Icons.analytics_outlined),
+          selectedIcon: const Icon(Icons.analytics),
+          label: Text('impact'.tr()),
         ),
         NavigationRailDestination(
           icon: const Icon(Icons.inventory_outlined),
@@ -213,6 +231,16 @@ class _ResponsiveNavigationWrapperState
           icon: const Icon(Icons.home_outlined),
           selectedIcon: const Icon(Icons.home),
           label: Text('home'.tr()),
+        ),
+        NavigationRailDestination(
+          icon: const Icon(Icons.volunteer_activism_outlined),
+          selectedIcon: const Icon(Icons.volunteer_activism),
+          label: Text('donate'.tr()),
+        ),
+        NavigationRailDestination(
+          icon: const Icon(Icons.analytics_outlined),
+          selectedIcon: const Icon(Icons.analytics),
+          label: Text('impact'.tr()),
         ),
         NavigationRailDestination(
           icon: const Icon(Icons.local_shipping_outlined),

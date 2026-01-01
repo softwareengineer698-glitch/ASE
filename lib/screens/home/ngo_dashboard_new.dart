@@ -11,6 +11,7 @@ import '../../services/donation_service.dart';
 import '../../widgets/dashboard_card.dart';
 import '../../widgets/custom_button.dart';
 import '../auth/sign_in_screen.dart';
+import '../impact/ngo_impact_screen.dart';
 
 class NGODashboard extends StatefulWidget {
   const NGODashboard({super.key});
@@ -122,19 +123,15 @@ class _NGODashboardState extends State<NGODashboard> {
                         _buildHeaderSection(user, colorScheme),
                         SizedBox(height: constraints.maxHeight * 0.03),
 
-                        // 2. Real-time Stats Dashboard Cards
-                        _buildRealTimeStatsSection(user, colorScheme),
-                        SizedBox(height: constraints.maxHeight * 0.03),
-
-                        // 3. Available Donations Count
+                        // 2. Available Donations Count
                         _buildAvailableCountSection(colorScheme),
                         SizedBox(height: constraints.maxHeight * 0.03),
 
-                        // 4. Main Actions
+                        // 3. Main Actions
                         _buildMainActionsSection(context, colorScheme),
                         SizedBox(height: constraints.maxHeight * 0.03),
 
-                        // 5. Available Donations List
+                        // 4. Available Donations List
                         _buildAvailableDonationsSection(colorScheme),
                         SizedBox(height: constraints.maxHeight * 0.02),
 
@@ -231,8 +228,8 @@ class _NGODashboardState extends State<NGODashboard> {
     );
   }
 
-  // 2. Real-time Stats Dashboard Cards
-  Widget _buildRealTimeStatsSection(UserModel user, ColorScheme colorScheme) {
+  // 2. Quick Overview Section (Simplified for better HCI)
+  Widget _buildQuickOverviewSection(UserModel user, ColorScheme colorScheme) {
     return StreamBuilder<Map<String, dynamic>>(
       stream: _donationService.getNGOStatistics(user.uid),
       builder: (context, snapshot) {
@@ -258,110 +255,97 @@ class _NGODashboardState extends State<NGODashboard> {
         }
 
         final stats = snapshot.data ?? {};
-        final claimedDonations = stats['claimedDonations'] ?? 0;
-        final completedPickups = stats['completedPickups'] ?? 0;
         final pendingPickups = stats['pendingPickups'] ?? 0;
         final totalQuantityReceived = stats['totalQuantityReceived'] ?? 0.0;
-        final recentActivity = stats['recentActivity'];
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'your impact'.tr(),
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'quick overview'.tr(),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NGOImpactScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.analytics, size: 16),
+                  label: Text('view impact'.tr()),
+                  style: TextButton.styleFrom(
+                    foregroundColor: colorScheme.primary,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
-                  child: MetricCard(
-                    title: 'claimed'.tr(),
-                    value: '$claimedDonations',
-                    icon: Icons.shopping_cart,
-                    color: Colors.blue,
-                    subtitle: 'total claims'.tr(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: MetricCard(
-                    title: 'pending'.tr(),
-                    value: '$pendingPickups',
-                    icon: Icons.hourglass_empty,
-                    color: Colors.orange,
-                    subtitle: 'awaiting pickup'.tr(),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: MetricCard(
-                    title: 'completed'.tr(),
-                    value: '$completedPickups',
-                    icon: Icons.check_circle,
-                    color: Colors.green,
-                    subtitle: 'successful pickups'.tr(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: MetricCard(
-                    title: 'food received'.tr(),
-                    value: '${totalQuantityReceived.toStringAsFixed(1)} kg',
-                    icon: Icons.inventory,
-                    color: Colors.purple,
-                    subtitle: 'total quantity'.tr(),
-                  ),
-                ),
-              ],
-            ),
-            if (recentActivity != null) ...[
-              const SizedBox(height: 16),
-              DashboardCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                  child: DashboardCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.history, color: colorScheme.primary),
-                        const SizedBox(width: 8),
+                        Icon(Icons.local_shipping,
+                            color: Colors.blue, size: 24),
+                        const SizedBox(height: 8),
                         Text(
-                          'recent activity'.tr(),
+                          'pending pickups'.tr(),
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        Text(
+                          '$pendingPickups',
+                          style: const TextStyle(
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      recentActivity['title'] ?? 'No title',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${recentActivity['quantity']} ${recentActivity['unit']} - ${recentActivity['category']}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DashboardCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.inventory, color: Colors.green, size: 24),
+                        const SizedBox(height: 8),
+                        Text(
+                          'food received'.tr(),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        Text(
+                          '${totalQuantityReceived.toStringAsFixed(1)} kg',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         );
       },

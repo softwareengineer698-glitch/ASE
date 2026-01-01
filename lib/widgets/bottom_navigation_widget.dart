@@ -61,6 +61,24 @@ class AppBottomNavigation extends StatelessWidget {
         ),
         NavigationDestination(
           icon: TouchTargetSize(
+            child: const Icon(Icons.shopping_cart_outlined),
+          ),
+          selectedIcon: TouchTargetSize(
+            child: const Icon(Icons.shopping_cart),
+          ),
+          label: 'accept'.tr(),
+        ),
+        NavigationDestination(
+          icon: TouchTargetSize(
+            child: const Icon(Icons.analytics_outlined),
+          ),
+          selectedIcon: TouchTargetSize(
+            child: const Icon(Icons.analytics),
+          ),
+          label: 'impact'.tr(),
+        ),
+        NavigationDestination(
+          icon: TouchTargetSize(
             child: const Icon(Icons.inventory_outlined),
           ),
           selectedIcon: TouchTargetSize(
@@ -106,6 +124,24 @@ class AppBottomNavigation extends StatelessWidget {
             child: const Icon(Icons.home),
           ),
           label: 'home'.tr(),
+        ),
+        NavigationDestination(
+          icon: TouchTargetSize(
+            child: const Icon(Icons.volunteer_activism_outlined),
+          ),
+          selectedIcon: TouchTargetSize(
+            child: const Icon(Icons.volunteer_activism),
+          ),
+          label: 'donate'.tr(),
+        ),
+        NavigationDestination(
+          icon: TouchTargetSize(
+            child: const Icon(Icons.analytics_outlined),
+          ),
+          selectedIcon: TouchTargetSize(
+            child: const Icon(Icons.analytics),
+          ),
+          label: 'impact'.tr(),
         ),
         NavigationDestination(
           icon: TouchTargetSize(
