@@ -23,9 +23,9 @@ class _DonorImpactScreenState extends State<DonorImpactScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('impact'.tr()),
-        backgroundColor: colorScheme.surface,
-        elevation: 0,
-        foregroundColor: colorScheme.onSurface,
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        elevation: 2,
       ),
       body: Consumer<AuthProvider>(
         builder: (context, auth, child) {
@@ -175,7 +175,7 @@ class _DonorImpactScreenState extends State<DonorImpactScreen> {
                 crossAxisCount: 2,
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
-                childAspectRatio: 1.5,
+                childAspectRatio: 1.2,
                 children: [
                   _buildImpactCard(
                     'total donations'.tr(),
@@ -261,11 +261,15 @@ class _DonorImpactScreenState extends State<DonorImpactScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],

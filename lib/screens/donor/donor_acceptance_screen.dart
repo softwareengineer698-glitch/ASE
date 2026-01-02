@@ -64,9 +64,9 @@ class _DonorAcceptanceScreenState extends State<DonorAcceptanceScreen> {
           backgroundColor: colorScheme.background,
           appBar: AppBar(
             title: Text('accept donations'.tr()),
-            backgroundColor: colorScheme.surface,
-            foregroundColor: colorScheme.onSurface,
-            elevation: 0,
+            backgroundColor: colorScheme.primary,
+            foregroundColor: colorScheme.onPrimary,
+            elevation: 2,
           ),
           body: SafeArea(
             child: Column(
