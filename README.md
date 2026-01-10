@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+https://foodbridge-chi-nine.vercel.app/ ( Deployed link )
 # DonateConnect - Flutter Firebase Authentication App
 
 A complete Flutter application with Firebase Authentication and role-based access control for Donors and NGOs.
@@ -247,6 +247,7 @@ theme: ThemeData(
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
 =======
 # FoodBridge - Flutter Firebase Authentication App
 
