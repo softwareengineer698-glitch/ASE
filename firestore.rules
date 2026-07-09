@@ -1,0 +1,158 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    function isDonor() {
+      return isSignedIn() && getUserRole() == "donor";
+    }
+    
+    function isNGO() {
+      return isSignedIn() && getUserRole() == "ngo";
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow create: if isSignedIn()
+        && isOwner(userId)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email != null
+        && request.resource.data.role != null
+        && request.resource.data.createdAt != null;
+
+      // Allow all authenticated users to read (needed for cross-collection queries)
+      allow read: if isSignedIn();
+      
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+
+    // DONATIONS COLLECTION - This was missing!
+    match /donations/{donationId} {
+      // Donors can create donations
+      allow create: if isDonor()
+        && request.resource.data.donorId == request.auth.uid
+        && request.resource.data.title != null
+        && request.resource.data.category != null
+        && request.resource.data.quantity != null
+        && request.resource.data.unit != null
+        && request.resource.data.location != null
+        && request.resource.data.expiryTime != null
+        && request.resource.data.status == "available";
+
+      // Allow all authenticated users to read donations (NGOs need to see available donations)
+      allow read: if isSignedIn();
+      
+      // Donors can update their own donations
+      // NGOs can claim donations (update status to 'claimed' and set claimedBy)
+      allow update: if isSignedIn() && (
+        // Donors can update their own donations (only description, images, location, expiry)
+        (resource.data.donorId == request.auth.uid && 
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['description', 'imageUrls', 'location', 'expiryTime', 'updatedAt'])) ||
+        // NGOs can claim available donations
+        (isNGO() && 
+         resource.data.status == 'available' &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['status', 'claimedBy', 'claimedAt', 'updatedAt']) &&
+         request.resource.data.status == 'claimed' &&
+         request.resource.data.claimedBy == request.auth.uid) ||
+        // NGOs can release claimed donations back to available
+        (isNGO() && 
+         resource.data.status == 'claimed' &&
+         resource.data.claimedBy == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['status', 'claimedBy', 'claimedAt', 'updatedAt']) &&
+         request.resource.data.status == 'available' &&
+         request.resource.data.claimedBy == null &&
+         request.resource.data.claimedAt == null) ||
+        // NGOs can complete claimed donations
+        (isNGO() && 
+         resource.data.claimedBy == request.auth.uid &&
+         resource.data.status == 'claimed' &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['status', 'completedAt', 'updatedAt']) &&
+         request.resource.data.status == 'completed') ||
+        // ANY authenticated user can mark an available donation as expired if it has timed out
+        (isSignedIn() &&
+         resource.data.status == 'available' &&
+         request.resource.data.status == 'expired' &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['status', 'updatedAt']) &&
+         duration.value(request.time - resource.data.expiryTime) > 0)
+      );
+
+      // Donors can delete their own available donations
+      allow delete: if isDonor() 
+        && resource.data.donorId == request.auth.uid 
+        && resource.data.status == "available";
+    }
+
+    // Surplus reports collection
+    match /surplus_reports/{reportId} {
+      // Donors can create their own surplus reports
+      allow create: if isSignedIn()
+        && request.resource.data.donorId == request.auth.uid
+        && request.resource.data.foodType != null
+        && request.resource.data.quantity is int
+        && request.resource.data.quantity > 0;
+
+      // All authenticated users can read surplus reports
+      allow read: if isSignedIn();
+      
+      // Donors can update their own reports, NGOs can update status
+      allow update: if isSignedIn() && (
+        resource.data.donorId == request.auth.uid ||
+        // Allow NGOs to update status only
+        (request.resource.data.keys().hasOnly(['status']) && 
+         request.resource.data.keys().hasAll(['status']))
+      );
+
+      // Only donors can delete their own reports
+      allow delete: if isSignedIn() && resource.data.donorId == request.auth.uid;
+    }
+
+    // NGO requests collection
+    match /ngo_requests/{requestId} {
+      // NGOs can create requests
+      allow create: if isSignedIn()
+        && request.resource.data.ngoId == request.auth.uid
+        && request.resource.data.surplusId != null
+        && request.resource.data.status != null;
+
+      // All authenticated users can read NGO requests
+      allow read: if isSignedIn();
+      
+      // NGOs can update their own requests
+      allow update: if isSignedIn()
+        && resource.data.ngoId == request.auth.uid;
+
+      // NGOs can delete their own requests
+      allow delete: if isSignedIn() && resource.data.ngoId == request.auth.uid;
+    }
+
+    // Profiles collection
+    match /profiles/{userId} {
+      allow create, read, update, delete: if isSignedIn() && isOwner(userId);
+    }
+
+    // Notifications collection
+    match /notifications/{notificationId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isSignedIn() 
+        && resource.data.userId == request.auth.uid;
+    }
+  }
+}
