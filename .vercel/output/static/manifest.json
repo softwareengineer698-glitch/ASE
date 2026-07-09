@@ -1,11 +1,11 @@
 {
-    "name": "ase",
-    "short_name": "ase",
+    "name": "FoodBridge",
+    "short_name": "FoodBridge",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#hexcode",
-    "theme_color": "#hexcode",
-    "description": "A new Flutter project.",
+    "background_color": "#4CAF50",
+    "theme_color": "#4CAF50",
+    "description": "Connect food donors with NGOs to reduce food waste and fight hunger.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
