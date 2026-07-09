@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "buildCommand": "echo 'Using pre-built web-build directory'",
+  "outputDirectory": "web-build",
   "routes": [
     {
       "handle": "filesystem"
