@@ -1,6 +1,11 @@
-# Ignore everything except build/web
-*
-!build/
-!build/web/
-!build/web/**
-!vercel.json
+# Ignore source files, keep only web build output
+android/
+ios/
+linux/
+macos/
+windows/
+test/
+.dart_tool/
+lib/
+*.md
+!README.md
