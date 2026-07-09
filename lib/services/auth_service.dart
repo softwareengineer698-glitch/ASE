@@ -57,6 +57,7 @@ class AuthService {
     required String password,
     required UserRole role,
     String? userName,
+    String? phoneNumber,
   }) async {
     try {
       _log.d('Starting sign up process for email: $email');
@@ -72,6 +73,7 @@ class AuthService {
           uid: user.uid,
           email: user.email ?? email,
           userName: userName,
+          phoneNumber: phoneNumber,
           role: role,
           createdAt: DateTime.now(),
         );

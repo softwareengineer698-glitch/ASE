@@ -90,20 +90,6 @@ class _SignInScreenState extends State<SignInScreen> {
     if (authProvider.user == null) return;
 
     await _saveCredentials();
-
-    // Returning users with a saved role go straight to their dashboard.
-    if (authProvider.user!.role == UserRole.admin ||
-        authProvider.user!.roleSelected) {
-      _navigateToDashboard();
-      return;
-    }
-
-    // First login only: ask for Donate / Receive.
-    final chosen = await _showRolePicker();
-    if (!mounted) return;
-    if (chosen != null) {
-      await authProvider.updateUserRole(chosen);
-    }
     _navigateToDashboard();
   }
 
@@ -124,12 +110,14 @@ class _SignInScreenState extends State<SignInScreen> {
     }
     if (result == null || result.user == null) return;
 
-    if (!result.isNewUser && result.user!.roleSelected) {
+    // For Google sign-in: new users need role selection, returning users go straight to dashboard
+    if (!result.isNewUser || result.user!.roleSelected) {
       _navigateToDashboard();
       return;
     }
 
-    final chosen = await _showRolePicker(isNewUser: result.isNewUser);
+    // New Google user only: ask for Donate / Receive
+    final chosen = await _showRolePicker(isNewUser: true);
     if (!mounted) return;
     if (chosen == null) {
       await authProvider.signOut();

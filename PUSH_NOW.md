@@ -149,3 +149,11 @@ git push origin main
 **Time to fix:** 30 seconds (git add, commit, push)  
 **Time to deploy:** 2 minutes (Vercel automatic)  
 **Result:** Working app (no more 404) 🎉
+
+
+cd c:\Users\New\Desktop\ASE-main
+flutter build web --release
+xcopy /E /I /Y build\web .vercel\output\static
+git add .
+git commit -m "Rebuild latest web version"
+git push origin main

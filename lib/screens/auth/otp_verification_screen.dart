@@ -147,16 +147,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   Future<void> _afterVerification(
       AuthProvider authProvider, UserModel user) async {
-    if (user.role == UserRole.admin || user.roleSelected) {
-      _navigateToDashboard();
-      return;
-    }
-    // First login only: ask for Donate / Receive.
-    final chosen = await _showRolePicker();
-    if (!mounted) return;
-    if (chosen != null) {
-      await authProvider.updateUserRole(chosen);
-    }
+    // Phone OTP is only used for sign-in — go straight to dashboard.
+    // Role selection only happens during sign-up (email/password flow).
     _navigateToDashboard();
   }
 

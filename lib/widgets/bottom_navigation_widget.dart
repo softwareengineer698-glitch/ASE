@@ -64,7 +64,6 @@ class AppBottomNavigation extends StatelessWidget {
         _buildDest(Icons.shopping_cart, Icons.shopping_cart_outlined, 'accept'),
         _buildDest(Icons.analytics, Icons.analytics_outlined, 'impact'),
         _buildDest(Icons.inventory, Icons.inventory_outlined, 'surplus'),
-        _buildDest(Icons.leaderboard, Icons.leaderboard_outlined, 'leaders'),
         _buildDest(Icons.analytics, Icons.analytics_outlined, 'forecast'),
         _buildDest(Icons.person, Icons.person_outline, 'profile'),
       ];
@@ -76,7 +75,6 @@ class AppBottomNavigation extends StatelessWidget {
         _buildDest(Icons.analytics, Icons.analytics_outlined, 'impact'),
         _buildDest(
             Icons.local_shipping, Icons.local_shipping_outlined, 'pickups'),
-        _buildDest(Icons.leaderboard, Icons.leaderboard_outlined, 'leaders'),
         _buildDest(Icons.analytics, Icons.analytics_outlined, 'forecast'),
         _buildDest(Icons.business, Icons.business_outlined, 'profile'),
       ];
@@ -85,13 +83,11 @@ class AppBottomNavigation extends StatelessWidget {
         _buildDest(Icons.home, Icons.home_outlined, 'home'),
         _buildDest(
             Icons.local_shipping, Icons.local_shipping_outlined, 'logistics'),
-        _buildDest(Icons.leaderboard, Icons.leaderboard_outlined, 'leaders'),
         _buildDest(Icons.person, Icons.person_outline, 'profile'),
       ];
 
   List<NavigationDestination> get _adminDestinations => [
         _buildDest(Icons.dashboard, Icons.dashboard_outlined, 'admin'),
-        _buildDest(Icons.leaderboard, Icons.leaderboard_outlined, 'leaders'),
         _buildDest(Icons.person, Icons.person_outline, 'profile'),
       ];
 

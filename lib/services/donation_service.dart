@@ -337,21 +337,23 @@ class DonationService {
   Future<_DonationPage> getAvailableDonationsPaged({
     int pageSize = defaultPageSize,
   }) async {
-    final query = _db
+    // Avoid composite index by not using orderBy with whereIn — sort client-side
+    final snap = await _db
         .collection('donations')
         .where('status', whereIn: [
           DonationStatus.available.name,
           DonationStatus.partiallyClaimed.name,
         ])
-        .orderBy('timestamp', descending: true)
-        .limit(pageSize);
+        .limit(pageSize * 2) // fetch extra to account for client-side filtering
+        .get();
 
-    final snap = await query.get();
     final items = _filterValid(snap);
+    items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    final page = items.take(pageSize).toList();
     return _DonationPage(
-      items: items,
+      items: page,
       lastDoc: snap.docs.isNotEmpty ? snap.docs.last : null,
-      hasMore: snap.docs.length == pageSize,
+      hasMore: items.length >= pageSize,
     );
   }
 
@@ -360,18 +362,19 @@ class DonationService {
     required DocumentSnapshot lastDoc,
     int pageSize = defaultPageSize,
   }) async {
-    final query = _db
+    // Avoid composite index — no orderBy with whereIn
+    final snap = await _db
         .collection('donations')
         .where('status', whereIn: [
           DonationStatus.available.name,
           DonationStatus.partiallyClaimed.name,
         ])
-        .orderBy('timestamp', descending: true)
         .startAfterDocument(lastDoc)
-        .limit(pageSize);
+        .limit(pageSize)
+        .get();
 
-    final snap = await query.get();
     final items = _filterValid(snap);
+    items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return _DonationPage(
       items: items,
       lastDoc: snap.docs.isNotEmpty ? snap.docs.last : null,
@@ -398,17 +401,18 @@ class DonationService {
     String donorId, {
     int pageSize = defaultPageSize,
   }) async {
+    // No orderBy to avoid requiring a composite Firestore index — sort client-side
     final snap = await _db
         .collection('donations')
         .where('donorId', isEqualTo: donorId)
-        .orderBy('timestamp', descending: true)
         .limit(pageSize)
         .get();
 
     final items = snap.docs
         .map((d) =>
             DonationModel.fromMap(d.data() as Map<String, dynamic>, d.id))
-        .toList();
+        .toList()
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
     return _DonationPage(
       items: items,
@@ -426,7 +430,6 @@ class DonationService {
     final snap = await _db
         .collection('donations')
         .where('donorId', isEqualTo: donorId)
-        .orderBy('timestamp', descending: true)
         .startAfterDocument(lastDoc)
         .limit(pageSize)
         .get();
@@ -434,7 +437,8 @@ class DonationService {
     final items = snap.docs
         .map((d) =>
             DonationModel.fromMap(d.data() as Map<String, dynamic>, d.id))
-        .toList();
+        .toList()
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
     return _DonationPage(
       items: items,
