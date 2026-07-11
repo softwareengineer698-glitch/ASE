@@ -202,12 +202,26 @@ class DonationModel {
 
   String get formattedExpiryDate {
     final now = DateTime.now();
-    final difference = expiryTime.difference(now).inDays;
-    if (difference < 0) return 'Expired ${(-difference)} days ago';
-    if (difference == 0) return 'Expires today';
-    if (difference == 1) return 'Expires tomorrow';
-    if (difference <= 7) return 'Expires in $difference days';
-    return 'Expires on ${expiryTime.day}/${expiryTime.month}/${expiryTime.year}';
+    final diff = expiryTime.difference(now);
+
+    if (diff.isNegative) {
+      final ago = now.difference(expiryTime);
+      if (ago.inDays >= 1) return 'Expired ${ago.inDays}d ago';
+      if (ago.inHours >= 1) return 'Expired ${ago.inHours}h ago';
+      return 'Expired ${ago.inMinutes}m ago';
+    }
+
+    final days = diff.inDays;
+    final hours = diff.inHours % 24;
+    final minutes = diff.inMinutes % 60;
+
+    if (days >= 7) {
+      return 'Expires ${expiryTime.day}/${expiryTime.month}/${expiryTime.year}';
+    }
+    if (days >= 1) return 'Expires in ${days}d ${hours}h';
+    if (hours >= 1) return 'Expires in ${hours}h ${minutes}m';
+    if (minutes >= 1) return 'Expires in ${minutes}m';
+    return 'Expires in <1m';
   }
 
   String get formattedTimestamp {

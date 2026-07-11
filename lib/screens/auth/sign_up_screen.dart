@@ -1,5 +1,6 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +10,7 @@ import '../../utils/localized_error_text.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import '../main/main_wrapper.dart';
+import 'otp_verification_screen.dart';
 import 'sign_in_screen.dart';
 
 /// Unified registration — no role selected here.
@@ -29,6 +31,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _phoneController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isSendingOtp = false;
 
   @override
   void dispose() {
@@ -40,53 +43,170 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
+  String _normalizePhone(String raw) {
+    final digits = raw.replaceAll(RegExp(r'[\s\-()]'), '');
+    if (digits.startsWith('0') && !digits.startsWith('+')) {
+      return '+92${digits.substring(1)}';
+    }
+    if (!digits.startsWith('+')) return '+$digits';
+    return digits;
+  }
+
+  void _showBypassDialog(String errorMsg) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('SMS Verification Unavailable'),
+        content: Text(
+            'Firebase SMS Auth is not enabled in this region or project configuration:\n\n'
+            '$errorMsg\n\n'
+            'Would you like to complete registration directly using your Email and Password instead?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('cancel'.tr()),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _signUpDirectly();
+            },
+            child: const Text('Register with Email'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _signUpDirectly() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    setState(() => _isSendingOtp = true);
+
+    try {
+      await authProvider.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        role: UserRole.donor,
+        userName: _nameController.text.trim(),
+        phoneNumber: _normalizePhone(_phoneController.text.trim()),
+      );
+
+      if (!mounted) return;
+      setState(() => _isSendingOtp = false);
+
+      if (authProvider.isAuthenticated && authProvider.user != null) {
+        final chosen = await _showRolePicker();
+        if (!mounted) return;
+        if (chosen != null) {
+          await authProvider.updateUserRole(chosen);
+        }
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const MainWrapper()),
+          (_) => false,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              localizedErrorText(authProvider.error, 'registration_failed')),
+          backgroundColor: Colors.red,
+        ));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSendingOtp = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Registration error: $e'),
+        backgroundColor: Colors.red,
+      ));
+    }
+  }
+
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.signUp(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-      role: UserRole.donor, // default; will be updated by role picker
-      userName: _nameController.text.trim(),
-      phoneNumber: _phoneController.text.trim().isNotEmpty
-          ? _phoneController.text.trim()
-          : null,
+    final phone = _normalizePhone(_phoneController.text.trim());
+    setState(() => _isSendingOtp = true);
+
+    await authProvider.sendOtp(
+      phoneNumber: phone,
+      onCodeSent: (verificationId, resendToken) {
+        if (!mounted) return;
+        setState(() => _isSendingOtp = false);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OtpVerificationScreen(
+              phoneNumber: phone,
+              verificationId: verificationId,
+              resendToken: resendToken,
+              signUpEmail: _emailController.text.trim(),
+              signUpPassword: _passwordController.text.trim(),
+              signUpName: _nameController.text.trim(),
+            ),
+          ),
+        );
+      },
+      onFailed: (error) {
+        if (!mounted) return;
+        setState(() => _isSendingOtp = false);
+        _showBypassDialog(error);
+      },
+      onAutoVerified: (PhoneAuthCredential credential) {
+        if (!mounted) return;
+        setState(() => _isSendingOtp = false);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OtpVerificationScreen(
+              phoneNumber: phone,
+              verificationId: '',
+              autoVerifiedCredential: credential,
+              signUpEmail: _emailController.text.trim(),
+              signUpPassword: _passwordController.text.trim(),
+              signUpName: _nameController.text.trim(),
+            ),
+          ),
+        );
+      },
     );
+  }
 
+  Future<void> _signUpWithGoogle() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final result = await authProvider.signInWithGoogle();
     if (!mounted) return;
-
-    if (authProvider.error == null && authProvider.user != null) {
-      // Show role picker ONLY on sign-up (first time)
+    if (result == null || result.user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(localizedErrorText(
+          authProvider.error,
+          'auth_error_google_sign_in_failed',
+        )),
+        backgroundColor: Colors.red,
+      ));
+      return;
+    }
+    if (!result.user!.roleSelected) {
       final chosen = await _showRolePicker();
       if (!mounted) return;
-      if (chosen != null) {
-        await authProvider.updateUserRole(chosen);
-      }
-      if (!mounted) return;
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const MainWrapper()),
-        (_) => false,
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(localizedErrorText(
-            authProvider.error,
-            'registration_failed',
-          )),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (chosen != null) await authProvider.updateUserRole(chosen);
     }
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const MainWrapper()),
+      (_) => false,
+    );
   }
 
   Future<UserRole?> _showRolePicker() {
     return showModalBottomSheet<UserRole>(
       context: context,
       isScrollControlled: true,
-      isDismissible: false,  // must choose a role
+      isDismissible: false, // must choose a role
       backgroundColor: Colors.transparent,
       builder: (ctx) => _RolePickerSheet(
         onSelected: (role) => Navigator.of(ctx).pop(role),
@@ -159,14 +279,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Phone number (optional)
+                // Phone number (required for OTP verification)
                 SlideInLeft(
                   duration: const Duration(milliseconds: 500),
                   delay: const Duration(milliseconds: 60),
                   child: CustomTextField(
                     controller: _phoneController,
                     label: 'phone_number'.tr(),
-                    hint: 'phone_optional_hint'.tr(),
+                    hint: 'enter_phone_hint'.tr(),
                     keyboardType: TextInputType.phone,
                     prefixIcon: Icons.phone_outlined,
                     inputFormatters: [
@@ -174,20 +294,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           RegExp(r'[\d\s\+\-\(\)]')),
                     ],
                     validator: (v) {
-                      if (v == null || v.trim().isEmpty) return null; // Optional
-                      final normalized = v.trim().replaceAll(RegExp(r'[\s\-\(\)]'), '');
-                      if (normalized.startsWith('0')) {
-                        // Pakistani format
-                        if (!RegExp(r'^0\d{10}$').hasMatch(normalized)) {
-                          return 'invalid_phone_format'.tr();
-                        }
-                      } else if (normalized.startsWith('+')) {
-                        // International format
-                        if (!RegExp(r'^\+\d{10,15}$').hasMatch(normalized)) {
-                          return 'invalid_phone_format'.tr();
-                        }
-                      } else {
-                        return 'phone_must_start_with_0_or_plus'.tr();
+                      if (v == null || v.trim().isEmpty) {
+                        return 'phone_required'.tr();
+                      }
+                      final normalized = _normalizePhone(v.trim());
+                      if (!RegExp(r'^\+\d{10,15}$').hasMatch(normalized)) {
+                        return 'invalid_phone_number'.tr();
                       }
                       return null;
                     },
@@ -272,10 +384,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   builder: (context, auth, _) => FadeInUp(
                     delay: const Duration(milliseconds: 300),
                     child: CustomButton(
-                      text: 'create_account'.tr(),
-                      onPressed: auth.isLoading ? null : _signUp,
-                      isLoading: auth.isLoading,
+                      text:
+                          _isSendingOtp ? 'sending_otp'.tr() : 'send_otp'.tr(),
+                      onPressed:
+                          (auth.isLoading || _isSendingOtp) ? null : _signUp,
+                      isLoading: auth.isLoading || _isSendingOtp,
                     ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                OutlinedButton.icon(
+                  onPressed: _signUpWithGoogle,
+                  icon: const Icon(Icons.g_mobiledata_rounded),
+                  label: Text('sign_up_with_google'.tr()),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: BorderSide(color: Colors.grey.shade300, width: 1.5),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -344,8 +472,10 @@ class _RolePickerSheet extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'How do you want to use FoodBridge?',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold),
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
@@ -416,9 +546,7 @@ class _RoleOption extends StatelessWidget {
             const SizedBox(height: 10),
             Text(title,
                 style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: color)),
+                    fontWeight: FontWeight.bold, fontSize: 16, color: color)),
             const SizedBox(height: 4),
             Text(subtitle,
                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),

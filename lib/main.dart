@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'firebase_options.dart';
@@ -17,27 +18,40 @@ import 'services/volunteer_service.dart';
 import 'providers/volunteer_provider.dart';
 import 'providers/admin_provider.dart';
 import 'screens/request/request_list_screen.dart';
+import 'screens/chat/chat_rooms_screen.dart';
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await NotificationService().handleBackgroundMessage(message);
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize EasyLocalization
-  await EasyLocalization.ensureInitialized();
+  // --- EasyLocalization ---
+  try {
+    await EasyLocalization.ensureInitialized();
+  } catch (e) {
+    debugPrint('EasyLocalization init error: $e');
+  }
 
-  // Initialize Firebase FIRST before any services
+  // --- Firebase ---
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     debugPrint('Firebase initialized successfully');
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
-    return;
   }
 
-  // Initialize services AFTER Firebase is ready
-  await _initializeServices();
+  // --- Services (fire-and-forget, never block UI) ---
+  _initializeServicesInBackground();
 
+  // --- Launch the app (MUST always execute) ---
   runApp(
     EasyLocalization(
       supportedLocales: const [
@@ -52,24 +66,34 @@ void main() async {
   );
 }
 
-Future<void> _initializeServices() async {
-  // Initialize all singleton services
-  NotificationService();
-  ProfileService();
-  LocalSurplusService();
-  VolunteerService();
-
-  // Start the donation expiry service
-  DonationExpiryService().start();
-
-  // Initialize FCM (token registration + foreground/tap handlers).
-  // Runs after Firebase is ready; silently ignored if user not yet signed in
-  // (token is saved when user logs in via AuthProvider → AuthService).
+/// Initialize services in the background. Each service is individually
+/// wrapped so a failure in one doesn't block the others. Nothing here
+/// returns a Future that is awaited.
+void _initializeServicesInBackground() {
   try {
-    await NotificationService().initializeFCM();
-  } catch (e) {
-    debugPrint('FCM initialization skipped: $e');
-  }
+    NotificationService();
+  } catch (_) {}
+  try {
+    ProfileService();
+  } catch (_) {}
+  try {
+    LocalSurplusService();
+  } catch (_) {}
+  try {
+    VolunteerService();
+  } catch (_) {}
+  try {
+    DonationExpiryService().start();
+  } catch (_) {}
+
+  // FCM is completely fire-and-forget
+  Future.microtask(() async {
+    try {
+      await NotificationService().initializeFCM();
+    } catch (e) {
+      debugPrint('FCM initialization skipped: $e');
+    }
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -77,58 +101,46 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Set notification context for in-app notifications
-    NotificationService().setContext(context);
-
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(
-          create: (context) => AuthProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (context) {
-            final themeProvider = ThemeProvider();
-            themeProvider.initialize(); // Initialize theme preferences
-            return themeProvider;
+          create: (_) {
+            final t = ThemeProvider();
+            t.initialize();
+            return t;
           },
         ),
         ChangeNotifierProvider(
-          create: (context) {
-            final languageProvider = LanguageProvider();
-            languageProvider.initialize(); // Initialize language preferences
-            return languageProvider;
+          create: (_) {
+            final l = LanguageProvider();
+            l.initialize();
+            return l;
           },
         ),
-        ChangeNotifierProvider(
-          create: (context) => AnalyticsProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (context) => ForecastProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (context) => VolunteerProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (context) {
-            final adminProvider = AdminProvider();
-            adminProvider.initialize();
-            return adminProvider;
-          },
-        ),
+        ChangeNotifierProvider(create: (_) => AnalyticsProvider()),
+        ChangeNotifierProvider(create: (_) => ForecastProvider()),
+        ChangeNotifierProvider(create: (_) => VolunteerProvider()),
+        ChangeNotifierProvider(create: (_) => AdminProvider()),
       ],
       child: Consumer2<ThemeProvider, LanguageProvider>(
         builder: (context, themeProvider, languageProvider, child) {
+          // Safe to call here: context is valid, no async side-effects
+          try {
+            NotificationService().setContext(context);
+          } catch (_) {}
           return MaterialApp(
             title: 'FoodBridge',
             theme: themeProvider.lightTheme,
             darkTheme: themeProvider.darkTheme,
             themeMode: themeProvider.themeMode,
-            locale: context.locale, // Use EasyLocalization's locale
+            locale: context.locale,
             supportedLocales: context.supportedLocales,
             localizationsDelegates: context.localizationDelegates,
             home: const SplashScreen(),
             routes: {
-              '/requests': (context) => const RequestListScreen(),
+              '/requests': (_) => const RequestListScreen(),
+              '/chats': (_) => const ChatRoomsScreen(),
             },
             debugShowCheckedModeBanner: false,
           );

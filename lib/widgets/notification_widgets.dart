@@ -10,7 +10,9 @@ class NotificationBadge extends StatelessWidget {
   final Color? textColor;
 
   const NotificationBadge({
-    required this.count, required this.child, super.key,
+    required this.count,
+    required this.child,
+    super.key,
     this.badgeColor,
     this.textColor,
   });
@@ -56,7 +58,8 @@ class NotificationTile extends StatelessWidget {
   final VoidCallback? onDismiss;
 
   const NotificationTile({
-    required this.notification, super.key,
+    required this.notification,
+    super.key,
     this.onTap,
     this.onDismiss,
   });
@@ -81,7 +84,9 @@ class NotificationTile extends StatelessWidget {
         elevation: notification.isRead ? 1 : 3,
         child: ListTile(
           leading: CircleAvatar(
-            backgroundColor: _getTypeColor(notification.type).withOpacity(0.2),
+            backgroundColor: _getTypeColor(notification.type).withValues(
+              alpha: 0.2,
+            ),
             child: Icon(
               _getTypeIcon(notification.type),
               color: _getTypeColor(notification.type),
@@ -126,7 +131,7 @@ class NotificationTile extends StatelessWidget {
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: _getPriorityColor(notification.priority)
-                          .withOpacity(0.2),
+                          .withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -180,6 +185,8 @@ class NotificationTile extends StatelessWidget {
         return Colors.teal;
       case NotificationType.requestCreated:
         return Colors.indigo;
+      case NotificationType.newMessage:
+        return AppTheme.primaryBlue;
       case NotificationType.general:
         return AppTheme.primaryOrange;
     }
@@ -207,6 +214,8 @@ class NotificationTile extends StatelessWidget {
         return Icons.check_circle_outline;
       case NotificationType.requestCreated:
         return Icons.add_circle_outline;
+      case NotificationType.newMessage:
+        return Icons.chat_bubble_outline;
       case NotificationType.general:
         return Icons.info;
     }
@@ -233,7 +242,8 @@ class NotificationFloatingBanner extends StatefulWidget {
   final Duration duration;
 
   const NotificationFloatingBanner({
-    required this.notification, super.key,
+    required this.notification,
+    super.key,
     this.onTap,
     this.onDismiss,
     this.duration = const Duration(seconds: 4),
@@ -314,7 +324,9 @@ class _NotificationFloatingBannerState extends State<NotificationFloatingBanner>
                 gradient: LinearGradient(
                   colors: [
                     _getTypeColor(widget.notification.type),
-                    _getTypeColor(widget.notification.type).withOpacity(0.8),
+                    _getTypeColor(widget.notification.type).withValues(
+                      alpha: 0.8,
+                    ),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(12),
@@ -381,6 +393,8 @@ class _NotificationFloatingBannerState extends State<NotificationFloatingBanner>
         return Colors.teal;
       case NotificationType.requestCreated:
         return Colors.indigo;
+      case NotificationType.newMessage:
+        return AppTheme.primaryBlue;
       case NotificationType.general:
         return AppTheme.primaryOrange;
     }
@@ -408,6 +422,8 @@ class _NotificationFloatingBannerState extends State<NotificationFloatingBanner>
         return Icons.check_circle_outline;
       case NotificationType.requestCreated:
         return Icons.add_circle_outline;
+      case NotificationType.newMessage:
+        return Icons.chat_bubble_outline;
       case NotificationType.general:
         return Icons.info;
     }

@@ -10,6 +10,7 @@ import '../../models/donation_model.dart';
 import '../../services/donation_service.dart';
 import '../../widgets/dashboard_card.dart';
 import '../../widgets/donation_image.dart';
+import '../../widgets/expiry_countdown_widget.dart';
 
 class DonorAcceptanceScreen extends StatefulWidget {
   const DonorAcceptanceScreen({super.key});
@@ -404,12 +405,8 @@ class _DonorAcceptanceScreenState extends State<DonorAcceptanceScreen> {
                     ),
                   ),
                 const SizedBox(width: 8),
-                Text(
-                  donation.formattedExpiryDate,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                ExpiryCountdownWidget(
+                  expiryTime: donation.expiryTime,
                 ),
               ],
             ),
@@ -549,33 +546,33 @@ class _DonorAcceptanceScreenState extends State<DonorAcceptanceScreen> {
             child: Text('cancel'.tr()),
           ),
           ElevatedButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                try {
-                  await _donationService.submitClaim(
-                    donationId: donation.id,
-                    claimantId: user.uid,
-                    requestedQuantity: donation.remainingQuantity,
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await _donationService.submitClaim(
+                  donationId: donation.id,
+                  claimantId: user.uid,
+                  requestedQuantity: donation.remainingQuantity,
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('donation accepted successfully'.tr()),
+                      backgroundColor: Colors.green,
+                    ),
                   );
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('donation accepted successfully'.tr()),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('error accepting donation: $e'.tr()),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
                 }
-              },
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('error accepting donation: $e'.tr()),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
             child: Text('confirm'.tr()),
           ),
         ],

@@ -51,9 +51,13 @@ async function sendPush(token, title, body, data = {}) {
 }
 
 async function getRecipientTokens() {
+  return getTokensByRole("ngo");
+}
+
+async function getTokensByRole(role) {
   const snap = await db
     .collection("users")
-    .where("role", "==", "ngo")
+    .where("role", "==", role)
     .where("notificationsEnabled", "!=", false)
     .get();
   return snap.docs.map((doc) => doc.data().fcmToken).filter(Boolean);
@@ -78,6 +82,29 @@ exports.onDonationCreated = onDocumentCreated("donations/{donationId}", async (e
   }
 });
 
+// ── 0b. New food request posted → notify donors ───────────────────────────
+exports.onFoodRequestCreated = onDocumentCreated("food_requests/{requestId}", async (event) => {
+  const request = event.data.data();
+  const tokens = await getTokensByRole("donor");
+  const quantity = request.quantity ? `${request.quantity} ${request.unit || "units"} of ` : "";
+  const requestTitle = request.foodType || "food";
+  const requester = request.organizationName || request.userName || "An NGO";
+
+  for (const token of tokens) {
+    await sendPush(
+      token,
+      "New Food Request 📋",
+      `${requester} requested ${quantity}${requestTitle}.`,
+      {
+        type: "requestCreated",
+        requestId: event.params.requestId,
+        notificationId: `fcm_food_request_${event.params.requestId}`,
+        actionData: "request_list",
+      }
+    );
+  }
+});
+
 // ── 1. New claim submitted → notify donor ─────────────────────────────────
 exports.onClaimCreated = onDocumentCreated("claims/{claimId}", async (event) => {
   const claim = event.data.data();
@@ -90,6 +117,48 @@ exports.onClaimCreated = onDocumentCreated("claims/{claimId}", async (event) => 
       type: "claimReceived",
       donationId: claim.donationId,
       notificationId: `fcm_claim_${event.params.claimId}`,
+      actionData: "donor_dashboard",
+    }
+  );
+});
+
+// ── 1b. NGO requests volunteer transport → notify donor ───────────────────
+exports.onDeliveryCreated = onDocumentCreated("deliveries/{deliveryId}", async (event) => {
+  const delivery = event.data.data();
+  const token = await getToken(delivery.donorId);
+  if (!token) return;
+
+  let ngoName = String(delivery.ngoName || "").trim() || "An NGO";
+  let donationTitle = String(delivery.donationTitle || "").trim() || "your donation";
+
+  try {
+    if (!String(delivery.ngoName || "").trim() && delivery.ngoId) {
+      const ngoSnap = await db.collection("users").doc(delivery.ngoId).get();
+      const ngoData = ngoSnap.data() || {};
+      ngoName =
+        ngoData.organizationName ||
+        ngoData.userName ||
+        ngoData.email ||
+        ngoName;
+    }
+
+    if (!String(delivery.donationTitle || "").trim() && delivery.donationId) {
+      const donationSnap = await db.collection("donations").doc(delivery.donationId).get();
+      const donationData = donationSnap.data() || {};
+      donationTitle = donationData.title || donationTitle;
+    }
+  } catch (err) {
+    console.error("Volunteer request lookup error:", err.message);
+  }
+
+  await sendPush(
+    token,
+    "Volunteer Requested",
+    `${ngoName} requested a volunteer for ${donationTitle}.`,
+    {
+      type: "general",
+      donationId: delivery.donationId || "",
+      notificationId: `fcm_delivery_${event.params.deliveryId}`,
       actionData: "donor_dashboard",
     }
   );
@@ -141,18 +210,26 @@ exports.onChatMessage = onDocumentCreated(
     if (!roomSnap.exists) return;
     const room = roomSnap.data();
     const participants = room.participantIds || [];
+    const senderSnap = await db.collection("users").doc(msg.senderId).get();
+    const senderData = senderSnap.data() || {};
+    const senderName =
+      senderData.userName ||
+      senderData.organizationName ||
+      senderData.email ||
+      "FoodBridge";
     // Notify everyone except the sender
     const recipients = participants.filter((id) => id !== msg.senderId);
     for (const uid of recipients) {
       const token = await getToken(uid);
       await sendPush(
         token,
-        "New Message 💬",
+        `New Message from ${senderName}`,
         msg.text && msg.text.length > 80 ? msg.text.substring(0, 80) + "…" : msg.text,
         {
-          type: "general",
+          type: "newMessage",
           notificationId: `fcm_msg_${event.params.msgId}`,
           chatRoomId: event.params.roomId,
+          otherUserName: String(senderName),
           actionData: `chat_${event.params.roomId}`,
         }
       );

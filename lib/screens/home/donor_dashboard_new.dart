@@ -11,11 +11,15 @@ import '../../models/donation_model.dart';
 import '../../services/donation_service.dart';
 import '../../widgets/dashboard_card.dart';
 import '../../widgets/donation_image.dart';
+import '../../widgets/expiry_countdown_widget.dart';
 import '../../widgets/enhanced_button.dart';
 import '../../widgets/responsive_widget.dart';
 import '../auth/sign_in_screen.dart';
 import '../history/history_screen.dart';
 import '../donor/create_donation_screen.dart';
+import '../request/request_list_screen.dart';
+import '../notifications/notifications_screen.dart';
+import '../chat/chat_rooms_screen.dart';
 
 class DonorDashboard extends StatefulWidget {
   const DonorDashboard({super.key});
@@ -116,14 +120,18 @@ class _DonorDashboardState extends State<DonorDashboard> {
               children: [
                 Row(
                   children: [
-                    Text(
-                      'hello_user'.tr(namedArgs: {
-                        'name': user.userName ?? user.email.split('@')[0]
-                      }),
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
+                    Expanded(
+                      child: Text(
+                        'hello_user'.tr(namedArgs: {
+                          'name': user.userName ?? user.email.split('@')[0]
+                        }),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -182,29 +190,45 @@ class _DonorDashboardState extends State<DonorDashboard> {
             EnhancedButton(
               text: 'create donation'.tr(),
               icon: Icons.add_circle,
-              onPressed: () {
-                Navigator.push(
+              onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const CreateDonationScreen(),
-                  ),
-                );
-              },
+                      builder: (_) => const CreateDonationScreen())),
               semanticLabel: 'Create new food donation',
             ),
             const SizedBox(height: 12),
             EnhancedOutlinedButton(
               text: 'view history'.tr(),
               icon: Icons.history,
-              onPressed: () {
-                Navigator.push(
+              onPressed: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const HistoryScreen())),
+              semanticLabel: 'View donation history',
+            ),
+            const SizedBox(height: 12),
+            EnhancedOutlinedButton(
+              text: 'my_chats'.tr(),
+              icon: Icons.chat_outlined,
+              onPressed: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const ChatRoomsScreen())),
+              semanticLabel: 'My chats with recipients',
+            ),
+            const SizedBox(height: 12),
+            EnhancedOutlinedButton(
+              text: 'food_requests'.tr(),
+              icon: Icons.request_page_outlined,
+              onPressed: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const RequestListScreen())),
+              semanticLabel: 'View food requests from recipients',
+            ),
+            const SizedBox(height: 12),
+            EnhancedOutlinedButton(
+              text: 'notifications'.tr(),
+              icon: Icons.notifications_outlined,
+              onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const HistoryScreen(),
-                  ),
-                );
-              },
-              semanticLabel: 'View donation history',
+                      builder: (_) => const NotificationsScreen())),
+              semanticLabel: 'View notifications',
             ),
           ],
         ),
@@ -227,40 +251,65 @@ class _DonorDashboardState extends State<DonorDashboard> {
           ),
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: EnhancedButton(
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final actionButtons = [
+              EnhancedButton(
                 text: 'create donation'.tr(),
                 icon: Icons.add_circle,
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const CreateDonationScreen(),
-                    ),
-                  );
-                },
+                        builder: (_) => const CreateDonationScreen())),
                 semanticLabel: 'Create new food donation',
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: EnhancedOutlinedButton(
+              EnhancedOutlinedButton(
                 text: 'view history'.tr(),
                 icon: Icons.history,
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const HistoryScreen(),
-                    ),
-                  );
-                },
+                onPressed: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const HistoryScreen())),
                 semanticLabel: 'View donation history',
               ),
-            ),
-          ],
+              EnhancedOutlinedButton(
+                text: 'my_chats'.tr(),
+                icon: Icons.chat_outlined,
+                onPressed: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const ChatRoomsScreen())),
+                semanticLabel: 'My chats',
+              ),
+              EnhancedOutlinedButton(
+                text: 'food_requests'.tr(),
+                icon: Icons.request_page_outlined,
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const RequestListScreen())),
+                semanticLabel: 'View food requests',
+              ),
+              EnhancedOutlinedButton(
+                text: 'notifications'.tr(),
+                icon: Icons.notifications_outlined,
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const NotificationsScreen())),
+                semanticLabel: 'View notifications',
+              ),
+            ];
+
+            final columns = constraints.maxWidth >= 760 ? 3 : 2;
+            const spacing = 12.0;
+            final itemWidth =
+                (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: actionButtons
+                  .map((button) => SizedBox(width: itemWidth, child: button))
+                  .toList(),
+            );
+          },
         ),
       ],
     );
@@ -453,6 +502,8 @@ class _DonorDashboardState extends State<DonorDashboard> {
               ],
             ),
             const SizedBox(height: 12),
+            ExpiryCountdownWidget(expiryTime: donation.expiryTime),
+            const SizedBox(height: 12),
             if (donation.status == DonationStatus.claimed) ...[
               Row(
                 children: [
@@ -499,11 +550,9 @@ class _DonorDashboardState extends State<DonorDashboard> {
                     if (!snapshot.hasData || !snapshot.data!.exists) {
                       return const SizedBox.shrink();
                     }
-                    final data =
-                        snapshot.data!.data() as Map<String, dynamic>;
-                    final ngoName = data['organizationName'] ??
-                        data['userName'] ??
-                        'NGO';
+                    final data = snapshot.data!.data() as Map<String, dynamic>;
+                    final ngoName =
+                        data['organizationName'] ?? data['userName'] ?? 'NGO';
                     final isVerified = data['isVerified'] == true;
                     return Row(
                       children: [
@@ -520,8 +569,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
                                 : '$ngoName · Verification Pending',
                             style: TextStyle(
                               fontSize: 11,
-                              color:
-                                  isVerified ? Colors.green : Colors.orange,
+                              color: isVerified ? Colors.green : Colors.orange,
                               fontWeight: FontWeight.w500,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -604,7 +652,12 @@ class _DonorDashboardState extends State<DonorDashboard> {
               const SizedBox(height: 8),
               Text('Posted: ${donation.formattedTimestamp}'),
               const SizedBox(height: 8),
-              Text('Expires: ${donation.expiryTime}'),
+              Row(
+                children: [
+                  const Text('Expires: '),
+                  ExpiryCountdownWidget(expiryTime: donation.expiryTime),
+                ],
+              ),
               if (donation.status == DonationStatus.claimed &&
                   donation.claimedBy != null) ...[
                 const SizedBox(height: 12),
@@ -671,8 +724,7 @@ class _DonorDashboardState extends State<DonorDashboard> {
                             child: Icon(
                               Icons.business,
                               size: 20,
-                              color:
-                                  isVerified ? Colors.green : Colors.orange,
+                              color: isVerified ? Colors.green : Colors.orange,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -833,7 +885,11 @@ class MetricCard extends StatelessWidget {
   final String? subtitle;
 
   const MetricCard({
-    required this.title, required this.value, required this.icon, required this.color, super.key,
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    super.key,
     this.subtitle,
   });
 

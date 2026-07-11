@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/donation_service.dart';
 import '../../widgets/donation_image.dart';
 import '../donor/claim_donation_screen.dart';
+import '../../widgets/expiry_countdown_widget.dart';
 
 class NearbyFoodScreen extends StatefulWidget {
   const NearbyFoodScreen({super.key});
@@ -102,7 +103,8 @@ class _NearbyFoodScreenState extends State<NearbyFoodScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.location_off_rounded, size: 64, color: Colors.grey),
+            const Icon(Icons.location_off_rounded,
+                size: 64, color: Colors.grey),
             const SizedBox(height: 16),
             Text(_locationError!, textAlign: TextAlign.center),
             const SizedBox(height: 16),
@@ -134,9 +136,11 @@ class _NearbyFoodScreenState extends State<NearbyFoodScreen> {
                 Text('no_nearby_food'.tr(),
                     style: const TextStyle(fontSize: 16)),
                 const SizedBox(height: 8),
-                Text('within_radius'.tr(
-                  namedArgs: {'radius': _radiusKm.toStringAsFixed(0)},
-                ), style: TextStyle(color: Colors.grey[600])),
+                Text(
+                    'within_radius'.tr(
+                      namedArgs: {'radius': _radiusKm.toStringAsFixed(0)},
+                    ),
+                    style: TextStyle(color: Colors.grey[600])),
                 const SizedBox(height: 16),
                 OutlinedButton(
                   onPressed: _showRadiusDialog,
@@ -155,8 +159,8 @@ class _NearbyFoodScreenState extends State<NearbyFoodScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 itemCount: items.length,
-                itemBuilder: (ctx, i) =>
-                    _DonationCard(donation: items[i], userLat: _lat!, userLng: _lng!),
+                itemBuilder: (ctx, i) => _DonationCard(
+                    donation: items[i], userLat: _lat!, userLng: _lng!),
               ),
             ),
           ],
@@ -208,8 +212,7 @@ class _NearbyFoodScreenState extends State<NearbyFoodScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               setState(() => _radiusKm = temp);
@@ -280,20 +283,18 @@ class _DonationCard extends StatelessWidget {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  const Icon(Icons.category_outlined, size: 14,
-                      color: Colors.grey),
+                  const Icon(Icons.category_outlined,
+                      size: 14, color: Colors.grey),
                   const SizedBox(width: 4),
                   Text(donation.category,
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.grey)),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   const SizedBox(width: 12),
-                  const Icon(Icons.scale_outlined, size: 14,
-                      color: Colors.grey),
+                  const Icon(Icons.scale_outlined,
+                      size: 14, color: Colors.grey),
                   const SizedBox(width: 4),
                   Text(
                       '${donation.remainingQuantity} / ${donation.quantity} ${donation.unit}',
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.grey)),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
                 ],
               ),
               const SizedBox(height: 6),
@@ -317,18 +318,8 @@ class _DonationCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              Row(
-                children: [
-                  const Icon(Icons.schedule_outlined,
-                      size: 14, color: Colors.orange),
-                  const SizedBox(width: 4),
-                  Text(donation.formattedExpiryDate,
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: donation.isExpiringSoon
-                              ? Colors.red
-                              : Colors.grey)),
-                ],
+              ExpiryCountdownWidget(
+                expiryTime: donation.expiryTime,
               ),
             ],
           ),
@@ -338,12 +329,12 @@ class _DonationCard extends StatelessWidget {
   }
 
   Widget _statusChip() {
-    final isPartial =
-        donation.status == DonationStatus.partiallyClaimed;
+    final isPartial = donation.status == DonationStatus.partiallyClaimed;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: (isPartial ? Colors.orange : Colors.green).withValues(alpha: 0.12),
+        color:
+            (isPartial ? Colors.orange : Colors.green).withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -378,7 +369,11 @@ class _DonationCard extends StatelessWidget {
   double _pow3(double x) => x * x * x;
 
   double _atan2Sqrt(double a) {
-    final sqrtA = a < 0 ? 0.0 : a > 1 ? 1.0 : _sqrtApprox(a);
+    final sqrtA = a < 0
+        ? 0.0
+        : a > 1
+            ? 1.0
+            : _sqrtApprox(a);
     final sqrtB = _sqrtApprox(1 - a);
     return sqrtA == 0 && sqrtB == 0 ? 0 : sqrtA / sqrtB;
   }

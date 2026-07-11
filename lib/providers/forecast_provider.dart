@@ -14,6 +14,7 @@ class ForecastProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   bool _useEnhancedService = true; // Toggle between services
+  String _selectedModel = 'ARIMA'; // Default forecasting model
 
   // Getters
   AIForecast? get currentForecast => _currentForecast;
@@ -21,6 +22,22 @@ class ForecastProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasForecast => _currentForecast != null;
+  bool get useEnhancedService => _useEnhancedService;
+  String get selectedModel => _selectedModel;
+
+  /// Update model type and reload
+  Future<void> updateModelType(String donorId, String model) async {
+    if (_selectedModel == model) return;
+    _selectedModel = model;
+    await loadForecast(donorId);
+  }
+
+  /// Change enhanced service activation status
+  Future<void> setUseEnhancedService(String donorId, bool value) async {
+    if (_useEnhancedService == value) return;
+    _useEnhancedService = value;
+    await loadForecast(donorId);
+  }
 
   /// Load forecast for a donor
   Future<void> loadForecast(String donorId) async {
@@ -37,11 +54,26 @@ class ForecastProvider extends ChangeNotifier {
         // Generate mock historical data for enhanced service
         final historicalData = _generateMockHistoricalData();
 
-        _currentForecast = await _enhancedService.generateProphetForecast(
-          donorId,
-          historicalData,
-          _currentCovariates!,
-        );
+        if (_selectedModel == 'ARIMA') {
+          _currentForecast = await _enhancedService.generateARIMAForecast(
+            donorId,
+            historicalData,
+            _currentCovariates!,
+          );
+        } else if (_selectedModel == 'NeuralProphet') {
+          _currentForecast =
+              await _enhancedService.generateNeuralProphetForecast(
+            donorId,
+            historicalData,
+            _currentCovariates!,
+          );
+        } else {
+          _currentForecast = await _enhancedService.generateProphetForecast(
+            donorId,
+            historicalData,
+            _currentCovariates!,
+          );
+        }
       } else {
         // Fallback to original service
         _currentForecast = await _forecastService.generateForecast(

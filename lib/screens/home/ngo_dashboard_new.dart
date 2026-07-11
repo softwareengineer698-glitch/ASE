@@ -6,14 +6,22 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/language_provider.dart';
+import '../../models/claim_model.dart';
 import '../../models/user_model.dart';
 import '../../models/donation_model.dart';
 import '../../services/donation_service.dart';
+import '../../services/notification_service.dart';
+import '../../models/notification_model.dart';
 import '../../widgets/dashboard_card.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/donation_image.dart';
+import '../../widgets/expiry_countdown_widget.dart';
 import '../auth/sign_in_screen.dart';
 import '../impact/ngo_impact_screen.dart';
+import '../request/create_request_screen.dart';
+import '../notifications/notifications_screen.dart';
+import '../chat/chat_screen.dart';
+import '../chat/chat_rooms_screen.dart';
 
 class NGODashboard extends StatefulWidget {
   const NGODashboard({super.key});
@@ -325,7 +333,8 @@ class _NGODashboardState extends State<NGODashboard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.inventory, color: Colors.green, size: 24),
+                        const Icon(Icons.inventory,
+                            color: Colors.green, size: 24),
                         const SizedBox(height: 8),
                         Text(
                           'food received'.tr(),
@@ -457,6 +466,51 @@ class _NGODashboardState extends State<NGODashboard> {
           backgroundColor: Colors.grey[200],
           textColor: Colors.black87,
           fullWidth: true,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: CustomButton(
+                text: 'my_chats'.tr(),
+                icon: Icons.chat_outlined,
+                onPressed: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const ChatRoomsScreen())),
+                backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                textColor: Colors.blue[700],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: CustomButton(
+                text: 'request_food'.tr(),
+                icon: Icons.add_circle_outline,
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const CreateRequestScreen())),
+                backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                textColor: Colors.orange[700],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: CustomButton(
+                text: 'notifications'.tr(),
+                icon: Icons.notifications_outlined,
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const NotificationsScreen())),
+                backgroundColor: Colors.purple.withValues(alpha: 0.1),
+                textColor: Colors.purple[700],
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -686,12 +740,8 @@ class _NGODashboardState extends State<NGODashboard> {
                     ),
                   ),
                 const SizedBox(width: 8),
-                Text(
-                  donation.formattedExpiryDate,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                ExpiryCountdownWidget(
+                  expiryTime: donation.expiryTime,
                 ),
               ],
             ),
@@ -780,7 +830,8 @@ class _NGODashboardState extends State<NGODashboard> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(donation.status).withValues(alpha: 0.1),
+                    color:
+                        _getStatusColor(donation.status).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -894,6 +945,12 @@ class _NGODashboardState extends State<NGODashboard> {
                   ),
                 ),
               ),
+            // Chat with Donor — opens the chat room for this claim
+            if (donation.status == DonationStatus.claimed)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: _ChatWithDonorButton(donation: donation),
+              ),
           ],
         ),
       ),
@@ -990,20 +1047,27 @@ class _NGODashboardState extends State<NGODashboard> {
 
     if (user == null) return;
 
+    final ngoDisplayName =
+        user.organizationName?.trim().isNotEmpty == true
+            ? user.organizationName!.trim()
+            : user.userName?.trim().isNotEmpty == true
+                ? user.userName!.trim()
+                : user.email;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Request Volunteer Transport?'),
         content: const Text(
             'A notification will be sent to nearby volunteers to help transport this donation from the donor to your location.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text('cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               try {
                 final FirebaseFirestore firestore = FirebaseFirestore.instance;
                 final deliveryData = {
@@ -1012,13 +1076,31 @@ class _NGODashboardState extends State<NGODashboard> {
                   'volunteerId': '', // Empty means available for any volunteer
                   'donorId': donation.donorId,
                   'ngoId': user.uid,
+                  'ngoName': ngoDisplayName,
+                  'donationTitle': donation.title,
                   'status': 'pending',
                   'scheduledAt': FieldValue.serverTimestamp(),
                   'notes':
-                      'Volunteer transport requested by ${user.userName ?? user.email}',
+                      'Volunteer transport requested by $ngoDisplayName',
                 };
 
                 await firestore.collection('deliveries').add(deliveryData);
+                await NotificationService().createRemoteNotificationForUser(
+                  userId: donation.donorId,
+                  notification: AppNotification(
+                    id: 'volunteer_request_${donation.id}_${user.uid}',
+                    title: 'Volunteer Requested',
+                    message:
+                        '$ngoDisplayName requested a volunteer for ${donation.title}.',
+                    type: NotificationType.general,
+                    priority: NotificationPriority.high,
+                    timestamp: DateTime.now(),
+                    actionData: 'donor_dashboard',
+                    relatedDonationId: donation.id,
+                  ),
+                );
+
+                if (!mounted) return;
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -1027,6 +1109,8 @@ class _NGODashboardState extends State<NGODashboard> {
                   ),
                 );
               } catch (e) {
+                if (!mounted) return;
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Error: ${e.toString()}'),
@@ -1036,7 +1120,7 @@ class _NGODashboardState extends State<NGODashboard> {
               }
             },
             style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.secondary),
+                backgroundColor: Theme.of(dialogContext).colorScheme.secondary),
             child: const Text('Confirm', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -1282,7 +1366,11 @@ class MetricCard extends StatelessWidget {
   final String? subtitle;
 
   const MetricCard({
-    required this.title, required this.value, required this.icon, required this.color, super.key,
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    super.key,
     this.subtitle,
   });
 
@@ -1332,6 +1420,197 @@ class MetricCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Looks up the chatRoomId from the claim linked to this donation,
+/// then opens ChatScreen. Shows a loading indicator while fetching.
+class _ChatWithDonorButton extends StatefulWidget {
+  final DonationModel donation;
+  const _ChatWithDonorButton({required this.donation});
+
+  @override
+  State<_ChatWithDonorButton> createState() => _ChatWithDonorButtonState();
+}
+
+class _ChatWithDonorButtonState extends State<_ChatWithDonorButton> {
+  bool _loading = false;
+
+  Future<void> _openChat() async {
+    final uid = Provider.of<AuthProvider>(context, listen: false).user?.uid;
+    if (uid == null) return;
+
+    setState(() => _loading = true);
+    try {
+      // Find the accepted/pending claim for this donation by current user
+      final snap = await FirebaseFirestore.instance
+          .collection('claims')
+          .where('donationId', isEqualTo: widget.donation.id)
+          .where('claimantId', isEqualTo: uid)
+          .get();
+
+      if (snap.docs.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No claim found for this donation.')),
+          );
+        }
+        return;
+      }
+
+      QueryDocumentSnapshot<Map<String, dynamic>> claimDoc = snap.docs.first;
+      String? chatRoomId;
+
+      Future<bool> roomExists(String roomId) async {
+        final roomSnap = await FirebaseFirestore.instance
+            .collection('chat_rooms')
+            .doc(roomId)
+            .get();
+        return roomSnap.exists;
+      }
+
+      // Prefer any claim that already points to a valid room.
+      for (final doc in snap.docs) {
+        final currentChatRoomId = doc.data()['chatRoomId'] as String?;
+        if (currentChatRoomId != null &&
+            currentChatRoomId.isNotEmpty &&
+            await roomExists(currentChatRoomId)) {
+          claimDoc = doc;
+          chatRoomId = currentChatRoomId;
+          break;
+        }
+      }
+
+      // If multiple claims exist, prefer the accepted one, otherwise keep
+      // the current user's existing claim so chat can still start immediately.
+      if (chatRoomId == null || chatRoomId.isEmpty) {
+        for (final doc in snap.docs) {
+          if (doc.data()['status'] == ClaimStatus.accepted.name) {
+            claimDoc = doc;
+            break;
+          }
+        }
+      }
+
+      // Backfill older data where a room exists but the claim does not yet point to it.
+      if (chatRoomId == null || chatRoomId.isEmpty) {
+        for (final doc in snap.docs) {
+          final existingRoom = await FirebaseFirestore.instance
+              .collection('chat_rooms')
+              .where('claimId', isEqualTo: doc.id)
+              .limit(1)
+              .get();
+
+          if (existingRoom.docs.isNotEmpty) {
+            claimDoc = doc;
+            chatRoomId = existingRoom.docs.first.id;
+            await doc.reference.update({'chatRoomId': chatRoomId});
+            break;
+          }
+        }
+      }
+
+      // Final fallback for legacy records: locate a room by donation + participants.
+      if (chatRoomId == null || chatRoomId.isEmpty) {
+        final legacyRooms = await FirebaseFirestore.instance
+            .collection('chat_rooms')
+            .where('donationId', isEqualTo: widget.donation.id)
+            .get();
+
+        for (final room in legacyRooms.docs) {
+          final participants =
+              List<String>.from(room.data()['participantIds'] ?? []);
+          if (participants.contains(uid) &&
+              participants.contains(widget.donation.donorId)) {
+            chatRoomId = room.id;
+            await claimDoc.reference.update({'chatRoomId': chatRoomId});
+            break;
+          }
+        }
+      }
+
+      // Create a room for the NGO's claim when no existing room is found.
+      if (chatRoomId == null || chatRoomId.isEmpty) {
+        final roomRef = FirebaseFirestore.instance.collection('chat_rooms').doc();
+        await roomRef.set({
+          'participantIds': [widget.donation.donorId, uid],
+          'claimId': claimDoc.id,
+          'donationId': widget.donation.id,
+          'lastMessage': null,
+          'lastMessageAt': FieldValue.serverTimestamp(),
+          'type': 'donor_recipient',
+          'unreadCounts': {widget.donation.donorId: 0, uid: 0},
+        });
+        chatRoomId = roomRef.id;
+        await claimDoc.reference.update({'chatRoomId': chatRoomId});
+      }
+
+      if (chatRoomId == null || chatRoomId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Unable to start chat for this donation.'),
+            ),
+          );
+        }
+        return;
+      }
+
+      if (!mounted) return;
+
+      // Get donor name for chat header
+      final donorSnap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.donation.donorId)
+          .get();
+      final donorName = donorSnap.exists
+          ? ((donorSnap.data()?['userName'] ?? donorSnap.data()?['email']) ??
+              'Donor')
+          : 'Donor';
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            chatRoomId: chatRoomId!,
+            otherUserName: donorName.toString(),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Error opening chat: $e'),
+              backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _loading ? null : _openChat,
+        icon: _loading
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white))
+            : const Icon(Icons.chat_outlined),
+        label: Text('chat_with_donor'.tr()),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+        ),
       ),
     );
   }

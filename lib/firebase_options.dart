@@ -44,13 +44,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCaIT2l3mBR2ihObNfWSKGc1N0n-1dyd8E',
-    appId: '1:824249688083:web:your-web-app-id',
+    apiKey: 'AIzaSyDIqoro3Q0pS-BkmDyHhd5LucTMF4SoIx8',
+    appId: '1:824249688083:web:949a8aa1fd61f16c5b1fe6',
     messagingSenderId: '824249688083',
     projectId: 'foodbank1-49283',
     authDomain: 'foodbank1-49283.firebaseapp.com',
-    storageBucket: 'foodbank1-49283.appspot.com',
-    measurementId: 'your-measurement-id',
+    storageBucket: 'foodbank1-49283.firebasestorage.app',
+    measurementId: 'G-TDVPDH32TF',
   );
 
   static const FirebaseOptions android = FirebaseOptions(

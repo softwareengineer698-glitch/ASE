@@ -1,5 +1,5 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:cloudinary_public/cloudinary_public.dart';
 
 import '../config/cloudinary_config.dart';
@@ -24,7 +24,7 @@ class CloudinaryService {
   final CloudinaryPublic _client;
 
   Future<CloudinaryUploadResult> uploadDonationImage({
-    required File file,
+    required XFile file,
     required String donationId,
     required int index,
   }) async {
@@ -35,14 +35,26 @@ class CloudinaryService {
       );
     }
 
-    final response = await _client.uploadFile(
-      CloudinaryFile.fromFile(
+    final CloudinaryFile cloudinaryFile;
+    if (kIsWeb) {
+      final bytes = await file.readAsBytes();
+      cloudinaryFile = CloudinaryFile.fromBytesData(
+        bytes,
+        identifier: file.name,
+        resourceType: CloudinaryResourceType.Image,
+        folder: 'donations/$donationId',
+        publicId: 'image_$index',
+      );
+    } else {
+      cloudinaryFile = CloudinaryFile.fromFile(
         file.path,
         resourceType: CloudinaryResourceType.Image,
         folder: 'donations/$donationId',
         publicId: 'image_$index',
-      ),
-    );
+      );
+    }
+
+    final response = await _client.uploadFile(cloudinaryFile);
 
     return CloudinaryUploadResult(
       secureUrl: response.secureUrl,

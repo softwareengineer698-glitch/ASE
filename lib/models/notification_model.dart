@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 
 enum NotificationType {
-  surplusReported,      // New food available
-  surplusAccepted,      // NGO accepted donation
-  surplusCollected,     // Donation collected
-  claimReceived,        // Claim request received (for donors)
-  claimAccepted,        // Claim approved (for NGOs)
-  claimRejected,        // Claim denied
-  pickupReminder,       // Pickup deadline approaching
-  expiryReminder,       // Food expiring soon
-  requestFulfilled,     // Request was fulfilled
-  requestCreated,       // New request created (for donors to see)
+  surplusReported, // New food available
+  surplusAccepted, // NGO accepted donation
+  surplusCollected, // Donation collected
+  claimReceived, // Claim request received (for donors)
+  claimAccepted, // Claim approved (for NGOs)
+  claimRejected, // Claim denied
+  pickupReminder, // Pickup deadline approaching
+  expiryReminder, // Food expiring soon
+  requestFulfilled, // Request was fulfilled
+  requestCreated, // New request created (for donors to see)
+  newMessage, // New chat message
   general,
 }
 
@@ -33,6 +34,8 @@ class AppNotification {
   bool isRead;
   final String? relatedDonationId;
   final String? relatedRequestId;
+  final String? relatedChatRoomId;
+  final String? relatedUserName;
 
   AppNotification({
     required this.id,
@@ -46,6 +49,8 @@ class AppNotification {
     this.isRead = false,
     this.relatedDonationId,
     this.relatedRequestId,
+    this.relatedChatRoomId,
+    this.relatedUserName,
   });
 
   // Convert to map for future database integration
@@ -54,37 +59,51 @@ class AppNotification {
       'id': id,
       'title': title,
       'message': message,
-      'type': type.toString(),
-      'priority': priority.toString(),
+      'type': type.name,
+      'priority': priority.name,
       'timestamp': timestamp.toIso8601String(),
       'actionData': actionData,
       'imageUrl': imageUrl,
       'isRead': isRead,
       'relatedDonationId': relatedDonationId,
       'relatedRequestId': relatedRequestId,
+      'relatedChatRoomId': relatedChatRoomId,
+      'relatedUserName': relatedUserName,
     };
   }
 
   // Create from map for future database integration
   factory AppNotification.fromMap(Map<String, dynamic> map) {
+    final rawTimestamp = map['timestamp'];
+    final parsedTimestamp = rawTimestamp is DateTime
+        ? rawTimestamp
+        : rawTimestamp is String
+            ? DateTime.tryParse(rawTimestamp) ?? DateTime.now()
+            : rawTimestamp != null &&
+                    rawTimestamp.runtimeType.toString() == 'Timestamp'
+                ? (rawTimestamp as dynamic).toDate() as DateTime
+                : DateTime.now();
+
     return AppNotification(
       id: map['id'],
       title: map['title'],
       message: map['message'],
       type: NotificationType.values.firstWhere(
-        (e) => e.toString() == map['type'],
+        (e) => e.name == map['type'] || e.toString() == map['type'],
         orElse: () => NotificationType.general,
       ),
       priority: NotificationPriority.values.firstWhere(
-        (e) => e.toString() == map['priority'],
+        (e) => e.name == map['priority'] || e.toString() == map['priority'],
         orElse: () => NotificationPriority.medium,
       ),
-      timestamp: DateTime.parse(map['timestamp']),
+      timestamp: parsedTimestamp,
       actionData: map['actionData'],
       imageUrl: map['imageUrl'],
       isRead: map['isRead'] ?? false,
       relatedDonationId: map['relatedDonationId'],
       relatedRequestId: map['relatedRequestId'],
+      relatedChatRoomId: map['relatedChatRoomId'],
+      relatedUserName: map['relatedUserName'],
     );
   }
 
@@ -101,6 +120,8 @@ class AppNotification {
     bool? isRead,
     String? relatedDonationId,
     String? relatedRequestId,
+    String? relatedChatRoomId,
+    String? relatedUserName,
   }) {
     return AppNotification(
       id: id ?? this.id,
@@ -114,6 +135,8 @@ class AppNotification {
       isRead: isRead ?? this.isRead,
       relatedDonationId: relatedDonationId ?? this.relatedDonationId,
       relatedRequestId: relatedRequestId ?? this.relatedRequestId,
+      relatedChatRoomId: relatedChatRoomId ?? this.relatedChatRoomId,
+      relatedUserName: relatedUserName ?? this.relatedUserName,
     );
   }
 
@@ -170,6 +193,8 @@ class AppNotification {
         return 'Request Fulfilled';
       case NotificationType.requestCreated:
         return 'New Request';
+      case NotificationType.newMessage:
+        return 'New Message';
       case NotificationType.general:
         return 'General';
     }
@@ -197,6 +222,8 @@ class AppNotification {
         return Colors.teal;
       case NotificationType.requestCreated:
         return Colors.indigo;
+      case NotificationType.newMessage:
+        return Colors.blue;
       case NotificationType.general:
         return Colors.grey;
     }

@@ -6,21 +6,30 @@ import '../services/notification_service.dart';
 class FoodRequestService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final NotificationService _notificationService = NotificationService();
-  
+
   // Collection name
   static const String collectionName = 'food_requests';
+
+  List<FoodRequest> _sortActiveRequests(Iterable<FoodRequest> requests) {
+    final sorted = requests.where((req) => !req.isExpired).toList();
+    sorted.sort((a, b) => a.neededBy.compareTo(b.neededBy));
+    return sorted;
+  }
+
+  List<FoodRequest> _sortUserRequests(Iterable<FoodRequest> requests) {
+    final sorted = requests.toList();
+    sorted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return sorted;
+  }
 
   // Stream all active requests
   Stream<List<FoodRequest>> streamActiveRequests() {
     return _firestore
         .collection(collectionName)
         .where('status', isEqualTo: RequestStatus.pending.name)
-        .orderBy('neededBy', descending: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => FoodRequest.fromDocument(doc))
-            .where((req) => !req.isExpired)
-            .toList());
+        .map((snapshot) =>
+            _sortActiveRequests(snapshot.docs.map(FoodRequest.fromDocument)));
   }
 
   // Stream requests by user
@@ -28,11 +37,9 @@ class FoodRequestService {
     return _firestore
         .collection(collectionName)
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => FoodRequest.fromDocument(doc))
-            .toList());
+        .map((snapshot) =>
+            _sortUserRequests(snapshot.docs.map(FoodRequest.fromDocument)));
   }
 
   // Create new request
@@ -69,14 +76,6 @@ class FoodRequestService {
         .doc(request.id)
         .set(request.toMap());
 
-    // Notify donors about new request
-    await _notificationService.notifyRequestCreated(
-      requestTitle: foodType,
-      requestedByNGO: organizationName,
-      quantity: quantity,
-      requestId: request.id,
-    );
-
     return request;
   }
 
@@ -86,7 +85,8 @@ class FoodRequestService {
     required String donorId,
     required String donorName,
   }) async {
-    final requestDoc = await _firestore.collection(collectionName).doc(requestId).get();
+    final requestDoc =
+        await _firestore.collection(collectionName).doc(requestId).get();
     if (!requestDoc.exists) return;
 
     final request = FoodRequest.fromDocument(requestDoc);
@@ -120,7 +120,8 @@ class FoodRequestService {
 
   // Get single request
   Future<FoodRequest?> getRequest(String requestId) async {
-    final doc = await _firestore.collection(collectionName).doc(requestId).get();
+    final doc =
+        await _firestore.collection(collectionName).doc(requestId).get();
     if (doc.exists) {
       return FoodRequest.fromDocument(doc);
     }
@@ -132,10 +133,9 @@ class FoodRequestService {
     final snapshot = await _firestore
         .collection(collectionName)
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .get();
 
-    return snapshot.docs.map((doc) => FoodRequest.fromDocument(doc)).toList();
+    return _sortUserRequests(snapshot.docs.map(FoodRequest.fromDocument));
   }
 
   // Get active requests (non-streaming)
@@ -143,19 +143,15 @@ class FoodRequestService {
     final snapshot = await _firestore
         .collection(collectionName)
         .where('status', isEqualTo: RequestStatus.pending.name)
-        .orderBy('neededBy', descending: false)
         .get();
 
-    return snapshot.docs
-        .map((doc) => FoodRequest.fromDocument(doc))
-        .where((req) => !req.isExpired)
-        .toList();
+    return _sortActiveRequests(snapshot.docs.map(FoodRequest.fromDocument));
   }
 
   // Expire old requests (should be called periodically)
   Future<void> expireOldRequests() async {
     final now = DateTime.now().toIso8601String();
-    
+
     // Get all pending requests past their deadline
     final snapshot = await _firestore
         .collection(collectionName)
@@ -195,13 +191,18 @@ class FoodRequestService {
   // Get statistics for a user
   Future<Map<String, int>> getUserRequestStats(String userId) async {
     final requests = await getRequestsByUser(userId);
-    
+
     return {
       'total': requests.length,
-      'pending': requests.where((r) => r.status == RequestStatus.pending && !r.isExpired).length,
-      'fulfilled': requests.where((r) => r.status == RequestStatus.fulfilled).length,
-      'expired': requests.where((r) => r.status == RequestStatus.expired).length,
-      'cancelled': requests.where((r) => r.status == RequestStatus.cancelled).length,
+      'pending': requests
+          .where((r) => r.status == RequestStatus.pending && !r.isExpired)
+          .length,
+      'fulfilled':
+          requests.where((r) => r.status == RequestStatus.fulfilled).length,
+      'expired':
+          requests.where((r) => r.status == RequestStatus.expired).length,
+      'cancelled':
+          requests.where((r) => r.status == RequestStatus.cancelled).length,
     };
   }
 }

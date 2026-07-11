@@ -1,5 +1,18 @@
 {
   "welcome": "Welcome to FoodBridge",
+  "transport": "Transport",
+  "my_chats": "My Chats",
+  "no_chats_yet": "No chats yet",
+  "chats_appear_after_claim": "Chats appear after a donation is claimed",
+  "tap_to_chat": "Tap to open chat",
+  "chat_with_donor": "Chat with Donor",
+  "chat_with_recipient": "Chat with Recipient",
+  "request_food": "Request Food",
+  "new_message_from": "New message from {name}",
+  "food_requests": "Food Requests",
+  "start_donating_to_appear": "Start donating to appear here",
+  "top_performers": "Top Performers",
+  "full_rankings": "Full Rankings",
   "sign_in": "Sign In",
   "sign_up": "Sign Up",
   "email": "Email",
@@ -470,6 +483,9 @@
   "roman_urdu": "Roman Urdu",
   "phone_number": "Phone Number",
   "enter_phone_number": "Enter phone number",
+  "phone_optional_hint": "Optional - for OTP login",
+  "invalid_phone_format": "Invalid phone format",
+  "phone_must_start_with_0_or_plus": "Phone must start with 0 or +",
   "address": "Address",
   "enter_organization_address": "Enter organization address",
   "Donation claimed successfully!": "Donation claimed successfully!",
@@ -651,5 +667,6 @@
   "auth_error_account_creation_failed": "Account creation failed. Please try again.",
   "auth_error_google_sign_in_failed": "Google Sign-In failed. Please try again.",
   "auth_error_phone_sign_in_empty": "Phone sign-in failed. Please try again.",
-  "show_tracking_info": "How does tracking work?"
+  "show_tracking_info": "How does tracking work?",
+  "sign_up_with_google": "Sign up with Google"
 }

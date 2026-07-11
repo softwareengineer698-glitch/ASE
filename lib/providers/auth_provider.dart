@@ -51,14 +51,29 @@ class AuthProvider extends ChangeNotifier {
 
   void _setupAuthStateListener() {
     try {
-      _authService.authStateChanges.listen((User? firebaseUser) async {
-        if (firebaseUser != null) {
-          _user = await _authService.getUserData(firebaseUser.uid);
-        } else {
+      _authService.authStateChanges.listen(
+        (User? firebaseUser) async {
+          try {
+            if (firebaseUser != null) {
+              _user = await _authService.getUserData(firebaseUser.uid);
+            } else {
+              _user = null;
+            }
+          } catch (e) {
+            debugPrint('Error loading user data: $e');
+            _user = null;
+          } finally {
+            _isLoading = false;
+            notifyListeners();
+          }
+        },
+        onError: (e) {
+          debugPrint('Auth state stream error: $e');
           _user = null;
-        }
-        notifyListeners();
-      });
+          _isLoading = false;
+          notifyListeners();
+        },
+      );
     } catch (e) {
       debugPrint('Error setting up auth state listener: $e');
     }
@@ -86,6 +101,31 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _setError(e.toString());
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<UserModel?> completeVerifiedEmailSignUp({
+    required String email,
+    required String password,
+    required String userName,
+    required String phoneNumber,
+  }) async {
+    try {
+      _setLoading(true);
+      _clearError();
+      _user = await _authService.completeVerifiedEmailSignUp(
+        email: email,
+        password: password,
+        userName: userName,
+        phoneNumber: phoneNumber,
+      );
+      notifyListeners();
+      return _user;
+    } catch (e) {
+      _setError(e.toString());
+      return null;
     } finally {
       _setLoading(false);
     }

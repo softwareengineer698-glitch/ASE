@@ -21,6 +21,9 @@ class OtpVerificationScreen extends StatefulWidget {
   final String verificationId;
   final int? resendToken;
   final PhoneAuthCredential? autoVerifiedCredential;
+  final String? signUpEmail;
+  final String? signUpPassword;
+  final String? signUpName;
 
   const OtpVerificationScreen({
     required this.phoneNumber,
@@ -28,6 +31,9 @@ class OtpVerificationScreen extends StatefulWidget {
     super.key,
     this.resendToken,
     this.autoVerifiedCredential,
+    this.signUpEmail,
+    this.signUpPassword,
+    this.signUpName,
   });
 
   @override
@@ -46,6 +52,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   Timer? _countdownTimer;
   late String _currentVerificationId;
   int? _currentResendToken;
+
+  bool get _isSignUpFlow =>
+      widget.signUpEmail != null &&
+      widget.signUpPassword != null &&
+      widget.signUpName != null;
 
   @override
   void initState() {
@@ -147,11 +158,42 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   Future<void> _afterVerification(
       AuthProvider authProvider, UserModel user) async {
-    // Phone OTP is only used for sign-in — go straight to dashboard.
-    // Role selection only happens during sign-up (email/password flow).
+    if (_isSignUpFlow) {
+      final completed = await authProvider.completeVerifiedEmailSignUp(
+        email: widget.signUpEmail!,
+        password: widget.signUpPassword!,
+        userName: widget.signUpName!,
+        phoneNumber: widget.phoneNumber,
+      );
+      if (!mounted) return;
+      if (completed == null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(localizedErrorText(
+            authProvider.error,
+            'registration_failed',
+          )),
+          backgroundColor: Colors.red,
+        ));
+        return;
+      }
+      final chosen = await _showRolePicker();
+      if (!mounted) return;
+      if (chosen != null) {
+        await authProvider.updateUserRole(chosen);
+      }
+      _navigateToDashboard();
+      return;
+    }
+
+    if (!user.roleSelected && user.role != UserRole.admin) {
+      final chosen = await _showRolePicker();
+      if (!mounted) return;
+      if (chosen != null) {
+        await authProvider.updateUserRole(chosen);
+      }
+    }
     _navigateToDashboard();
   }
-
   Future<void> _resendOtp() async {
     if (_resendCountdown > 0 || _isSendingResend) return;
 
@@ -513,3 +555,4 @@ class _RoleButton extends StatelessWidget {
     );
   }
 }
+

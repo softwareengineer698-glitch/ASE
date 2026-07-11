@@ -62,11 +62,12 @@ class MessageModel {
   }
 
   factory MessageModel.fromMap(Map<String, dynamic> map, String documentId) {
+    final rawSentAt = map['sentAt'];
     return MessageModel(
       id: documentId,
       senderId: map['senderId'] ?? '',
       text: map['text'] ?? '',
-      sentAt: (map['sentAt'] as Timestamp).toDate(),
+      sentAt: rawSentAt is Timestamp ? rawSentAt.toDate() : DateTime.now(),
       isRead: map['isRead'] ?? false,
     );
   }

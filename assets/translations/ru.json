@@ -1,6 +1,15 @@
 {
   "welcome": "FoodBridge mein Khush Amdeed",
   "transport": "Transport",
+  "my_chats": "Mere Chats",
+  "no_chats_yet": "Abhi koi chat nahi",
+  "chats_appear_after_claim": "Claim ke baad chats nazar ayein gi",
+  "tap_to_chat": "Chat kholne ke liye tap karein",
+  "chat_with_donor": "Donor se Chat Karein",
+  "chat_with_recipient": "Wasool Karne Wale se Chat Karein",
+  "request_food": "Khana Mangwayein",
+  "new_message_from": "{name} ka naya paighaam",
+  "food_requests": "Khurak ki Darkhwastein",
   "start_donating_to_appear": "Yahan aane ke liye atiya karna shuru karein",
   "top_performers": "Behtareen Kaarkardagi",
   "full_rankings": "Mukammal Darajabandi",
@@ -682,5 +691,6 @@
   "auth_error_account_creation_failed": "Account banane mein masla aya. Dobara koshish karein.",
   "auth_error_google_sign_in_failed": "Google Sign-In na-kamyab raha. Dobara koshish karein.",
   "auth_error_phone_sign_in_empty": "Phone sign-in na-kamyab raha. Dobara koshish karein.",
-  "show_tracking_info": "Tracking kaise kaam karti hai?"
+  "show_tracking_info": "Tracking kaise kaam karti hai?",
+  "sign_up_with_google": "Google ke zariye account banayein"
 }

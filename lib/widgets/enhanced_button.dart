@@ -12,7 +12,9 @@ class EnhancedButton extends StatefulWidget {
   final ButtonStyle? style;
 
   const EnhancedButton({
-    required this.text, required this.onPressed, super.key,
+    required this.text,
+    required this.onPressed,
+    super.key,
     this.icon,
     this.backgroundColor,
     this.textColor,
@@ -94,10 +96,10 @@ class _EnhancedButtonState extends State<EnhancedButton>
                   elevation: WidgetStateProperty.all(2),
                   overlayColor: WidgetStateProperty.resolveWith((states) {
                     if (states.contains(WidgetState.pressed)) {
-                      return defaultTextColor.withOpacity(0.1);
+                      return defaultTextColor.withValues(alpha: 0.1);
                     }
                     if (states.contains(WidgetState.hovered)) {
-                      return defaultTextColor.withOpacity(0.05);
+                      return defaultTextColor.withValues(alpha: 0.05);
                     }
                     return null;
                   }),
@@ -113,7 +115,6 @@ class _EnhancedButtonState extends State<EnhancedButton>
                         ),
                       )
                     : Row(
-                        mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           if (widget.icon != null) ...[
@@ -124,12 +125,17 @@ class _EnhancedButtonState extends State<EnhancedButton>
                             ),
                             const SizedBox(width: 8),
                           ],
-                          Text(
-                            widget.text,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: defaultTextColor,
+                          Flexible(
+                            child: Text(
+                              widget.text,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: defaultTextColor,
+                              ),
                             ),
                           ),
                         ],
@@ -153,7 +159,9 @@ class EnhancedOutlinedButton extends StatefulWidget {
   final String? semanticLabel;
 
   const EnhancedOutlinedButton({
-    required this.text, required this.onPressed, super.key,
+    required this.text,
+    required this.onPressed,
+    super.key,
     this.icon,
     this.borderColor,
     this.textColor,
@@ -215,7 +223,7 @@ class _EnhancedOutlinedButtonState extends State<EnhancedOutlinedButton>
                 ),
                 side: BorderSide(color: defaultBorderColor),
                 foregroundColor: defaultTextColor,
-                overlayColor: defaultTextColor.withOpacity(0.1),
+                overlayColor: defaultTextColor.withValues(alpha: 0.1),
               ),
               child: widget.isLoading
                   ? SizedBox(
@@ -228,7 +236,6 @@ class _EnhancedOutlinedButtonState extends State<EnhancedOutlinedButton>
                       ),
                     )
                   : Row(
-                      mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (widget.icon != null) ...[
@@ -239,12 +246,17 @@ class _EnhancedOutlinedButtonState extends State<EnhancedOutlinedButton>
                           ),
                           const SizedBox(width: 8),
                         ],
-                        Text(
-                          widget.text,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: defaultTextColor,
+                        Flexible(
+                          child: Text(
+                            widget.text,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: defaultTextColor,
+                            ),
                           ),
                         ),
                       ],

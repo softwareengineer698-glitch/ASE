@@ -1,6 +1,15 @@
 {
   "welcome": "فوڈ برج میں خوش آمدید",
   "transport": "ٹرانسپورٹ",
+  "my_chats": "میری چیٹس",
+  "no_chats_yet": "ابھی کوئی چیٹ نہیں",
+  "chats_appear_after_claim": "کلیم کے بعد چیٹس ظاہر ہوں گی",
+  "tap_to_chat": "چیٹ کھولنے کے لیے ٹیپ کریں",
+  "chat_with_donor": "ڈونر سے چیٹ کریں",
+  "chat_with_recipient": "وصول کنندہ سے چیٹ کریں",
+  "request_food": "کھانا مانگیں",
+  "new_message_from": "{name} کا نیا پیغام",
+  "food_requests": "کھانے کی درخواستیں",
   "start_donating_to_appear": "یہاں ظاہر ہونے کے لیے عطیہ کریں",
   "top_performers": "بہترین کارکردگی",
   "full_rankings": "مکمل درجہ بندی",
@@ -669,5 +678,6 @@
   "auth_error_account_creation_failed": "Account banane mein masla aya. Dobara koshish karein.",
   "auth_error_google_sign_in_failed": "Google Sign-In na-kamyab raha. Dobara koshish karein.",
   "auth_error_phone_sign_in_empty": "Phone sign-in na-kamyab raha. Dobara koshish karein.",
-  "show_tracking_info": "Tracking kaise kaam karti hai?"
+  "show_tracking_info": "Tracking kaise kaam karti hai?",
+  "sign_up_with_google": "Google ke zariye account banayein"
 }

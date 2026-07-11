@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/donation_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/donation_service.dart';
+import '../../widgets/expiry_countdown_widget.dart';
 
 class ClaimDonationScreen extends StatefulWidget {
   final DonationModel donation;
@@ -23,8 +24,7 @@ class _ClaimDonationScreenState extends State<ClaimDonationScreen> {
   @override
   void initState() {
     super.initState();
-    _qtyController.text =
-        widget.donation.remainingQuantity.toStringAsFixed(1);
+    _qtyController.text = widget.donation.remainingQuantity.toStringAsFixed(1);
   }
 
   @override
@@ -62,15 +62,18 @@ class _ClaimDonationScreenState extends State<ClaimDonationScreen> {
                       Text(d.description,
                           maxLines: 3, overflow: TextOverflow.ellipsis),
                       const Divider(height: 24),
-                      _row(Icons.category_outlined, '${d.category} · ${d.itemType.displayName}'),
+                      _row(Icons.category_outlined,
+                          '${d.category} · ${d.itemType.displayName}'),
                       const SizedBox(height: 6),
                       _row(Icons.scale_outlined,
                           'Total: ${d.quantity} ${d.unit} · Remaining: ${d.remainingQuantity} ${d.unit}'),
                       const SizedBox(height: 6),
                       _row(Icons.location_on_outlined, d.location),
                       const SizedBox(height: 6),
-                      _row(Icons.schedule_outlined, d.formattedExpiryDate,
-                          color: d.isExpiringSoon ? Colors.red : null),
+                      ExpiryCountdownWidget(
+                        expiryTime: d.expiryTime,
+                        style: const TextStyle(fontSize: 13),
+                      ),
                     ],
                   ),
                 ),
@@ -88,18 +91,18 @@ class _ClaimDonationScreenState extends State<ClaimDonationScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _qtyController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
                         labelText: 'quantity'.tr(),
                         suffixText: d.unit,
                         border: const OutlineInputBorder(),
-                        helperText:
-                            'Max: ${d.remainingQuantity} ${d.unit}',
+                        helperText: 'Max: ${d.remainingQuantity} ${d.unit}',
                       ),
                       validator: (v) {
                         final q = double.tryParse(v ?? '');
-                        if (q == null || q <= 0) return 'Enter a valid quantity';
+                        if (q == null || q <= 0)
+                          return 'Enter a valid quantity';
                         if (q > d.remainingQuantity) {
                           return 'Exceeds available (${d.remainingQuantity} ${d.unit})';
                         }
@@ -118,8 +121,8 @@ class _ClaimDonationScreenState extends State<ClaimDonationScreen> {
                   final qty = d.remainingQuantity * frac;
                   return ActionChip(
                     label: Text('${(frac * 100).toInt()}%'),
-                    onPressed: () => setState(() =>
-                        _qtyController.text = qty.toStringAsFixed(2)),
+                    onPressed: () => setState(
+                        () => _qtyController.text = qty.toStringAsFixed(2)),
                   );
                 }).toList(),
               ),
@@ -158,9 +161,8 @@ class _ClaimDonationScreenState extends State<ClaimDonationScreen> {
           const SizedBox(width: 6),
           Expanded(
             child: Text(text,
-                style: TextStyle(
-                    fontSize: 13,
-                    color: color ?? Colors.grey[700])),
+                style:
+                    TextStyle(fontSize: 13, color: color ?? Colors.grey[700])),
           ),
         ],
       );

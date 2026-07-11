@@ -1,6 +1,6 @@
 class CloudinaryConfig {
-  // Public identifiers for unsigned uploads. Fill these with values from the
-  // Cloudinary dashboard; never put an API key or API secret in the app.
-  static const String cloudName = 'YOUR_CLOUDINARY_CLOUD_NAME';
-  static const String uploadPreset = 'YOUR_UNSIGNED_UPLOAD_PRESET';
+  // Public identifiers for unsigned uploads — safe to include in client code.
+  // API Key / API Secret must never be embedded here.
+  static const String cloudName = 'icbmuusb';
+  static const String uploadPreset = 'foodbridge_uploads';
 }

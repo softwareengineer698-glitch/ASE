@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -35,7 +36,7 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
   String _selectedUnit = 'kg';
   DateTime _expiryDate = DateTime.now().add(const Duration(hours: 24));
   TimeOfDay _expiryTimeOfDay = TimeOfDay.now();
-  final List<File> _selectedImages = [];
+  final List<XFile> _selectedImages = [];
   bool _isLoading = false;
   // Upload progress: 0.0 – 1.0 while uploading, null when idle
   double? _uploadProgress;
@@ -445,9 +446,18 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
                         margin: const EdgeInsets.only(right: 8),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
-                          image: DecorationImage(
-                              image: FileImage(_selectedImages[i]),
-                              fit: BoxFit.cover),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: kIsWeb
+                              ? Image.network(
+                                  _selectedImages[i].path,
+                                  fit: BoxFit.cover,
+                                )
+                              : Image.file(
+                                  File(_selectedImages[i].path),
+                                  fit: BoxFit.cover,
+                                ),
                         ),
                       ),
                       Positioned(
@@ -519,11 +529,12 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
     try {
       final images = await _picker.pickMultiImage(imageQuality: 75);
       if (images.isNotEmpty) {
-        setState(() => _selectedImages.addAll(images.map((x) => File(x.path))));
+        setState(() => _selectedImages.addAll(images));
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         UIHelper.showErrorSnackBar(context, 'error_picking_images'.tr());
+      }
     }
   }
 
@@ -532,11 +543,12 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
       final image =
           await _picker.pickImage(source: ImageSource.camera, imageQuality: 75);
       if (image != null) {
-        setState(() => _selectedImages.add(File(image.path)));
+        setState(() => _selectedImages.add(image));
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         UIHelper.showErrorSnackBar(context, 'error_picking_images'.tr());
+      }
     }
   }
 
@@ -580,7 +592,7 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
   /// returns the list of download URLs. Reports overall progress via
   /// [onProgress] (0.0 – 1.0).
   Future<List<CloudinaryUploadResult>> _uploadImages(
-    List<File> files,
+    List<XFile> files,
     String donationId,
     void Function(double) onProgress,
   ) async {

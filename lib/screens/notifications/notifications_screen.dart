@@ -21,7 +21,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadNotifications();
+    Future.microtask(_loadNotifications);
     _notificationService.addListener(_onNotificationsChanged);
   }
 
@@ -31,21 +31,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     super.dispose();
   }
 
-  void _loadNotifications() {
+  Future<void> _loadNotifications() async {
+    setState(() => _isLoading = true);
+    await _notificationService.ensureReady();
+    if (!mounted) return;
     setState(() {
-      _isLoading = true;
-    });
-
-    // Initialize mock data and load notifications
-    _notificationService.initializeMockData();
-
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        setState(() {
-          _notifications = _notificationService.getAllNotifications();
-          _isLoading = false;
-        });
-      }
+      _notifications = _notificationService.getAllNotifications();
+      _isLoading = false;
     });
   }
 
@@ -67,6 +59,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 n.type == NotificationType.surplusReported ||
                 n.type == NotificationType.surplusAccepted ||
                 n.type == NotificationType.surplusCollected)
+            .toList();
+      case 'Requests':
+        return _notifications
+            .where((n) =>
+                n.type == NotificationType.requestCreated ||
+                n.type == NotificationType.requestFulfilled)
+            .toList();
+      case 'Messages':
+        return _notifications
+            .where((n) => n.type == NotificationType.newMessage)
             .toList();
       case 'General':
         return _notifications
@@ -134,6 +136,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   'All',
                   'Unread',
                   'Surplus',
+                  'Requests',
+                  'Messages',
                   'General',
                 ].map((filter) {
                   final isSelected = _selectedFilter == filter;
@@ -147,7 +151,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           _selectedFilter = filter;
                         });
                       },
-                      selectedColor: AppTheme.primaryBlue.withOpacity(0.2),
+                      selectedColor:
+                          AppTheme.primaryBlue.withValues(alpha: 0.2),
                       checkmarkColor: AppTheme.primaryBlue,
                     ),
                   );
@@ -230,9 +235,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -275,6 +280,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return 'No Surplus Notifications';
       case 'General':
         return 'No General Notifications';
+      case 'Requests':
+        return 'No Request Notifications';
+      case 'Messages':
+        return 'No Message Notifications';
       default:
         return 'No Notifications';
     }
@@ -288,6 +297,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return 'No surplus-related notifications yet. They\'ll appear here when surplus is reported or accepted.';
       case 'General':
         return 'No general notifications at the moment.';
+      case 'Requests':
+        return 'No food request notifications yet.';
+      case 'Messages':
+        return 'No chat notifications yet.';
       default:
         return 'You\'re all caught up! New notifications will appear here.';
     }
@@ -297,44 +310,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     // Mark as read
     _notificationService.markAsRead(notification.id);
 
-    // Handle navigation based on notification type
-    switch (notification.type) {
-      case NotificationType.surplusReported:
-        // Navigate to surplus list for NGOs
-        break;
-      case NotificationType.surplusAccepted:
-        // Navigate to donor dashboard
-        break;
-      case NotificationType.surplusCollected:
-        // Show success message or navigate to history
-        break;
-      case NotificationType.claimReceived:
-        // Navigate to donor acceptance screen
-        break;
-      case NotificationType.claimAccepted:
-        // Navigate to claim details for NGO
-        break;
-      case NotificationType.claimRejected:
-        // Navigate to available donations
-        break;
-      case NotificationType.pickupReminder:
-        // Navigate to pickup details
-        break;
-      case NotificationType.expiryReminder:
-        // Navigate to donation details
-        break;
-      case NotificationType.requestFulfilled:
-        // Navigate to request details
-        break;
-      case NotificationType.requestCreated:
-        // Navigate to requests list for donors
-        break;
-      case NotificationType.general:
-        // Show notification details or do nothing
-        break;
+    final canNavigate = (notification.actionData?.isNotEmpty ?? false) ||
+        (notification.relatedChatRoomId?.isNotEmpty ?? false);
+
+    if (canNavigate) {
+      _notificationService.handleNotificationTap(notification);
+      return;
     }
 
-    // Show notification details in a dialog
     _showNotificationDetails(notification);
   }
 
@@ -370,7 +353,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: AppTheme.getStatusColor(notification.type.toString())
-                        .withOpacity(0.2),
+                        .withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(

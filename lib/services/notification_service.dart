@@ -1,42 +1,65 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/notification_model.dart';
 import '../screens/chat/chat_screen.dart';
+import '../screens/ngo/surplus_list_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/request/my_requests_screen.dart';
 import '../screens/request/request_list_screen.dart';
-import '../models/notification_model.dart';
 
 class NotificationService {
   // Singleton pattern for global access
   static final NotificationService _instance = NotificationService._internal();
+  static const String _storageKey = 'foodbridge_notifications_v1';
+  static const int _maxStoredNotifications = 200;
+
   factory NotificationService() => _instance;
   NotificationService._internal();
 
   // In-memory storage (will be replaced with Firebase later)
   final List<AppNotification> _notifications = [];
-  
+
   // Listeners for real-time updates
   final List<Function(List<AppNotification>)> _listeners = [];
-  
+
   // Current context for showing snackbars (set by main app)
   BuildContext? _currentContext;
+  bool _storageLoaded = false;
+  bool _fcmInitialized = false;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+      _remoteNotificationsSubscription;
+  String? _remoteNotificationsUserId;
 
   // ── FCM ────────────────────────────────────────────────────────────────────
+
+  Future<void> ensureReady() async {
+    await _ensureLoaded();
+    await _ensureRemoteSync();
+  }
 
   /// Call once after Firebase is ready and the user is signed in.
   /// Registers/refreshes the FCM token and sets up foreground + tap handlers.
   Future<void> initializeFCM() async {
+    await _ensureLoaded();
+    await _ensureRemoteSync();
     final messaging = FirebaseMessaging.instance;
 
+    if (_fcmInitialized) {
+      await _saveFcmToken(await messaging.getToken());
+      return;
+    }
+    _fcmInitialized = true;
+
     // Request permission (iOS / web)
-    await messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    await messaging.requestPermission();
 
     // Register token
     await _saveFcmToken(await messaging.getToken());
@@ -55,6 +78,10 @@ class NotificationService {
     if (initial != null) _onNotificationTap(initial);
   }
 
+  Future<void> handleBackgroundMessage(RemoteMessage message) async {
+    await _ingestRemoteMessage(message, showInApp: false);
+  }
+
   Future<void> _saveFcmToken(String? token) async {
     if (token == null) return;
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -66,11 +93,9 @@ class NotificationService {
           .update({'fcmToken': token, 'notificationsEnabled': true});
     } catch (_) {
       // Field may not exist yet on older documents — use set with merge
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .set({'fcmToken': token, 'notificationsEnabled': true},
-              SetOptions(merge: true));
+      await FirebaseFirestore.instance.collection('users').doc(uid).set(
+          {'fcmToken': token, 'notificationsEnabled': true},
+          SetOptions(merge: true));
     }
   }
 
@@ -90,41 +115,15 @@ class NotificationService {
     }
   }
 
-  void _onForegroundMessage(RemoteMessage message) {
-    final data = message.data;
-    final notification = AppNotification(
-      id: data['notificationId'] ?? _generateId(),
-      title: message.notification?.title ?? data['title'] ?? 'FoodBridge',
-      message: message.notification?.body ?? data['body'] ?? '',
-      type: _parseType(data['type']),
-      priority: _parsePriority(data['priority']),
-      timestamp: DateTime.now(),
-      actionData: data['actionData'],
-      relatedDonationId: data['donationId'],
-      relatedRequestId: data['requestId'],
-    );
-    // Insert into in-memory list and show SnackBar (existing system unchanged)
-    _notifications.insert(0, notification);
-    _notifyListeners();
-    _showInAppNotification(notification);
+  void _onForegroundMessage(RemoteMessage message) async {
+    await _ingestRemoteMessage(message, showInApp: true);
   }
 
-  void _onNotificationTap(RemoteMessage message) {
-    final data = message.data;
-    final notification = AppNotification(
-      id: data['notificationId'] ?? _generateId(),
-      title: message.notification?.title ?? '',
-      message: message.notification?.body ?? '',
-      type: _parseType(data['type']),
-      timestamp: DateTime.now(),
-      actionData: data['actionData'],
-      relatedDonationId: data['donationId'],
-      relatedRequestId: data['requestId'],
-    );
-    // Mark read immediately and navigate
-    _notifications.insert(0, notification);
-    _notifyListeners();
-    _handleNotificationTap(notification);
+  void _onNotificationTap(RemoteMessage message) async {
+    final notification = await _ingestRemoteMessage(message, showInApp: false);
+    if (notification != null) {
+      await handleNotificationTap(notification);
+    }
   }
 
   NotificationType _parseType(String? v) {
@@ -143,6 +142,131 @@ class NotificationService {
     );
   }
 
+  Future<AppNotification?> _ingestRemoteMessage(
+    RemoteMessage message, {
+    required bool showInApp,
+  }) async {
+    await _ensureLoaded();
+    final notification = _notificationFromMessage(message);
+    await _upsertNotification(notification);
+    if (showInApp) {
+      _showInAppNotification(notification);
+    }
+    return notification;
+  }
+
+  AppNotification _notificationFromMessage(RemoteMessage message) {
+    final data = message.data;
+    final chatRoomId = _cleanValue(data['chatRoomId']);
+    final actionData = _cleanValue(data['actionData']) ??
+        (chatRoomId != null ? 'chat_$chatRoomId' : null);
+
+    return AppNotification(
+      id: _cleanValue(data['notificationId']) ?? _generateId(),
+      title: message.notification?.title ??
+          _cleanValue(data['title']) ??
+          'FoodBridge',
+      message: message.notification?.body ?? _cleanValue(data['body']) ?? '',
+      type: _parseType(_cleanValue(data['type'])),
+      priority: _parsePriority(_cleanValue(data['priority'])),
+      timestamp: DateTime.now(),
+      actionData: actionData,
+      relatedDonationId: _cleanValue(data['donationId']),
+      relatedRequestId: _cleanValue(data['requestId']),
+      relatedChatRoomId: chatRoomId,
+      relatedUserName:
+          _cleanValue(data['otherUserName']) ?? _cleanValue(data['senderName']),
+    );
+  }
+
+  String? _cleanValue(Object? value) {
+    if (value == null) return null;
+    final text = value.toString().trim();
+    return text.isEmpty ? null : text;
+  }
+
+  Future<void> _ensureLoaded() async {
+    if (_storageLoaded) return;
+    _storageLoaded = true;
+
+    final prefs = await SharedPreferences.getInstance();
+    final rawItems = prefs.getStringList(_storageKey) ?? const [];
+    _notifications
+      ..clear()
+      ..addAll(
+        rawItems.map((item) {
+          try {
+            return AppNotification.fromMap(
+              jsonDecode(item) as Map<String, dynamic>,
+            );
+          } catch (_) {
+            return null;
+          }
+        }).whereType<AppNotification>(),
+      );
+    _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+  }
+
+  Future<void> _ensureRemoteSync() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      await _remoteNotificationsSubscription?.cancel();
+      _remoteNotificationsSubscription = null;
+      _remoteNotificationsUserId = null;
+      return;
+    }
+
+    if (_remoteNotificationsSubscription != null &&
+        _remoteNotificationsUserId == uid) {
+      return;
+    }
+
+    await _remoteNotificationsSubscription?.cancel();
+    _remoteNotificationsUserId = uid;
+    _remoteNotificationsSubscription = FirebaseFirestore.instance
+        .collection('notifications')
+        .where('userId', isEqualTo: uid)
+        .snapshots()
+        .listen((snapshot) async {
+      for (final doc in snapshot.docs) {
+        final notification = _notificationFromFirestore(doc);
+        await _upsertNotification(notification);
+      }
+    });
+  }
+
+  AppNotification _notificationFromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data() ?? <String, dynamic>{};
+    return AppNotification.fromMap({
+      ...data,
+      'id': data['id'] ?? doc.id,
+      'timestamp': data['timestamp'] ?? DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<void> _persistNotifications() async {
+    final prefs = await SharedPreferences.getInstance();
+    final trimmed = _notifications.take(_maxStoredNotifications).toList();
+    await prefs.setStringList(
+      _storageKey,
+      trimmed.map((n) => jsonEncode(n.toMap())).toList(),
+    );
+  }
+
+  Future<void> _upsertNotification(AppNotification notification) async {
+    final existingIndex =
+        _notifications.indexWhere((item) => item.id == notification.id);
+    if (existingIndex >= 0) {
+      final existing = _notifications.removeAt(existingIndex);
+      notification = notification.copyWith(isRead: existing.isRead);
+    }
+    _notifications.insert(0, notification);
+    await _persistNotifications();
+    _notifyListeners();
+  }
+
   // Initialize with some mock notifications
   void initializeMockData() {
     if (_notifications.isEmpty) {
@@ -150,19 +274,22 @@ class NotificationService {
         AppNotification(
           id: _generateId(),
           title: 'Welcome to FoodBridge!',
-          message: 'Start reducing food waste by connecting with your community.',
+          message:
+              'Start reducing food waste by connecting with your community.',
           type: NotificationType.general,
           timestamp: DateTime.now().subtract(const Duration(hours: 1)),
         ),
         AppNotification(
           id: _generateId(),
           title: 'New Surplus Available',
-          message: 'Fresh vegetables available for pickup from Green Grocery Store.',
+          message:
+              'Fresh vegetables available for pickup from Green Grocery Store.',
           type: NotificationType.surplusReported,
           priority: NotificationPriority.high,
           timestamp: DateTime.now().subtract(const Duration(minutes: 30)),
         ),
       ]);
+      _persistNotifications();
       _notifyListeners();
     }
   }
@@ -174,27 +301,34 @@ class NotificationService {
 
   // Get all notifications
   List<AppNotification> getAllNotifications() {
-    return List.unmodifiable(_notifications);
+    final items = List<AppNotification>.from(_notifications);
+    items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    return List.unmodifiable(items);
   }
 
   // Get unread notifications
   List<AppNotification> getUnreadNotifications() {
-    return _notifications.where((notification) => !notification.isRead).toList();
+    return _notifications
+        .where((notification) => !notification.isRead)
+        .toList();
   }
 
   // Get notifications by type
   List<AppNotification> getNotificationsByType(NotificationType type) {
-    return _notifications.where((notification) => notification.type == type).toList();
+    return _notifications
+        .where((notification) => notification.type == type)
+        .toList();
   }
 
   // Add new notification
   Future<void> addNotification(AppNotification notification) async {
-    _notifications.insert(0, notification); // Add to beginning for chronological order
-    _notifyListeners();
-    
+    await _ensureLoaded();
+    await _ensureRemoteSync();
+    await _upsertNotification(notification);
+
     // Show in-app notification if context is available
     _showInAppNotification(notification);
-    
+
     // Simulate push notification (placeholder for Firebase)
     _simulatePushNotification(notification);
   }
@@ -213,14 +347,15 @@ class NotificationService {
     final notification = AppNotification(
       id: _generateId(),
       title: 'New Surplus Available! 🍎',
-      message: '$donorName has reported $quantity units of $foodType. Check it out!',
+      message:
+          '$donorName has reported $quantity units of $foodType. Check it out!',
       type: NotificationType.surplusReported,
       priority: NotificationPriority.high,
       timestamp: DateTime.now(),
       actionData: 'surplus_list',
       relatedDonationId: donationId,
     );
-    
+
     await addNotification(notification);
   }
 
@@ -234,14 +369,15 @@ class NotificationService {
     final notification = AppNotification(
       id: _generateId(),
       title: 'Surplus Accepted! ✅',
-      message: '$ngoName has accepted your $foodType donation. They will coordinate pickup soon.',
+      message:
+          '$ngoName has accepted your $foodType donation. They will coordinate pickup soon.',
       type: NotificationType.surplusAccepted,
       priority: NotificationPriority.high,
       timestamp: DateTime.now(),
       actionData: 'donor_dashboard',
       relatedDonationId: donationId,
     );
-    
+
     await addNotification(notification);
   }
 
@@ -254,13 +390,14 @@ class NotificationService {
     final notification = AppNotification(
       id: _generateId(),
       title: 'Surplus Collected! 🎉',
-      message: 'Your $foodType donation has been successfully collected by $ngoName. Thank you for reducing food waste!',
+      message:
+          'Your $foodType donation has been successfully collected by $ngoName. Thank you for reducing food waste!',
       type: NotificationType.surplusCollected,
       timestamp: DateTime.now(),
       actionData: 'donor_dashboard',
       relatedDonationId: donationId,
     );
-    
+
     await addNotification(notification);
   }
 
@@ -274,14 +411,15 @@ class NotificationService {
     final notification = AppNotification(
       id: _generateId(),
       title: 'New Claim Request! 📋',
-      message: '$ngoName wants to claim your $foodType donation. Review and accept the request.',
+      message:
+          '$ngoName wants to claim your $foodType donation. Review and accept the request.',
       type: NotificationType.claimReceived,
       priority: NotificationPriority.high,
       timestamp: DateTime.now(),
       actionData: 'donor_dashboard',
       relatedDonationId: donationId,
     );
-    
+
     await addNotification(notification);
   }
 
@@ -294,14 +432,15 @@ class NotificationService {
     final notification = AppNotification(
       id: _generateId(),
       title: 'Claim Approved! ✅',
-      message: '$donorName has approved your claim for $foodType. Coordinate pickup details.',
+      message:
+          '$donorName has approved your claim for $foodType. Coordinate pickup details.',
       type: NotificationType.claimAccepted,
       priority: NotificationPriority.high,
       timestamp: DateTime.now(),
       actionData: 'ngo_dashboard',
       relatedDonationId: donationId,
     );
-    
+
     await addNotification(notification);
   }
 
@@ -315,13 +454,14 @@ class NotificationService {
     final notification = AppNotification(
       id: _generateId(),
       title: 'Claim Not Approved 😔',
-      message: 'Your claim for $foodType was not approved. Reason: $rejectionReason',
+      message:
+          'Your claim for $foodType was not approved. Reason: $rejectionReason',
       type: NotificationType.claimRejected,
       timestamp: DateTime.now(),
       actionData: 'ngo_dashboard',
       relatedDonationId: donationId,
     );
-    
+
     await addNotification(notification);
   }
 
@@ -336,14 +476,17 @@ class NotificationService {
     final notification = AppNotification(
       id: _generateId(),
       title: 'Pickup Reminder ⏰',
-      message: 'Pick up $foodType from $donorName within $hoursLeft hours to prevent waste!',
+      message:
+          'Pick up $foodType from $donorName within $hoursLeft hours to prevent waste!',
       type: NotificationType.pickupReminder,
-      priority: hoursLeft < 6 ? NotificationPriority.urgent : NotificationPriority.high,
+      priority: hoursLeft < 6
+          ? NotificationPriority.urgent
+          : NotificationPriority.high,
       timestamp: DateTime.now(),
       actionData: 'ngo_dashboard',
       relatedDonationId: donationId,
     );
-    
+
     await addNotification(notification);
   }
 
@@ -357,14 +500,17 @@ class NotificationService {
     final notification = AppNotification(
       id: _generateId(),
       title: 'Food Expiring Soon! ⚠️',
-      message: '$foodType will expire in $hoursLeft hours. Coordinate immediate pickup.',
+      message:
+          '$foodType will expire in $hoursLeft hours. Coordinate immediate pickup.',
       type: NotificationType.expiryReminder,
-      priority: hoursLeft < 12 ? NotificationPriority.urgent : NotificationPriority.high,
+      priority: hoursLeft < 12
+          ? NotificationPriority.urgent
+          : NotificationPriority.high,
       timestamp: DateTime.now(),
       actionData: 'ngo_dashboard',
       relatedDonationId: donationId,
     );
-    
+
     await addNotification(notification);
   }
 
@@ -377,14 +523,15 @@ class NotificationService {
     final notification = AppNotification(
       id: _generateId(),
       title: 'Request Fulfilled! 🎁',
-      message: '$fulfilledByDonor has provided the $requestTitle you requested.',
+      message:
+          '$fulfilledByDonor has provided the $requestTitle you requested.',
       type: NotificationType.requestFulfilled,
       priority: NotificationPriority.high,
       timestamp: DateTime.now(),
       actionData: 'my_requests',
       relatedRequestId: requestId,
     );
-    
+
     await addNotification(notification);
   }
 
@@ -395,10 +542,10 @@ class NotificationService {
     int? quantity,
     String? requestId,
   }) async {
-    final message = quantity != null 
+    final message = quantity != null
         ? '$requestedByNGO needs $quantity units of $requestTitle'
         : '$requestedByNGO is looking for $requestTitle';
-    
+
     final notification = AppNotification(
       id: _generateId(),
       title: 'New Food Request 📋',
@@ -408,7 +555,7 @@ class NotificationService {
       actionData: 'request_list',
       relatedRequestId: requestId,
     );
-    
+
     await addNotification(notification);
   }
 
@@ -422,13 +569,15 @@ class NotificationService {
     if (index == -1) {
       throw Exception('Notification not found');
     }
-    
+
     _notifications[index] = _notifications[index].copyWith(isRead: true);
     _notifyListeners();
+    _persistNotifications();
   }
 
   // Public method to show in-app notifications
-  void showInAppNotification(String title, String message, {NotificationType? type}) {
+  void showInAppNotification(String title, String message,
+      {NotificationType? type}) {
     final notification = AppNotification(
       id: _generateId(),
       title: title,
@@ -436,7 +585,7 @@ class NotificationService {
       type: type ?? NotificationType.general,
       timestamp: DateTime.now(),
     );
-    
+
     addNotification(notification);
   }
 
@@ -447,18 +596,21 @@ class NotificationService {
         _notifications[i] = _notifications[i].copyWith(isRead: true);
       }
     }
+    await _persistNotifications();
     _notifyListeners();
   }
 
   // Delete notification
   Future<void> deleteNotification(String notificationId) async {
     _notifications.removeWhere((n) => n.id == notificationId);
+    await _persistNotifications();
     _notifyListeners();
   }
 
   // Clear all notifications
   Future<void> clearAllNotifications() async {
     _notifications.clear();
+    await _persistNotifications();
     _notifyListeners();
   }
 
@@ -479,6 +631,21 @@ class NotificationService {
     for (final listener in _listeners) {
       listener(List.unmodifiable(_notifications));
     }
+  }
+
+  Future<void> createRemoteNotificationForUser({
+    required String userId,
+    required AppNotification notification,
+  }) async {
+    await FirebaseFirestore.instance
+        .collection('notifications')
+        .doc(notification.id)
+        .set({
+      ...notification.toMap(),
+      'userId': userId,
+      'timestamp': Timestamp.fromDate(notification.timestamp),
+      'createdAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   // Show in-app notification (SnackBar or overlay)
@@ -521,7 +688,7 @@ class NotificationService {
             label: 'View',
             textColor: Colors.white,
             onPressed: () {
-              _handleNotificationTap(notification);
+              handleNotificationTap(notification);
             },
           ),
         ),
@@ -536,7 +703,7 @@ class NotificationService {
   void _simulatePushNotification(AppNotification notification) {}
 
   // Handle notification tap actions
-  void _handleNotificationTap(AppNotification notification) {
+  Future<void> handleNotificationTap(AppNotification notification) async {
     if (_currentContext == null) return;
 
     // Mark as read when tapped
@@ -546,8 +713,10 @@ class NotificationService {
     final navigator = Navigator.of(_currentContext!);
     switch (notification.actionData) {
       case 'surplus_list':
+        final ngoName = await _resolveCurrentNgoName();
         navigator.push(
-          MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+          MaterialPageRoute(
+              builder: (_) => SurplusListScreen(ngoName: ngoName)),
         );
         break;
       case 'donor_dashboard':
@@ -571,13 +740,15 @@ class NotificationService {
         );
         break;
       default:
-        if (notification.actionData?.startsWith('chat_') ?? false) {
-          final roomId = notification.actionData!.substring(5);
+        final roomId = _extractChatRoomId(notification);
+        if (roomId != null) {
+          final otherUserName =
+              await _resolveChatUserName(notification, roomId);
           navigator.push(
             MaterialPageRoute(
               builder: (_) => ChatScreen(
                 chatRoomId: roomId,
-                otherUserName: 'FoodBridge',
+                otherUserName: otherUserName,
               ),
             ),
           );
@@ -590,21 +761,97 @@ class NotificationService {
     }
   }
 
+  String? _extractChatRoomId(AppNotification notification) {
+    if (notification.relatedChatRoomId != null &&
+        notification.relatedChatRoomId!.isNotEmpty) {
+      return notification.relatedChatRoomId;
+    }
+
+    final action = notification.actionData;
+    if (action != null && action.startsWith('chat_') && action.length > 5) {
+      return action.substring(5);
+    }
+    return null;
+  }
+
+  Future<String> _resolveChatUserName(
+    AppNotification notification,
+    String roomId,
+  ) async {
+    if (notification.relatedUserName != null &&
+        notification.relatedUserName!.trim().isNotEmpty) {
+      return notification.relatedUserName!.trim();
+    }
+
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      final roomSnap = await FirebaseFirestore.instance
+          .collection('chat_rooms')
+          .doc(roomId)
+          .get();
+      final participants =
+          List<String>.from(roomSnap.data()?['participantIds'] ?? const []);
+      final otherUserId = participants.firstWhere(
+        (participantId) => participantId != uid,
+        orElse: () => '',
+      );
+
+      if (otherUserId.isEmpty) return 'FoodBridge';
+
+      final userSnap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(otherUserId)
+          .get();
+      final data = userSnap.data();
+      return (data?['userName'] ?? data?['organizationName'] ?? data?['email'])
+              ?.toString() ??
+          'FoodBridge';
+    } catch (_) {
+      return 'FoodBridge';
+    }
+  }
+
+  Future<String> _resolveCurrentNgoName() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return 'NGO';
+      final userSnap =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final data = userSnap.data();
+      return (data?['organizationName'] ?? data?['userName'] ?? data?['email'])
+              ?.toString() ??
+          'NGO';
+    } catch (_) {
+      return 'NGO';
+    }
+  }
+
   // Get statistics
   Map<String, int> getStatistics() {
     return {
       'total': _notifications.length,
       'unread': unreadCount,
-      'surplusReported': getNotificationsByType(NotificationType.surplusReported).length,
-      'surplusAccepted': getNotificationsByType(NotificationType.surplusAccepted).length,
-      'surplusCollected': getNotificationsByType(NotificationType.surplusCollected).length,
-      'claimReceived': getNotificationsByType(NotificationType.claimReceived).length,
-      'claimAccepted': getNotificationsByType(NotificationType.claimAccepted).length,
-      'claimRejected': getNotificationsByType(NotificationType.claimRejected).length,
-      'pickupReminder': getNotificationsByType(NotificationType.pickupReminder).length,
-      'expiryReminder': getNotificationsByType(NotificationType.expiryReminder).length,
-      'requestFulfilled': getNotificationsByType(NotificationType.requestFulfilled).length,
-      'requestCreated': getNotificationsByType(NotificationType.requestCreated).length,
+      'surplusReported':
+          getNotificationsByType(NotificationType.surplusReported).length,
+      'surplusAccepted':
+          getNotificationsByType(NotificationType.surplusAccepted).length,
+      'surplusCollected':
+          getNotificationsByType(NotificationType.surplusCollected).length,
+      'claimReceived':
+          getNotificationsByType(NotificationType.claimReceived).length,
+      'claimAccepted':
+          getNotificationsByType(NotificationType.claimAccepted).length,
+      'claimRejected':
+          getNotificationsByType(NotificationType.claimRejected).length,
+      'pickupReminder':
+          getNotificationsByType(NotificationType.pickupReminder).length,
+      'expiryReminder':
+          getNotificationsByType(NotificationType.expiryReminder).length,
+      'requestFulfilled':
+          getNotificationsByType(NotificationType.requestFulfilled).length,
+      'requestCreated':
+          getNotificationsByType(NotificationType.requestCreated).length,
+      'newMessage': getNotificationsByType(NotificationType.newMessage).length,
       'general': getNotificationsByType(NotificationType.general).length,
     };
   }

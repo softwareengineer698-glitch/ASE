@@ -92,6 +92,38 @@ class EnhancedForecastService {
     }
   }
 
+  /// Generate forecast using ARIMA model
+  Future<AIForecast> generateARIMAForecast(
+    String donorId,
+    List<Map<String, dynamic>> historicalData,
+    ForecastCovariates covariates,
+  ) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/forecast/arima'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'donor_id': donorId,
+              'historical_data': historicalData,
+              'covariates': covariates.toMap(),
+              'forecast_days': 7,
+            }),
+          )
+          .timeout(_timeout);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return _parseProphetResponse(data, covariates);
+      } else {
+        throw Exception('ARIMA forecast failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      // Fallback to mock service if backend is unavailable
+      return await _fallbackForecast(donorId, covariates);
+    }
+  }
+
   /// Get model performance metrics and explanations
   Future<Map<String, dynamic>> getModelMetrics(String donorId) async {
     try {

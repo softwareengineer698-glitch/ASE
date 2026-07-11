@@ -103,28 +103,38 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _checkAuthState() async {
     try {
-      // Wait for animations to complete
-      await Future.delayed(const Duration(milliseconds: 3000));
+      // Wait for splash animation to play (2s)
+      await Future.delayed(const Duration(milliseconds: 2000));
+      if (!mounted) return;
+
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      // Try to reinitialize auth — wrapped so it can never crash us
+      try {
+        if (authProvider.isFirebaseAvailable) {
+          authProvider.reinitializeAuth();
+          // Wait up to 3s for Firebase auth state to settle
+          for (int i = 0; i < 30; i++) {
+            if (!authProvider.isLoading) break;
+            await Future.delayed(const Duration(milliseconds: 100));
+            if (!mounted) return;
+          }
+        }
+      } catch (e) {
+        debugPrint('Auth reinit error (non-fatal): $e');
+      }
 
       if (!mounted) return;
 
-      // Initialize AuthProvider after Firebase is ready
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      authProvider.reinitializeAuth();
-
-      // Check if user is already authenticated
+      // Navigate based on auth state
       if (authProvider.isAuthenticated && authProvider.user != null) {
         _navigateToDashboard(authProvider.user!.role);
       } else {
         _navigateToAuth();
       }
     } catch (e) {
-      debugPrint('Navigation error: $e');
-
-      if (!mounted) return;
-
-      // Navigate to auth screen on error
-      _navigateToAuth();
+      debugPrint('Splash navigation error: $e');
+      if (mounted) _navigateToAuth();
     }
   }
 

@@ -17,6 +17,7 @@ final _log = Logger(
 class AuthService {
   FirebaseAuth? _auth;
   FirebaseFirestore? _firestore;
+  ConfirmationResult? _webPhoneConfirmation;
 
   FirebaseAuth get auth {
     if (_auth == null) {
@@ -95,6 +96,64 @@ class AuthService {
       throw _handleAuthException(e);
     } catch (e) {
       _log.e('Unexpected error during sign up', error: e);
+      throw 'auth_error_account_creation_failed';
+    }
+  }
+
+  /// Completes email/password registration after phone OTP verification.
+  /// The current Firebase user is the phone-auth user; this links the email
+  /// credential to that same account and writes the verified user document.
+  Future<UserModel> completeVerifiedEmailSignUp({
+    required String email,
+    required String password,
+    required String userName,
+    required String phoneNumber,
+  }) async {
+    try {
+      final currentUser = auth.currentUser;
+      if (currentUser == null) throw 'auth_error_phone_sign_in_empty';
+      var verifiedUser = currentUser;
+
+      final emailCredential = EmailAuthProvider.credential(
+        email: email,
+        password: password,
+      );
+
+      try {
+        final linked = await verifiedUser.linkWithCredential(emailCredential);
+        verifiedUser = linked.user ?? verifiedUser;
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'email-already-in-use' ||
+            e.code == 'credential-already-in-use') {
+          throw 'auth_error_email_already_in_use';
+        }
+        if (e.code != 'provider-already-linked') {
+          throw _handleAuthException(e);
+        }
+      }
+
+      await verifiedUser.updateDisplayName(userName);
+
+      final userModel = UserModel(
+        uid: verifiedUser.uid,
+        email: email,
+        userName: userName,
+        phoneNumber: phoneNumber,
+        phoneVerified: true,
+        role: UserRole.donor,
+        createdAt: DateTime.now(),
+      );
+
+      await firestore.collection('users').doc(verifiedUser.uid).set(
+            userModel.toMap(),
+            SetOptions(merge: true),
+          );
+      await _saveUserRole(UserRole.donor);
+      return userModel;
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    } catch (e) {
+      if (e is String) rethrow;
       throw 'auth_error_account_creation_failed';
     }
   }
@@ -347,6 +406,12 @@ class AuthService {
     required void Function(PhoneAuthCredential credential) onAutoVerified,
     int? resendToken,
   }) async {
+    if (kIsWeb) {
+      _webPhoneConfirmation = await auth.signInWithPhoneNumber(phoneNumber);
+      onCodeSent('web-phone-confirmation', null);
+      return;
+    }
+
     await auth.verifyPhoneNumber(
       phoneNumber: phoneNumber,
       timeout: const Duration(seconds: 60),
@@ -373,6 +438,16 @@ class AuthService {
     required String smsCode,
     String? userName,
   }) async {
+    if (kIsWeb) {
+      final confirmation = _webPhoneConfirmation;
+      if (confirmation == null) throw 'otp_expired';
+      final result = await confirmation.confirm(smsCode);
+      final firebaseUser = result.user;
+      if (firebaseUser == null) throw 'auth_error_phone_sign_in_empty';
+      _webPhoneConfirmation = null;
+      return _syncPhoneUser(firebaseUser, userName: userName);
+    }
+
     final credential = PhoneAuthProvider.credential(
       verificationId: verificationId,
       smsCode: smsCode,
@@ -387,19 +462,14 @@ class AuthService {
     return _signInWithPhoneCredential(credential);
   }
 
-  Future<UserModel> _signInWithPhoneCredential(
-    PhoneAuthCredential credential, {
+  Future<UserModel> _syncPhoneUser(
+    User firebaseUser, {
     String? userName,
   }) async {
-    final result = await auth.signInWithCredential(credential);
-    final firebaseUser = result.user;
-    if (firebaseUser == null) throw 'auth_error_phone_sign_in_empty';
-
     final docRef = firestore.collection('users').doc(firebaseUser.uid);
     final snap = await docRef.get();
 
     if (snap.exists) {
-      // Returning user — mark phone as verified and return
       final existing = UserModel.fromMap(snap.data() as Map<String, dynamic>);
       if (!existing.phoneVerified) {
         await docRef.update({
@@ -412,21 +482,29 @@ class AuthService {
         phoneNumber: firebaseUser.phoneNumber,
         phoneVerified: true,
       );
-    } else {
-      // New user — create stub document (role updated after role picker)
-      final userModel = UserModel(
-        uid: firebaseUser.uid,
-        email: firebaseUser.email ?? '',
-        role: UserRole.donor,
-        createdAt: DateTime.now(),
-        userName: userName ?? firebaseUser.displayName,
-        phoneNumber: firebaseUser.phoneNumber,
-        phoneVerified: true,
-      );
-      await docRef.set(userModel.toMap());
-      await _saveUserRole(UserRole.donor);
-      return userModel;
     }
+
+    final userModel = UserModel(
+      uid: firebaseUser.uid,
+      email: firebaseUser.email ?? '',
+      role: UserRole.donor,
+      createdAt: DateTime.now(),
+      userName: userName ?? firebaseUser.displayName,
+      phoneNumber: firebaseUser.phoneNumber,
+      phoneVerified: true,
+    );
+    await docRef.set(userModel.toMap());
+    await _saveUserRole(UserRole.donor);
+    return userModel;
+  }
+  Future<UserModel> _signInWithPhoneCredential(
+    PhoneAuthCredential credential, {
+    String? userName,
+  }) async {
+    final result = await auth.signInWithCredential(credential);
+    final firebaseUser = result.user;
+    if (firebaseUser == null) throw 'auth_error_phone_sign_in_empty';
+    return _syncPhoneUser(firebaseUser, userName: userName);
   }
 
   // Handle Firebase Auth exceptions
@@ -465,3 +543,4 @@ class AuthService {
     }
   }
 }
+

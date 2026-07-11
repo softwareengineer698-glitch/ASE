@@ -8,6 +8,7 @@ import 'package:foodbridge/services/profile_service.dart';
 import 'package:foodbridge/widgets/donation_image.dart';
 import 'package:foodbridge/widgets/empty_state_widget.dart';
 import 'package:foodbridge/widgets/loading_widget.dart';
+import 'package:foodbridge/widgets/expiry_countdown_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -862,7 +863,12 @@ class _HistoryScreenState extends State<HistoryScreen>
               const SizedBox(height: 8),
               Text('Posted: ${donation.formattedTimestamp}'),
               const SizedBox(height: 8),
-              Text('Expires: ${donation.expiryTime}'),
+              Row(
+                children: [
+                  const Text('Expires: '),
+                  ExpiryCountdownWidget(expiryTime: donation.expiryTime),
+                ],
+              ),
             ],
           ),
         ),

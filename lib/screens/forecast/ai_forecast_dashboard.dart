@@ -25,7 +25,7 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
     // Use addPostFrameCallback to avoid setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadForecast();
@@ -40,8 +40,9 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
 
   void _loadForecast() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final forecastProvider = Provider.of<ForecastProvider>(context, listen: false);
-    
+    final forecastProvider =
+        Provider.of<ForecastProvider>(context, listen: false);
+
     if (authProvider.user != null) {
       forecastProvider.loadForecast(authProvider.user!.uid);
     }
@@ -52,7 +53,7 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
     return Consumer3<ForecastProvider, AuthProvider, ThemeProvider>(
       builder: (context, forecastProvider, authProvider, themeProvider, child) {
         final user = authProvider.user;
-        
+
         return Scaffold(
           appBar: AppBar(
             title: const Text('AI Forecast Dashboard'),
@@ -86,7 +87,8 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
     );
   }
 
-  Widget _buildOverviewTab(ForecastProvider forecastProvider, dynamic user, ThemeProvider themeProvider) {
+  Widget _buildOverviewTab(ForecastProvider forecastProvider, dynamic user,
+      ThemeProvider themeProvider) {
     if (forecastProvider.error != null) {
       return EmptyStateWidget(
         icon: Icons.error_outline,
@@ -116,19 +118,19 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
           children: [
             // Forecast Summary Cards
             _buildSummaryCards(forecastProvider, themeProvider),
-            
+
             const SizedBox(height: 24),
-            
+
             // Covariates Control Panel
             _buildCovariatesPanel(forecastProvider, user, themeProvider),
-            
+
             const SizedBox(height: 24),
-            
+
             // Today's Forecast
             _buildTodaysForecast(forecastProvider, themeProvider),
-            
+
             const SizedBox(height: 24),
-            
+
             // AI Insights
             _buildInsightsSection(forecastProvider, themeProvider),
           ],
@@ -137,7 +139,8 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
     );
   }
 
-  Widget _buildChartsTab(ForecastProvider forecastProvider, dynamic user, ThemeProvider themeProvider) {
+  Widget _buildChartsTab(ForecastProvider forecastProvider, dynamic user,
+      ThemeProvider themeProvider) {
     if (!forecastProvider.hasForecast) {
       return const EmptyStateWidget(
         icon: Icons.analytics,
@@ -155,14 +158,14 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
           children: [
             // Weekly Chart
             _buildWeeklyChart(forecastProvider, themeProvider),
-            
+
             const SizedBox(height: 24),
-            
+
             // Monthly Chart
             _buildMonthlyChart(forecastProvider, themeProvider),
-            
+
             const SizedBox(height: 24),
-            
+
             // Category Breakdown
             _buildCategoryBreakdown(forecastProvider, themeProvider),
           ],
@@ -171,9 +174,10 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
     );
   }
 
-  Widget _buildAlertsTab(ForecastProvider forecastProvider, dynamic user, ThemeProvider themeProvider) {
+  Widget _buildAlertsTab(ForecastProvider forecastProvider, dynamic user,
+      ThemeProvider themeProvider) {
     final alerts = forecastProvider.currentForecast?.alerts ?? [];
-    
+
     if (alerts.isEmpty) {
       return const EmptyStateWidget(
         icon: Icons.check_circle,
@@ -195,9 +199,10 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
     );
   }
 
-  Widget _buildSummaryCards(ForecastProvider forecastProvider, ThemeProvider themeProvider) {
+  Widget _buildSummaryCards(
+      ForecastProvider forecastProvider, ThemeProvider themeProvider) {
     final summary = forecastProvider.getForecastSummary();
-    
+
     return Row(
       children: [
         Expanded(
@@ -266,7 +271,8 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
     );
   }
 
-  Widget _buildCovariatesPanel(ForecastProvider forecastProvider, dynamic user, ThemeProvider themeProvider) {
+  Widget _buildCovariatesPanel(ForecastProvider forecastProvider, dynamic user,
+      ThemeProvider themeProvider) {
     final covariates = forecastProvider.currentCovariates;
     if (covariates == null) return const SizedBox.shrink();
 
@@ -281,7 +287,7 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
                 Icon(Icons.tune, color: themeProvider.primaryColor),
                 const SizedBox(width: 8),
                 const Text(
-                  'Forecast Factors',
+                  'Forecast Factors & Models',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -290,16 +296,54 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
               ],
             ),
             const SizedBox(height: 16),
-            
+
+            // AI Forecasting Toggle
+            SwitchListTile(
+              title: const Text('AI Enhanced Mode'),
+              subtitle: const Text('Use advanced time-series ML models'),
+              value: forecastProvider.useEnhancedService,
+              onChanged: (value) => forecastProvider.setUseEnhancedService(
+                  user?.uid ?? '', value),
+              activeThumbColor: themeProvider.primaryColor,
+              contentPadding: EdgeInsets.zero,
+            ),
+
+            if (forecastProvider.useEnhancedService)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Algorithm Model'),
+                subtitle: Text('Current: ${forecastProvider.selectedModel}'),
+                trailing: DropdownButton<String>(
+                  value: forecastProvider.selectedModel,
+                  onChanged: (model) {
+                    if (model != null) {
+                      forecastProvider.updateModelType(user?.uid ?? '', model);
+                    }
+                  },
+                  items: const [
+                    DropdownMenuItem(
+                        value: 'ARIMA', child: Text('ARIMA model')),
+                    DropdownMenuItem(
+                        value: 'Prophet', child: Text('Prophet model')),
+                    DropdownMenuItem(
+                        value: 'NeuralProphet', child: Text('NeuralProphet')),
+                  ],
+                ),
+              ),
+
+            const Divider(),
+
             // Holiday Toggle
             SwitchListTile(
               title: const Text('Holiday Period'),
               subtitle: const Text('Affects surplus by +40%'),
               value: covariates.isHoliday,
-              onChanged: (value) => forecastProvider.toggleHoliday(user?.uid ?? ''),
+              onChanged: (value) =>
+                  forecastProvider.toggleHoliday(user?.uid ?? ''),
               activeThumbColor: themeProvider.primaryColor,
+              contentPadding: EdgeInsets.zero,
             ),
-            
+
             // Weather Selector
             ListTile(
               title: const Text('Weather Condition'),
@@ -319,7 +363,7 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
                 }).toList(),
               ),
             ),
-            
+
             // Local Events
             if (covariates.localEvents.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -333,8 +377,10 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
                 children: covariates.localEvents.map((event) {
                   return Chip(
                     label: Text(event),
-                    onDeleted: () => forecastProvider.removeLocalEvent(user?.uid ?? '', event),
-                    backgroundColor: themeProvider.primaryColor.withOpacity(0.1),
+                    onDeleted: () => forecastProvider.removeLocalEvent(
+                        user?.uid ?? '', event),
+                    backgroundColor:
+                        themeProvider.primaryColor.withOpacity(0.1),
                   );
                 }).toList(),
               ),
@@ -345,10 +391,11 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
     );
   }
 
-  Widget _buildTodaysForecast(ForecastProvider forecastProvider, ThemeProvider themeProvider) {
+  Widget _buildTodaysForecast(
+      ForecastProvider forecastProvider, ThemeProvider themeProvider) {
     final todaysForecast = forecastProvider.todaysForecast;
     final tomorrowsForecast = forecastProvider.tomorrowsForecast;
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -369,7 +416,6 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
               ],
             ),
             const SizedBox(height: 16),
-            
             Row(
               children: [
                 // Today
@@ -397,7 +443,8 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
     );
   }
 
-  Widget _buildDayForecast(String day, ForecastPoint? forecast, ThemeProvider themeProvider) {
+  Widget _buildDayForecast(
+      String day, ForecastPoint? forecast, ThemeProvider themeProvider) {
     if (forecast == null) {
       return Column(
         children: [
@@ -452,7 +499,8 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
     );
   }
 
-  Widget _buildInsightsSection(ForecastProvider forecastProvider, ThemeProvider themeProvider) {
+  Widget _buildInsightsSection(
+      ForecastProvider forecastProvider, ThemeProvider themeProvider) {
     final insights = forecastProvider.currentForecast?.insights;
     if (insights == null) return const SizedBox.shrink();
 
@@ -476,7 +524,7 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Primary Insight
             Container(
               padding: const EdgeInsets.all(12),
@@ -492,9 +540,9 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Recommendations
             if (insights.recommendations.isNotEmpty) ...[
               const Text(
@@ -503,16 +551,19 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
               ),
               const SizedBox(height: 8),
               ...insights.recommendations.map((rec) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.arrow_right, size: 16, color: Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Expanded(child: Text(rec, style: const TextStyle(fontSize: 14))),
-                  ],
-                ),
-              )),
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.arrow_right,
+                            size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 4),
+                        Expanded(
+                            child: Text(rec,
+                                style: const TextStyle(fontSize: 14))),
+                      ],
+                    ),
+                  )),
             ],
           ],
         ),
@@ -520,9 +571,10 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
     );
   }
 
-  Widget _buildWeeklyChart(ForecastProvider forecastProvider, ThemeProvider themeProvider) {
+  Widget _buildWeeklyChart(
+      ForecastProvider forecastProvider, ThemeProvider themeProvider) {
     final chartData = forecastProvider.weeklyChartData;
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -543,7 +595,8 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
                 LineChartData(
                   titlesData: FlTitlesData(
                     leftTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: true, reservedSize: 40),
+                      sideTitles:
+                          SideTitles(showTitles: true, reservedSize: 40),
                     ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
@@ -567,7 +620,8 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
                   lineBarsData: [
                     LineChartBarData(
                       spots: chartData.asMap().entries.map((entry) {
-                        return FlSpot(entry.key.toDouble(), entry.value['surplus']);
+                        return FlSpot(
+                            entry.key.toDouble(), entry.value['surplus']);
                       }).toList(),
                       isCurved: true,
                       color: themeProvider.primaryColor,
@@ -583,9 +637,10 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
     );
   }
 
-  Widget _buildMonthlyChart(ForecastProvider forecastProvider, ThemeProvider themeProvider) {
+  Widget _buildMonthlyChart(
+      ForecastProvider forecastProvider, ThemeProvider themeProvider) {
     final chartData = forecastProvider.monthlyChartData;
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -607,7 +662,8 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
                   gridData: const FlGridData(),
                   titlesData: FlTitlesData(
                     leftTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: true, reservedSize: 40),
+                      sideTitles:
+                          SideTitles(showTitles: true, reservedSize: 40),
                     ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
@@ -649,9 +705,10 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
     );
   }
 
-  Widget _buildCategoryBreakdown(ForecastProvider forecastProvider, ThemeProvider themeProvider) {
+  Widget _buildCategoryBreakdown(
+      ForecastProvider forecastProvider, ThemeProvider themeProvider) {
     final breakdown = forecastProvider.weeklyCategoryBreakdown;
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -667,42 +724,45 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
             ),
             const SizedBox(height: 16),
             ...breakdown.entries.map((entry) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Text(entry.key),
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Text(entry.key),
+                      ),
+                      Expanded(
+                        flex: 3,
+                        child: LinearProgressIndicator(
+                          value: entry.value /
+                              breakdown.values.reduce((a, b) => a > b ? a : b),
+                          backgroundColor: Colors.grey[300],
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              themeProvider.primaryColor),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text('${entry.value.toStringAsFixed(1)} kg'),
+                    ],
                   ),
-                  Expanded(
-                    flex: 3,
-                    child: LinearProgressIndicator(
-                      value: entry.value / breakdown.values.reduce((a, b) => a > b ? a : b),
-                      backgroundColor: Colors.grey[300],
-                      valueColor: AlwaysStoppedAnimation<Color>(themeProvider.primaryColor),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text('${entry.value.toStringAsFixed(1)} kg'),
-                ],
-              ),
-            )),
+                )),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAlertCard(SurplusAlert alert, ForecastProvider forecastProvider, ThemeProvider themeProvider) {
+  Widget _buildAlertCard(SurplusAlert alert, ForecastProvider forecastProvider,
+      ThemeProvider themeProvider) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Color(alert.severity.colorValue),
           child: Icon(
-            alert.severity == SurplusRiskLevel.critical 
-              ? Icons.error 
-              : Icons.warning,
+            alert.severity == SurplusRiskLevel.critical
+                ? Icons.error
+                : Icons.warning,
             color: Colors.white,
           ),
         ),
@@ -725,18 +785,19 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
             ),
           ],
         ),
-        trailing: alert.isRead 
-          ? const Icon(Icons.check, color: Colors.green)
-          : IconButton(
-              icon: const Icon(Icons.mark_email_read),
-              onPressed: () => forecastProvider.markAlertAsRead(alert.id),
-            ),
+        trailing: alert.isRead
+            ? const Icon(Icons.check, color: Colors.green)
+            : IconButton(
+                icon: const Icon(Icons.mark_email_read),
+                onPressed: () => forecastProvider.markAlertAsRead(alert.id),
+              ),
         onTap: () => _showAlertDetails(alert, forecastProvider),
       ),
     );
   }
 
-  void _showAlertDetails(SurplusAlert alert, ForecastProvider forecastProvider) {
+  void _showAlertDetails(
+      SurplusAlert alert, ForecastProvider forecastProvider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -753,16 +814,16 @@ class _AIForecastDashboardState extends State<AIForecastDashboard>
             ),
             const SizedBox(height: 8),
             ...alert.recommendations.map((rec) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.arrow_right, size: 16),
-                  const SizedBox(width: 4),
-                  Expanded(child: Text(rec)),
-                ],
-              ),
-            )),
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.arrow_right, size: 16),
+                      const SizedBox(width: 4),
+                      Expanded(child: Text(rec)),
+                    ],
+                  ),
+                )),
           ],
         ),
         actions: [

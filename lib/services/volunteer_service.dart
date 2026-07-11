@@ -3,7 +3,7 @@ import '../models/volunteer_model.dart';
 import '../models/delivery_model.dart';
 
 class VolunteerService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
 
   // Create or update volunteer profile
   Future<void> updateVolunteerProfile(VolunteerModel volunteer) async {
