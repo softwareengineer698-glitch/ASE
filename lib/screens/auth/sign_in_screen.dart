@@ -10,7 +10,7 @@ import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
 import 'sign_up_screen.dart';
 import 'forgot_password_screen.dart';
-import 'phone_auth_screen.dart';
+import 'email_otp_signin_screen.dart';
 import '../main/main_wrapper.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -327,12 +327,12 @@ class _SignInScreenState extends State<SignInScreen> {
                 const SizedBox(height: 16),
                 Center(
                   child: TextButton.icon(
-                    icon: const Icon(Icons.phone_outlined),
-                    label: Text('sign_in_with_phone'.tr()),
+                    icon: const Icon(Icons.email_outlined),
+                    label: const Text('Sign in with Email OTP'),
                     onPressed: () => Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const PhoneAuthScreen()),
+                          builder: (_) => const EmailOtpSignInScreen()),
                     ),
                   ),
                 ),

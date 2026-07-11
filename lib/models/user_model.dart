@@ -11,6 +11,7 @@ class UserModel {
   // Phone / OTP fields
   final String? phoneNumber;
   final bool phoneVerified;
+  final bool emailVerified;
   final bool roleSelected;
   // Donation category (food, non-food)
   final String? preferredCategory;
@@ -25,6 +26,7 @@ class UserModel {
     this.isVerified = false,
     this.phoneNumber,
     this.phoneVerified = false,
+    this.emailVerified = false,
     this.roleSelected = false,
     this.preferredCategory,
   });
@@ -41,6 +43,7 @@ class UserModel {
       isVerified: map['isVerified'] ?? false,
       phoneNumber: map['phoneNumber'],
       phoneVerified: map['phoneVerified'] ?? false,
+      emailVerified: map['emailVerified'] ?? false,
       roleSelected: map['roleSelected'] ?? false,
       preferredCategory: map['preferredCategory'],
     );
@@ -74,6 +77,7 @@ class UserModel {
       'isVerified': isVerified,
       'phoneNumber': phoneNumber,
       'phoneVerified': phoneVerified,
+      'emailVerified': emailVerified,
       'roleSelected': roleSelected,
       'preferredCategory': preferredCategory,
     };
@@ -89,6 +93,7 @@ class UserModel {
     bool? isVerified,
     String? phoneNumber,
     bool? phoneVerified,
+    bool? emailVerified,
     bool? roleSelected,
     String? preferredCategory,
   }) {
@@ -102,6 +107,7 @@ class UserModel {
       isVerified: isVerified ?? this.isVerified,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       phoneVerified: phoneVerified ?? this.phoneVerified,
+      emailVerified: emailVerified ?? this.emailVerified,
       roleSelected: roleSelected ?? this.roleSelected,
       preferredCategory: preferredCategory ?? this.preferredCategory,
     );

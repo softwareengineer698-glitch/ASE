@@ -1,6 +1,5 @@
 import 'package:animate_do/animate_do.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -9,12 +8,12 @@ import '../../providers/auth_provider.dart';
 import '../../utils/localized_error_text.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
-import '../main/main_wrapper.dart';
-import 'otp_verification_screen.dart';
+import 'email_otp_screen.dart';
 import 'sign_in_screen.dart';
 
-/// Unified registration — no role selected here.
-/// Role is chosen after login via the role-picker bottom sheet.
+/// Registration screen — collects name, email, password.
+/// Sends a verification email after account creation, then
+/// goes to EmailOtpScreen where the user verifies before role selection.
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -31,7 +30,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _phoneController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  bool _isSendingOtp = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -43,136 +42,59 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  String _normalizePhone(String raw) {
-    final digits = raw.replaceAll(RegExp(r'[\s\-()]'), '');
-    if (digits.startsWith('0') && !digits.startsWith('+')) {
-      return '+92${digits.substring(1)}';
-    }
-    if (!digits.startsWith('+')) return '+$digits';
-    return digits;
-  }
+  Future<void> _signUp() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  void _showBypassDialog(String errorMsg) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('SMS Verification Unavailable'),
-        content: Text(
-            'Firebase SMS Auth is not enabled in this region or project configuration:\n\n'
-            '$errorMsg\n\n'
-            'Would you like to complete registration directly using your Email and Password instead?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('cancel'.tr()),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _signUpDirectly();
-            },
-            child: const Text('Register with Email'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _signUpDirectly() async {
+    setState(() => _isLoading = true);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    setState(() => _isSendingOtp = true);
 
     try {
-      await authProvider.signUp(
+      // 1. Create the Firebase account
+      final user = await authProvider.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
         role: UserRole.donor,
         userName: _nameController.text.trim(),
-        phoneNumber: _normalizePhone(_phoneController.text.trim()),
+        phoneNumber: _phoneController.text.trim().isEmpty
+            ? null
+            : _phoneController.text.trim(),
       );
 
       if (!mounted) return;
-      setState(() => _isSendingOtp = false);
+      setState(() => _isLoading = false);
 
-      if (authProvider.isAuthenticated && authProvider.user != null) {
-        final chosen = await _showRolePicker();
-        if (!mounted) return;
-        if (chosen != null) {
-          await authProvider.updateUserRole(chosen);
-        }
-        if (!mounted) return;
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const MainWrapper()),
-          (_) => false,
-        );
-      } else {
+      if (user == null || authProvider.error != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              localizedErrorText(authProvider.error, 'registration_failed')),
+          content: Text(localizedErrorText(
+              authProvider.error, 'registration_failed')),
           backgroundColor: Colors.red,
         ));
+        return;
       }
+
+      // 2. Send verification email via Firebase Auth
+      await authProvider.sendEmailVerification();
+
+      if (!mounted) return;
+
+      // 3. Go to email OTP / verification screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => EmailOtpScreen(
+            email: _emailController.text.trim(),
+            userName: _nameController.text.trim(),
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isSendingOtp = false);
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Registration error: $e'),
+        content: Text('Error: $e'),
         backgroundColor: Colors.red,
       ));
     }
-  }
-
-  Future<void> _signUp() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final phone = _normalizePhone(_phoneController.text.trim());
-    setState(() => _isSendingOtp = true);
-
-    await authProvider.sendOtp(
-      phoneNumber: phone,
-      onCodeSent: (verificationId, resendToken) {
-        if (!mounted) return;
-        setState(() => _isSendingOtp = false);
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => OtpVerificationScreen(
-              phoneNumber: phone,
-              verificationId: verificationId,
-              resendToken: resendToken,
-              signUpEmail: _emailController.text.trim(),
-              signUpPassword: _passwordController.text.trim(),
-              signUpName: _nameController.text.trim(),
-            ),
-          ),
-        );
-      },
-      onFailed: (error) {
-        if (!mounted) return;
-        setState(() => _isSendingOtp = false);
-        _showBypassDialog(error);
-      },
-      onAutoVerified: (PhoneAuthCredential credential) {
-        if (!mounted) return;
-        setState(() => _isSendingOtp = false);
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => OtpVerificationScreen(
-              phoneNumber: phone,
-              verificationId: '',
-              autoVerifiedCredential: credential,
-              signUpEmail: _emailController.text.trim(),
-              signUpPassword: _passwordController.text.trim(),
-              signUpName: _nameController.text.trim(),
-            ),
-          ),
-        );
-      },
-    );
   }
 
   Future<void> _signUpWithGoogle() async {
@@ -189,29 +111,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ));
       return;
     }
+    // Google accounts are pre-verified — go straight to role picker
     if (!result.user!.roleSelected) {
       final chosen = await _showRolePicker();
       if (!mounted) return;
       if (chosen != null) await authProvider.updateUserRole(chosen);
     }
     if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const MainWrapper()),
-      (_) => false,
-    );
+    _navigateToDashboard();
   }
 
   Future<UserRole?> _showRolePicker() {
     return showModalBottomSheet<UserRole>(
       context: context,
       isScrollControlled: true,
-      isDismissible: false, // must choose a role
+      isDismissible: false,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _RolePickerSheet(
         onSelected: (role) => Navigator.of(ctx).pop(role),
       ),
     );
+  }
+
+  void _navigateToDashboard() {
+    Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
   }
 
   @override
@@ -229,13 +152,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
               children: [
                 const SizedBox(height: 32),
 
-                // Logo
                 FadeInDown(
-                  child: Icon(
-                    Icons.volunteer_activism_rounded,
-                    size: 72,
-                    color: colorScheme.primary,
-                  ),
+                  child: Icon(Icons.volunteer_activism_rounded,
+                      size: 72, color: colorScheme.primary),
                 ),
                 const SizedBox(height: 20),
 
@@ -279,38 +198,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Phone number (required for OTP verification)
-                SlideInLeft(
-                  duration: const Duration(milliseconds: 500),
-                  delay: const Duration(milliseconds: 60),
-                  child: CustomTextField(
-                    controller: _phoneController,
-                    label: 'phone_number'.tr(),
-                    hint: 'enter_phone_hint'.tr(),
-                    keyboardType: TextInputType.phone,
-                    prefixIcon: Icons.phone_outlined,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                          RegExp(r'[\d\s\+\-\(\)]')),
-                    ],
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) {
-                        return 'phone_required'.tr();
-                      }
-                      final normalized = _normalizePhone(v.trim());
-                      if (!RegExp(r'^\+\d{10,15}$').hasMatch(normalized)) {
-                        return 'invalid_phone_number'.tr();
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-
                 // Email
                 SlideInLeft(
                   duration: const Duration(milliseconds: 500),
-                  delay: const Duration(milliseconds: 80),
+                  delay: const Duration(milliseconds: 60),
                   child: CustomTextField(
                     controller: _emailController,
                     label: 'email'.tr(),
@@ -330,10 +221,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 const SizedBox(height: 16),
 
+                // Phone (optional)
+                SlideInLeft(
+                  duration: const Duration(milliseconds: 500),
+                  delay: const Duration(milliseconds: 90),
+                  child: CustomTextField(
+                    controller: _phoneController,
+                    label: 'phone_number'.tr(),
+                    hint: 'enter_phone_hint'.tr(),
+                    keyboardType: TextInputType.phone,
+                    prefixIcon: Icons.phone_outlined,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'[\d\s\+\-\(\)]')),
+                    ],
+                    // Optional — no validator required
+                  ),
+                ),
+                const SizedBox(height: 16),
+
                 // Password
                 SlideInLeft(
                   duration: const Duration(milliseconds: 500),
-                  delay: const Duration(milliseconds: 160),
+                  delay: const Duration(milliseconds: 120),
                   child: CustomTextField(
                     controller: _passwordController,
                     label: 'password'.tr(),
@@ -343,8 +253,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       icon: Icon(_obscurePassword
                           ? Icons.visibility_outlined
                           : Icons.visibility_off_outlined),
-                      onPressed: () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
+                      onPressed: () => setState(
+                          () => _obscurePassword = !_obscurePassword),
                     ),
                     validator: (v) {
                       if (v == null || v.isEmpty) {
@@ -360,7 +270,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 // Confirm password
                 SlideInLeft(
                   duration: const Duration(milliseconds: 500),
-                  delay: const Duration(milliseconds: 240),
+                  delay: const Duration(milliseconds: 180),
                   child: CustomTextField(
                     controller: _confirmPasswordController,
                     label: 'confirm_password'.tr(),
@@ -380,29 +290,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                Consumer<AuthProvider>(
-                  builder: (context, auth, _) => FadeInUp(
-                    delay: const Duration(milliseconds: 300),
-                    child: CustomButton(
-                      text:
-                          _isSendingOtp ? 'sending_otp'.tr() : 'send_otp'.tr(),
-                      onPressed:
-                          (auth.isLoading || _isSendingOtp) ? null : _signUp,
-                      isLoading: auth.isLoading || _isSendingOtp,
-                    ),
+                FadeInUp(
+                  delay: const Duration(milliseconds: 250),
+                  child: CustomButton(
+                    text: _isLoading
+                        ? 'sending_otp'.tr()
+                        : 'send_otp'.tr(),
+                    onPressed: _isLoading ? null : _signUp,
+                    isLoading: _isLoading,
                   ),
                 ),
                 const SizedBox(height: 16),
 
                 OutlinedButton.icon(
-                  onPressed: _signUpWithGoogle,
+                  onPressed: _isLoading ? null : _signUpWithGoogle,
                   icon: const Icon(Icons.g_mobiledata_rounded),
                   label: Text('sign_up_with_google'.tr()),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                        borderRadius: BorderRadius.circular(12)),
                     side: BorderSide(color: Colors.grey.shade300, width: 1.5),
                   ),
                 ),
@@ -416,10 +323,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     TextButton(
                       onPressed: () => Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(builder: (_) => const SignInScreen()),
+                        MaterialPageRoute(
+                            builder: (_) => const SignInScreen()),
                       ),
                       child: Text('sign_in'.tr(),
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                          style:
+                              const TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -433,7 +342,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 }
 
-// ── Role Picker Bottom Sheet ─────────────────────────────────────────────────
+// ── Role Picker Bottom Sheet ────────────────────────────────────────────────
 class _RolePickerSheet extends StatelessWidget {
   final ValueChanged<UserRole> onSelected;
   const _RolePickerSheet({required this.onSelected});
@@ -447,22 +356,22 @@ class _RolePickerSheet extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(38),
+            color: Colors.black.withValues(alpha: 0.15),
             blurRadius: 20,
-            spreadRadius: 5,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+      padding: EdgeInsets.fromLTRB(
+          24, 20, 24, MediaQuery.of(context).viewInsets.bottom + 40),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
           Container(
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: Colors.grey.shade300,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -471,7 +380,7 @@ class _RolePickerSheet extends StatelessWidget {
               size: 48, color: colorScheme.primary),
           const SizedBox(height: 12),
           Text(
-            'How do you want to use FoodBridge?',
+            'welcome_to_foodbridge'.tr(),
             style: Theme.of(context)
                 .textTheme
                 .titleLarge
@@ -480,48 +389,42 @@ class _RolePickerSheet extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'You can change this later in your profile.',
-            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            'role_description'.tr(),
+            style:
+                TextStyle(fontSize: 13, color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 28),
-          Row(
-            children: [
-              Expanded(
-                child: _RoleOption(
-                  icon: Icons.volunteer_activism_rounded,
-                  title: 'Donate',
-                  subtitle: 'Share food & items',
-                  color: colorScheme.primary,
-                  onTap: () => onSelected(UserRole.donor),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _RoleOption(
-                  icon: Icons.shopping_basket_rounded,
-                  title: 'Receive',
-                  subtitle: 'Find food & items',
-                  color: Colors.orange,
-                  onTap: () => onSelected(UserRole.ngo),
-                ),
-              ),
-            ],
+          _RoleBtn(
+            icon: Icons.favorite_rounded,
+            title: 'im_a_donor'.tr(),
+            subtitle: 'donor_subtitle'.tr(),
+            color: colorScheme.primary,
+            onTap: () => onSelected(UserRole.donor),
           ),
+          const SizedBox(height: 12),
+          _RoleBtn(
+            icon: Icons.business_rounded,
+            title: 'im_an_ngo'.tr(),
+            subtitle: 'ngo_subtitle'.tr(),
+            color: Colors.orange,
+            onTap: () => onSelected(UserRole.ngo),
+          ),
+          const SizedBox(height: 8),
         ],
       ),
     );
   }
 }
 
-class _RoleOption extends StatelessWidget {
+class _RoleBtn extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
   final Color color;
   final VoidCallback onTap;
 
-  const _RoleOption({
+  const _RoleBtn({
     required this.icon,
     required this.title,
     required this.subtitle,
@@ -531,27 +434,53 @@ class _RoleOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-        decoration: BoxDecoration(
-          color: color.withAlpha(20),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withAlpha(80), width: 1.5),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 40, color: color),
-            const SizedBox(height: 10),
-            Text(title,
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 16, color: color)),
-            const SizedBox(height: 4),
-            Text(subtitle,
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                textAlign: TextAlign.center),
-          ],
+    return SizedBox(
+      width: double.infinity,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border:
+                Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 26),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: color)),
+                      const SizedBox(height: 2),
+                      Text(subtitle,
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey[600])),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios_rounded,
+                    color: color, size: 16),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -10,7 +10,6 @@ import '../screens/home/ngo_dashboard_new.dart';
 import '../screens/history/history_screen.dart';
 import '../screens/profile/donor_profile_screen.dart';
 import '../screens/profile/ngo_profile_screen.dart';
-import '../screens/forecast/forecast_dashboard.dart';
 import '../screens/impact/donor_impact_screen.dart';
 import '../screens/impact/ngo_impact_screen.dart';
 import '../screens/donor/create_donation_screen.dart';
@@ -218,7 +217,6 @@ class _ResponsiveNavigationWrapperState
       const DeliveriesScreen(),
       const DonorImpactScreen(),
       const HistoryScreen(),
-      const ForecastDashboard(),
       const DonorProfileScreen(),
     ];
   }
@@ -229,7 +227,6 @@ class _ResponsiveNavigationWrapperState
       const CreateDonationScreen(),
       const NGOImpactScreen(),
       const DeliveriesScreen(),
-      const ForecastDashboard(),
       const NGOProfileScreen(),
     ];
   }
@@ -255,7 +252,6 @@ class _ResponsiveNavigationWrapperState
             Icons.local_shipping, Icons.local_shipping_outlined, 'transport'),
         _buildRailDest(Icons.analytics, Icons.analytics_outlined, 'impact'),
         _buildRailDest(Icons.inventory, Icons.inventory_outlined, 'surplus'),
-        _buildRailDest(Icons.analytics, Icons.analytics_outlined, 'forecast'),
         _buildRailDest(Icons.person, Icons.person_outline, 'profile'),
       ];
 
@@ -266,7 +262,6 @@ class _ResponsiveNavigationWrapperState
         _buildRailDest(Icons.analytics, Icons.analytics_outlined, 'impact'),
         _buildRailDest(
             Icons.local_shipping, Icons.local_shipping_outlined, 'pickups'),
-        _buildRailDest(Icons.analytics, Icons.analytics_outlined, 'forecast'),
         _buildRailDest(Icons.business, Icons.business_outlined, 'profile'),
       ];
 

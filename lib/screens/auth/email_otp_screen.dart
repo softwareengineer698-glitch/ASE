@@ -1,0 +1,626 @@
+import 'dart:async';
+
+import 'package:animate_do/animate_do.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../models/user_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../widgets/custom_button.dart';
+import '../main/main_wrapper.dart';
+import 'sign_in_screen.dart';
+import 'sign_up_screen.dart';
+
+/// Shown after account creation.
+/// Instructs the user to click the verification link sent to their email.
+/// Polls Firebase Auth every 3 seconds to detect when email is verified,
+/// then marks the Firestore user doc as verified and shows the role picker.
+class EmailOtpScreen extends StatefulWidget {
+  final String email;
+  final String userName;
+
+  const EmailOtpScreen({
+    required this.email,
+    required this.userName,
+    super.key,
+  });
+
+  @override
+  State<EmailOtpScreen> createState() => _EmailOtpScreenState();
+}
+
+class _EmailOtpScreenState extends State<EmailOtpScreen> {
+  Timer? _pollTimer;
+  Timer? _resendCooldown;
+  int _cooldownSeconds = 60;
+  bool _isChecking = false;
+  bool _resending = false;
+  bool _verified = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startPolling();
+    _startCooldown();
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    _resendCooldown?.cancel();
+    super.dispose();
+  }
+
+  // ── Poll Firebase Auth every 3s to detect email verification ─────────────
+
+  void _startPolling() {
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+      await _checkVerification(silent: true);
+    });
+  }
+
+  Future<void> _checkVerification({bool silent = false}) async {
+    if (_verified) return;
+    if (!silent) setState(() => _isChecking = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      // Reload the user to get the latest emailVerified status
+      await user.reload();
+      final refreshed = FirebaseAuth.instance.currentUser;
+
+      if (refreshed != null && refreshed.emailVerified) {
+        _pollTimer?.cancel();
+        await _onEmailVerified(refreshed);
+      } else if (!silent) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Email not verified yet. Please click the link in your inbox.'),
+            backgroundColor: Colors.orange,
+          ));
+        }
+      }
+    } catch (e) {
+      if (!silent && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error checking verification: $e'),
+          backgroundColor: Colors.red,
+        ));
+      }
+    } finally {
+      if (!silent && mounted) setState(() => _isChecking = false);
+    }
+  }
+
+  Future<void> _onEmailVerified(User firebaseUser) async {
+    if (!mounted) return;
+    setState(() => _verified = true);
+
+    // Mark user as verified in Firestore
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(firebaseUser.uid)
+          .update({
+        'isVerified': true,
+        'emailVerified': true,
+      });
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    // Show success briefly then show role picker
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('✅ Email verified successfully!'),
+      backgroundColor: Colors.green,
+      duration: Duration(seconds: 2),
+    ));
+
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted) return;
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final chosen = await _showRolePicker();
+    if (!mounted) return;
+
+    if (chosen != null) {
+      await authProvider.updateUserRole(chosen);
+    }
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const MainWrapper()),
+      (_) => false,
+    );
+  }
+
+  // ── Resend verification email ─────────────────────────────────────────────
+
+  void _startCooldown() {
+    _cooldownSeconds = 60;
+    _resendCooldown?.cancel();
+    _resendCooldown =
+        Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {
+        if (_cooldownSeconds > 0) _cooldownSeconds--;
+      });
+    });
+  }
+
+  Future<void> _resendEmail() async {
+    if (_cooldownSeconds > 0 || _resending) return;
+    setState(() => _resending = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                'Verification email resent to ${widget.email}'),
+            backgroundColor: Colors.green,
+          ));
+          _startCooldown();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Failed to resend: $e'),
+          backgroundColor: Colors.red,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _resending = false);
+    }
+  }
+
+  // ── Role picker ───────────────────────────────────────────────────────────
+
+  Future<UserRole?> _showRolePicker() {
+    return showModalBottomSheet<UserRole>(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _RolePickerSheet(
+        onSelected: (role) => Navigator.of(ctx).pop(role),
+      ),
+    );
+  }
+
+  Future<void> _goBack() async {
+    // Cancel polling before leaving
+    _pollTimer?.cancel();
+    _resendCooldown?.cancel();
+
+    // Sign out the unverified account so the user can start fresh
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (_) {}
+
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const SignUpScreen()),
+      (_) => false,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goBack();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            onPressed: _goBack,
+          ),
+        ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+
+              // Icon
+              FadeInDown(
+                child: Center(
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.mark_email_unread_rounded,
+                        size: 52, color: colorScheme.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              // Title
+              FadeInDown(
+                delay: const Duration(milliseconds: 100),
+                child: Text(
+                  'Check Your Email',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.primary),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Subtitle
+              FadeInDown(
+                delay: const Duration(milliseconds: 150),
+                child: Text(
+                  'We sent a verification link to:',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 6),
+              FadeInDown(
+                delay: const Duration(milliseconds: 180),
+                child: Text(
+                  widget.email,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              // Instructions card
+              FadeInUp(
+                delay: const Duration(milliseconds: 200),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                        color: colorScheme.primary.withValues(alpha: 0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _Step(
+                          number: '1',
+                          text: 'Open the email from FoodBridge',
+                          color: colorScheme.primary),
+                      const SizedBox(height: 12),
+                      _Step(
+                          number: '2',
+                          text: 'Click the "Verify Email" link',
+                          color: colorScheme.primary),
+                      const SizedBox(height: 12),
+                      _Step(
+                          number: '3',
+                          text:
+                              'Come back here — the app will detect it automatically',
+                          color: colorScheme.primary),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Auto-checking indicator
+              if (!_verified)
+                FadeInUp(
+                  delay: const Duration(milliseconds: 250),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Waiting for verification...',
+                        style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+
+              if (_verified)
+                FadeInUp(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.check_circle, color: Colors.green),
+                      const SizedBox(width: 8),
+                      Text('Email verified!',
+                          style: TextStyle(
+                              color: Colors.green[700],
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+
+              const SizedBox(height: 28),
+
+              // Manual "I've verified" button
+              FadeInUp(
+                delay: const Duration(milliseconds: 300),
+                child: CustomButton(
+                  text: _isChecking
+                      ? 'Checking...'
+                      : "I've Verified My Email",
+                  onPressed: _isChecking || _verified
+                      ? null
+                      : () => _checkVerification(silent: false),
+                  isLoading: _isChecking,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Resend button
+              FadeInUp(
+                delay: const Duration(milliseconds: 350),
+                child: Center(
+                  child: _cooldownSeconds > 0
+                      ? Text(
+                          'Resend in ${_cooldownSeconds}s',
+                          style: TextStyle(color: Colors.grey[500]),
+                        )
+                      : TextButton.icon(
+                          onPressed: _resending ? null : _resendEmail,
+                          icon: _resending
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2))
+                              : const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text('Resend Verification Email'),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Back to sign in
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SignInScreen()),
+                    (_) => false,
+                  ),
+                  child: Text('back_to_sign_in'.tr(),
+                      style: TextStyle(color: Colors.grey[600])),
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      ),
+    ), // closes Scaffold
+    ); // closes PopScope
+  }
+}
+
+// ── Step indicator ────────────────────────────────────────────────────────────
+class _Step extends StatelessWidget {
+  final String number;
+  final String text;
+  final Color color;
+
+  const _Step({
+    required this.number,
+    required this.text,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: Text(number,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(text,
+                style: const TextStyle(fontSize: 14, height: 1.4)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Role Picker Bottom Sheet ──────────────────────────────────────────────────
+class _RolePickerSheet extends StatelessWidget {
+  final ValueChanged<UserRole> onSelected;
+  const _RolePickerSheet({required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.fromLTRB(
+          24, 20, 24, MediaQuery.of(context).viewInsets.bottom + 40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Icon(Icons.check_circle_rounded, size: 52, color: Colors.green[600]),
+          const SizedBox(height: 12),
+          Text(
+            '🎉 Account Verified!',
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Now choose how you want to use FoodBridge.',
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 28),
+          _RoleBtn(
+            icon: Icons.favorite_rounded,
+            title: 'im_a_donor'.tr(),
+            subtitle: 'donor_subtitle'.tr(),
+            color: colorScheme.primary,
+            onTap: () => onSelected(UserRole.donor),
+          ),
+          const SizedBox(height: 12),
+          _RoleBtn(
+            icon: Icons.business_rounded,
+            title: 'im_an_ngo'.tr(),
+            subtitle: 'ngo_subtitle'.tr(),
+            color: Colors.orange,
+            onTap: () => onSelected(UserRole.ngo),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
+
+class _RoleBtn extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _RoleBtn({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border:
+                Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
+          ),
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 26),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: color)),
+                      const SizedBox(height: 2),
+                      Text(subtitle,
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey[600])),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios_rounded,
+                    color: color, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

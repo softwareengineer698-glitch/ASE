@@ -79,7 +79,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> signUp({
+  Future<UserModel?> signUp({
     required String email,
     required String password,
     required UserRole role,
@@ -99,8 +99,10 @@ class AuthProvider extends ChangeNotifier {
       );
 
       notifyListeners();
+      return _user;
     } catch (e) {
       _setError(e.toString());
+      return null;
     } finally {
       _setLoading(false);
     }
@@ -319,8 +321,19 @@ class AuthProvider extends ChangeNotifier {
     if (!_authService.isFirebaseInitialized) {
       return;
     }
-
     _setupAuthStateListener();
+  }
+
+  /// Sends a verification email to the currently signed-in user.
+  Future<void> sendEmailVerification() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+      }
+    } catch (e) {
+      debugPrint('sendEmailVerification error: $e');
+    }
   }
 
   // Refresh FCM token after login
