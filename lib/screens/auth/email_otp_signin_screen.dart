@@ -56,8 +56,9 @@ class _EmailOtpSignInScreenState extends State<EmailOtpSignInScreen> {
 
     try {
       final acs = ActionCodeSettings(
-        // Must be an authorised domain in Firebase console → Authentication → Settings
-        url: 'https://foodbank1-49283.firebaseapp.com/finishSignIn',
+        // Must match your deployed app URL — registered in Firebase Console
+        // → Authentication → Settings → Authorized domains
+        url: 'https://foodbridge-chi-nine.vercel.app',
         handleCodeInApp: true,
         androidPackageName: 'com.example.foodbridge',
         androidInstallApp: true,

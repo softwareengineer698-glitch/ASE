@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../providers/auth_provider.dart';
@@ -107,6 +110,48 @@ class _SplashScreenState extends State<SplashScreen>
       await Future.delayed(const Duration(milliseconds: 2000));
       if (!mounted) return;
 
+      // ── Handle email sign-in link (web only) ──────────────────────────────
+      // When user clicks the email OTP sign-in link, the app opens with the
+      // link URL. Detect it here and complete the sign-in before anything else.
+      if (kIsWeb) {
+        try {
+          final auth = FirebaseAuth.instance;
+          // Get the current page URL on web
+          // ignore: undefined_prefixed_name
+          final currentUrl = Uri.base.toString();
+          if (auth.isSignInWithEmailLink(currentUrl)) {
+            // Get the email stored before sending the link
+            final user = auth.currentUser;
+            // Try to get email from current user or from the link itself
+            String? emailForSignIn = user?.email;
+
+            if (emailForSignIn != null && emailForSignIn.isNotEmpty) {
+              final result = await auth.signInWithEmailLink(
+                email: emailForSignIn,
+                emailLink: currentUrl,
+              );
+              if (result.user != null && mounted) {
+                await result.user!.reload();
+                // Mark verified in Firestore
+                try {
+                  await _markEmailVerified(result.user!);
+                } catch (_) {}
+                // Navigate to main app — role picker handled by MainWrapper
+                if (mounted) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MainWrapper()),
+                  );
+                  return;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('Email link sign-in error (non-fatal): $e');
+        }
+      }
+
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
       // Try to reinitialize auth — wrapped so it can never crash us
@@ -135,6 +180,30 @@ class _SplashScreenState extends State<SplashScreen>
     } catch (e) {
       debugPrint('Splash navigation error: $e');
       if (mounted) _navigateToAuth();
+    }
+  }
+
+  Future<void> _markEmailVerified(User firebaseUser) async {
+    try {
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(firebaseUser.uid);
+      final snap = await docRef.get();
+      if (!snap.exists) {
+        await docRef.set({
+          'uid': firebaseUser.uid,
+          'email': firebaseUser.email ?? '',
+          'role': UserRole.donor.name,
+          'createdAt': DateTime.now().toIso8601String(),
+          'isVerified': true,
+          'emailVerified': true,
+          'roleSelected': false,
+        });
+      } else {
+        await docRef.update({'isVerified': true, 'emailVerified': true});
+      }
+    } catch (e) {
+      debugPrint('_markEmailVerified error: $e');
     }
   }
 
