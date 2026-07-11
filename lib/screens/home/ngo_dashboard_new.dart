@@ -6,7 +6,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/language_provider.dart';
-import '../../models/claim_model.dart';
 import '../../models/user_model.dart';
 import '../../models/donation_model.dart';
 import '../../services/donation_service.dart';
@@ -946,7 +945,9 @@ class _NGODashboardState extends State<NGODashboard> {
                 ),
               ),
             // Chat with Donor — opens the chat room for this claim
-            if (donation.status == DonationStatus.claimed)
+            if (donation.status == DonationStatus.claimed ||
+                donation.status == DonationStatus.partiallyClaimed ||
+                donation.status == DonationStatus.completed)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: _ChatWithDonorButton(donation: donation),
@@ -1425,8 +1426,11 @@ class MetricCard extends StatelessWidget {
   }
 }
 
-/// Looks up the chatRoomId from the claim linked to this donation,
-/// then opens ChatScreen. Shows a loading indicator while fetching.
+/// Opens (or creates) a chat room between this NGO and the donor.
+/// Strategy:
+///   1. Look for an existing chat_room for this donation that includes both UIDs.
+///   2. If none found, create one immediately — no claim acceptance needed.
+///   3. Navigate to ChatScreen.
 class _ChatWithDonorButton extends StatefulWidget {
   final DonationModel donation;
   const _ChatWithDonorButton({required this.donation});
@@ -1442,141 +1446,99 @@ class _ChatWithDonorButtonState extends State<_ChatWithDonorButton> {
     final uid = Provider.of<AuthProvider>(context, listen: false).user?.uid;
     if (uid == null) return;
 
+    final donorId = widget.donation.donorId;
+    if (donorId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Donor information not found.')),
+        );
+      }
+      return;
+    }
+
+    if (uid == donorId) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You cannot chat with yourself.')),
+        );
+      }
+      return;
+    }
+
     setState(() => _loading = true);
     try {
-      // Find the accepted/pending claim for this donation by current user
-      final snap = await FirebaseFirestore.instance
-          .collection('claims')
-          .where('donationId', isEqualTo: widget.donation.id)
-          .where('claimantId', isEqualTo: uid)
-          .get();
-
-      if (snap.docs.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No claim found for this donation.')),
-          );
-        }
-        return;
-      }
-
-      QueryDocumentSnapshot<Map<String, dynamic>> claimDoc = snap.docs.first;
+      final db = FirebaseFirestore.instance;
       String? chatRoomId;
 
-      Future<bool> roomExists(String roomId) async {
-        final roomSnap = await FirebaseFirestore.instance
-            .collection('chat_rooms')
-            .doc(roomId)
-            .get();
-        return roomSnap.exists;
-      }
+      // ── Step 1: find existing room for this donation involving both users ──
+      final existingRooms = await db
+          .collection('chat_rooms')
+          .where('donationId', isEqualTo: widget.donation.id)
+          .where('participantIds', arrayContains: uid)
+          .get();
 
-      // Prefer any claim that already points to a valid room.
-      for (final doc in snap.docs) {
-        final currentChatRoomId = doc.data()['chatRoomId'] as String?;
-        if (currentChatRoomId != null &&
-            currentChatRoomId.isNotEmpty &&
-            await roomExists(currentChatRoomId)) {
-          claimDoc = doc;
-          chatRoomId = currentChatRoomId;
+      for (final doc in existingRooms.docs) {
+        final participants =
+            List<String>.from(doc.data()['participantIds'] ?? []);
+        if (participants.contains(donorId)) {
+          chatRoomId = doc.id;
           break;
         }
       }
 
-      // If multiple claims exist, prefer the accepted one, otherwise keep
-      // the current user's existing claim so chat can still start immediately.
-      if (chatRoomId == null || chatRoomId.isEmpty) {
-        for (final doc in snap.docs) {
-          if (doc.data()['status'] == ClaimStatus.accepted.name) {
-            claimDoc = doc;
-            break;
-          }
-        }
-      }
-
-      // Backfill older data where a room exists but the claim does not yet point to it.
-      if (chatRoomId == null || chatRoomId.isEmpty) {
-        for (final doc in snap.docs) {
-          final existingRoom = await FirebaseFirestore.instance
-              .collection('chat_rooms')
-              .where('claimId', isEqualTo: doc.id)
-              .limit(1)
-              .get();
-
-          if (existingRoom.docs.isNotEmpty) {
-            claimDoc = doc;
-            chatRoomId = existingRoom.docs.first.id;
-            await doc.reference.update({'chatRoomId': chatRoomId});
-            break;
-          }
-        }
-      }
-
-      // Final fallback for legacy records: locate a room by donation + participants.
-      if (chatRoomId == null || chatRoomId.isEmpty) {
-        final legacyRooms = await FirebaseFirestore.instance
-            .collection('chat_rooms')
-            .where('donationId', isEqualTo: widget.donation.id)
-            .get();
-
-        for (final room in legacyRooms.docs) {
-          final participants =
-              List<String>.from(room.data()['participantIds'] ?? []);
-          if (participants.contains(uid) &&
-              participants.contains(widget.donation.donorId)) {
-            chatRoomId = room.id;
-            await claimDoc.reference.update({'chatRoomId': chatRoomId});
-            break;
-          }
-        }
-      }
-
-      // Create a room for the NGO's claim when no existing room is found.
-      if (chatRoomId == null || chatRoomId.isEmpty) {
-        final roomRef = FirebaseFirestore.instance.collection('chat_rooms').doc();
+      // ── Step 2: if no room exists, create one now ──────────────────────────
+      if (chatRoomId == null) {
+        final roomRef = db.collection('chat_rooms').doc();
         await roomRef.set({
-          'participantIds': [widget.donation.donorId, uid],
-          'claimId': claimDoc.id,
+          'participantIds': [donorId, uid],
           'donationId': widget.donation.id,
           'lastMessage': null,
           'lastMessageAt': FieldValue.serverTimestamp(),
           'type': 'donor_recipient',
-          'unreadCounts': {widget.donation.donorId: 0, uid: 0},
+          'unreadCounts': {donorId: 0, uid: 0},
         });
         chatRoomId = roomRef.id;
-        await claimDoc.reference.update({'chatRoomId': chatRoomId});
-      }
 
-      if (chatRoomId == null || chatRoomId.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Unable to start chat for this donation.'),
-            ),
-          );
+        // Best-effort: also stamp the claim doc so acceptClaim() knows the room
+        try {
+          final claims = await db
+              .collection('claims')
+              .where('donationId', isEqualTo: widget.donation.id)
+              .where('claimantId', isEqualTo: uid)
+              .limit(1)
+              .get();
+          if (claims.docs.isNotEmpty) {
+            await claims.docs.first.reference
+                .update({'chatRoomId': chatRoomId});
+          }
+        } catch (_) {
+          // Non-critical — ignore
         }
-        return;
       }
 
       if (!mounted) return;
 
-      // Get donor name for chat header
-      final donorSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.donation.donorId)
-          .get();
-      final donorName = donorSnap.exists
-          ? ((donorSnap.data()?['userName'] ?? donorSnap.data()?['email']) ??
-              'Donor')
-          : 'Donor';
+      // ── Step 3: resolve donor display name ────────────────────────────────
+      String donorName = 'Donor';
+      try {
+        final donorSnap =
+            await db.collection('users').doc(donorId).get();
+        if (donorSnap.exists) {
+          final d = donorSnap.data()!;
+          donorName = (d['userName'] ?? d['organizationName'] ?? d['email'])
+                  ?.toString() ??
+              'Donor';
+        }
+      } catch (_) {}
 
       if (!mounted) return;
+
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ChatScreen(
             chatRoomId: chatRoomId!,
-            otherUserName: donorName.toString(),
+            otherUserName: donorName,
           ),
         ),
       );
@@ -1584,8 +1546,9 @@ class _ChatWithDonorButtonState extends State<_ChatWithDonorButton> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Error opening chat: $e'),
-              backgroundColor: Colors.red),
+            content: Text('Error opening chat: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {

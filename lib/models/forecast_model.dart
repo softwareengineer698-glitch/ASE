@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ForecastData {
   final DateTime date;
   final double demand;
@@ -67,12 +69,18 @@ class DonationHistoryRecord {
       'actualQuantity': actualQuantity,
       'claimedQuantity': claimedQuantity,
       'remainingQuantity': remainingQuantity,
-      'postedAt': postedAt.toIso8601String(),
-      'completedAt': completedAt?.toIso8601String(),
+      'postedAt': Timestamp.fromDate(postedAt),
+      'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
       'outcome': outcome,
       'weekday': postedAt.weekday, // 1=Mon … 7=Sun, useful for ML
       'month': postedAt.month,
     };
+  }
+
+  static DateTime _parseDate(dynamic v) {
+    if (v is Timestamp) return v.toDate();
+    if (v is String) return DateTime.tryParse(v) ?? DateTime.now();
+    return DateTime.now();
   }
 
   factory DonationHistoryRecord.fromMap(
@@ -85,9 +93,9 @@ class DonationHistoryRecord {
       actualQuantity: (map['actualQuantity'] as num?)?.toDouble() ?? 0,
       claimedQuantity: (map['claimedQuantity'] as num?)?.toDouble() ?? 0,
       remainingQuantity: (map['remainingQuantity'] as num?)?.toDouble() ?? 0,
-      postedAt: DateTime.tryParse(map['postedAt'] ?? '') ?? DateTime.now(),
+      postedAt: _parseDate(map['postedAt']),
       completedAt: map['completedAt'] != null
-          ? DateTime.tryParse(map['completedAt'])
+          ? _parseDate(map['completedAt'])
           : null,
       outcome: map['outcome'] ?? 'unknown',
     );

@@ -20,6 +20,7 @@ import '../donor/create_donation_screen.dart';
 import '../request/request_list_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../chat/chat_rooms_screen.dart';
+import '../chat/chat_screen.dart';
 
 class DonorDashboard extends StatefulWidget {
   const DonorDashboard({super.key});
@@ -539,6 +540,9 @@ class _DonorDashboardState extends State<DonorDashboard> {
                 ],
               ),
               const SizedBox(height: 8),
+              // Chat with NGO button
+              _ChatWithNGOButton(donation: donation),
+              const SizedBox(height: 8),
               // NGO verification status inline
               if (donation.claimedBy != null)
                 FutureBuilder<DocumentSnapshot>(
@@ -939,6 +943,134 @@ class MetricCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// Opens (or creates) a chat room between the donor and the NGO that claimed
+/// this donation. Mirrors the logic in _ChatWithDonorButton (NGO side).
+class _ChatWithNGOButton extends StatefulWidget {
+  final DonationModel donation;
+  const _ChatWithNGOButton({required this.donation});
+
+  @override
+  State<_ChatWithNGOButton> createState() => _ChatWithNGOButtonState();
+}
+
+class _ChatWithNGOButtonState extends State<_ChatWithNGOButton> {
+  bool _loading = false;
+
+  Future<void> _openChat() async {
+    final uid =
+        Provider.of<AuthProvider>(context, listen: false).user?.uid;
+    if (uid == null) return;
+
+    // claimedBy is the NGO's uid stored on the donation
+    final ngoId = widget.donation.claimedBy;
+    if (ngoId == null || ngoId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('No NGO found for this donation.')),
+        );
+      }
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      final db = FirebaseFirestore.instance;
+      String? chatRoomId;
+
+      // Step 1 — find existing room for this donation involving both users
+      final existingRooms = await db
+          .collection('chat_rooms')
+          .where('donationId', isEqualTo: widget.donation.id)
+          .where('participantIds', arrayContains: uid)
+          .get();
+
+      for (final doc in existingRooms.docs) {
+        final participants =
+            List<String>.from(doc.data()['participantIds'] ?? []);
+        if (participants.contains(ngoId)) {
+          chatRoomId = doc.id;
+          break;
+        }
+      }
+
+      // Step 2 — create room if none found
+      if (chatRoomId == null) {
+        final roomRef = db.collection('chat_rooms').doc();
+        await roomRef.set({
+          'participantIds': [uid, ngoId],
+          'donationId': widget.donation.id,
+          'lastMessage': null,
+          'lastMessageAt': FieldValue.serverTimestamp(),
+          'type': 'donor_recipient',
+          'unreadCounts': {uid: 0, ngoId: 0},
+        });
+        chatRoomId = roomRef.id;
+      }
+
+      if (!mounted) return;
+
+      // Step 3 — resolve NGO display name
+      String ngoName = 'NGO';
+      try {
+        final ngoSnap = await db.collection('users').doc(ngoId).get();
+        if (ngoSnap.exists) {
+          final d = ngoSnap.data()!;
+          ngoName =
+              (d['organizationName'] ?? d['userName'] ?? d['email'])
+                      ?.toString() ??
+                  'NGO';
+        }
+      } catch (_) {}
+
+      if (!mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            chatRoomId: chatRoomId!,
+            otherUserName: ngoName,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening chat: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _loading ? null : _openChat,
+        icon: _loading
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white))
+            : const Icon(Icons.chat_outlined),
+        label: Text('chat_with_recipient'.tr()),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.teal,
+          foregroundColor: Colors.white,
+        ),
       ),
     );
   }

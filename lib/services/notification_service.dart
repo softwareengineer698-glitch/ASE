@@ -688,7 +688,7 @@ class NotificationService {
             label: 'View',
             textColor: Colors.white,
             onPressed: () {
-              handleNotificationTap(notification);
+              handleNotificationTap(notification, callerContext: _currentContext);
             },
           ),
         ),
@@ -703,17 +703,24 @@ class NotificationService {
   void _simulatePushNotification(AppNotification notification) {}
 
   // Handle notification tap actions
-  Future<void> handleNotificationTap(AppNotification notification) async {
-    if (_currentContext == null) return;
+  // [callerContext] — pass the widget's own BuildContext when available (preferred).
+  // Falls back to the stored _currentContext if omitted.
+  Future<void> handleNotificationTap(AppNotification notification,
+      {BuildContext? callerContext}) async {
+    final ctx = callerContext ?? _currentContext;
+    if (ctx == null) return;
 
     // Mark as read when tapped
     markAsRead(notification.id);
 
-    // Navigate based on action data
-    final navigator = Navigator.of(_currentContext!);
+    // Capture navigator BEFORE any await — context may become invalid after async gap
+    if (!ctx.mounted) return;
+    final navigator = Navigator.of(ctx);
+
     switch (notification.actionData) {
       case 'surplus_list':
         final ngoName = await _resolveCurrentNgoName();
+        if (!navigator.mounted) return;
         navigator.push(
           MaterialPageRoute(
               builder: (_) => SurplusListScreen(ngoName: ngoName)),
@@ -744,6 +751,7 @@ class NotificationService {
         if (roomId != null) {
           final otherUserName =
               await _resolveChatUserName(notification, roomId);
+          if (!navigator.mounted) return;
           navigator.push(
             MaterialPageRoute(
               builder: (_) => ChatScreen(

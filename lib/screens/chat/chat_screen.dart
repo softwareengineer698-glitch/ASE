@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../models/chat_model.dart';
@@ -24,6 +23,14 @@ class _ChatScreenState extends State<ChatScreen> {
   final _db = FirebaseFirestore.instance;
   final _msgController = TextEditingController();
   final _scrollController = ScrollController();
+  late final String _uid;
+
+  @override
+  void initState() {
+    super.initState();
+    // Capture uid once — safe even if Provider rebuilds later
+    _uid = Provider.of<AuthProvider>(context, listen: false).user?.uid ?? '';
+  }
 
   @override
   void dispose() {
@@ -32,130 +39,99 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  String get _currentUid =>
-      Provider.of<AuthProvider>(context, listen: false).user?.uid ??
-      fb_auth.FirebaseAuth.instance.currentUser?.uid ??
-      '';
-
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-        );
+        _scrollController.jumpTo(
+            _scrollController.position.maxScrollExtent);
       }
     });
   }
 
-  // ── Send message ────────────────────────────────────────────────────────────
   Future<void> _sendMessage() async {
     final text = _msgController.text.trim();
     if (text.isEmpty) return;
 
-    final uid = _currentUid;
-    if (uid.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Not signed in — cannot send message.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    if (_uid.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Not signed in. Cannot send message.'),
+              backgroundColor: Colors.red),
+        );
+      }
       return;
     }
 
-    _msgController.clear();
-
-    final roomRef = _db.collection('chat_rooms').doc(widget.chatRoomId);
-    final msgRef = roomRef.collection('messages').doc();
-    final sentAt = DateTime.now();
+    _msgController.clear(); // immediate UX
 
     try {
-      final roomSnap = await roomRef.get();
-      final participants = List<String>.from(
-          (roomSnap.data()?['participantIds'] as List?) ?? const []);
+      final roomRef = _db.collection('chat_rooms').doc(widget.chatRoomId);
+      final now = Timestamp.now(); // always Timestamp — consistent format
 
-      // Write the message
-      await msgRef.set(
-        MessageModel(
-          id: msgRef.id,
-          senderId: uid,
-          text: text,
-          sentAt: sentAt,
-        ).toMap(),
-      );
+      // 1. Write the message
+      await roomRef.collection('messages').add({
+        'senderId': _uid,
+        'text': text,
+        'sentAt': now,          // Timestamp — consistent with orderBy
+        'isRead': false,
+      });
 
-      // Update room metadata + unread counts for others
-      final Map<String, dynamic> roomUpdate = {
+      // 2. Update room (fire-and-forget — don't await, don't block send)
+      unawaited(roomRef.set({
         'lastMessage': text,
-        'lastMessageAt': Timestamp.fromDate(sentAt),
-      };
-      for (final pid in participants) {
-        if (pid != uid) {
-          roomUpdate['unreadCounts.$pid'] = FieldValue.increment(1);
-        }
-      }
-      await roomRef.set(roomUpdate, SetOptions(merge: true));
+        'lastMessageAt': now,
+        'unreadCounts': {_uid: 0},
+      }, SetOptions(merge: true)));
 
-      // Write in-app notification for the other participants
-      final senderSnap = await _db.collection('users').doc(uid).get();
-      final sd = senderSnap.data();
-      final senderName =
-          (sd?['organizationName'] ?? sd?['userName'] ?? sd?['email'] ?? 'FoodBridge')
-              .toString();
-
-      for (final pid in participants) {
-        if (pid == uid) continue;
-        try {
-          await _db
-              .collection('notifications')
-              .doc('chat_${widget.chatRoomId}_${msgRef.id}_$pid')
-              .set({
-            'id': 'chat_${widget.chatRoomId}_${msgRef.id}_$pid',
-            'userId': pid,
-            'title': 'New Message from $senderName',
-            'message': text,
-            'type': 'newMessage',
-            'priority': 'high',
-            'timestamp': Timestamp.fromDate(sentAt),
-            'actionData': 'chat_${widget.chatRoomId}',
-            'relatedChatRoomId': widget.chatRoomId,
-            'relatedUserName': senderName,
-            'isRead': false,
-            'createdAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
-        } catch (_) {
-          // Notification failure must not block the chat
-        }
-      }
+      // 3. Increment unread for other participants (fire-and-forget)
+      unawaited(_incrementUnread(roomRef));
 
       _scrollToBottom();
     } catch (e) {
       if (!mounted) return;
+      _msgController.text = text; // restore on failure
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text('Send failed: $e'),
+            backgroundColor: Colors.red),
       );
-      _msgController.text = text;
-      _msgController.selection =
-          TextSelection.collapsed(offset: _msgController.text.length);
     }
   }
 
-  // ── Delete single message ────────────────────────────────────────────────────
-  Future<void> _deleteMessage(String messageId, String senderId) async {
-    final uid = _currentUid;
-    if (uid != senderId) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You can only delete your own messages.')),
-      );
+  Future<void> _incrementUnread(DocumentReference roomRef) async {
+    try {
+      final snap = await roomRef.get();
+      if (!snap.exists) return;
+      final participants = List<String>.from(
+          (snap.data() as Map<String, dynamic>?)?['participantIds'] ?? []);
+      final Map<String, dynamic> updates = {};
+      for (final pid in participants) {
+        if (pid != _uid) {
+          updates['unreadCounts.$pid'] = FieldValue.increment(1);
+        }
+      }
+      if (updates.isNotEmpty) await roomRef.update(updates);
+    } catch (_) {
+      // Non-critical — don't surface to user
+    }
+  }
+
+  Future<void> _deleteMessage(String docId, String senderId) async {
+    if (_uid != senderId) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('You can only delete your own messages.')),
+        );
+      }
       return;
     }
-    final confirm = await showDialog<bool>(
+    final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Delete Message'),
-        content: const Text('Delete this message for everyone?'),
+        content: const Text('Remove this message for everyone?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -167,23 +143,22 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
-    if (confirm != true) return;
+    if (ok != true || !mounted) return;
     await _db
         .collection('chat_rooms')
         .doc(widget.chatRoomId)
         .collection('messages')
-        .doc(messageId)
+        .doc(docId)
         .delete();
   }
 
-  // ── Delete entire chat ───────────────────────────────────────────────────────
   Future<void> _deleteEntireChat() async {
-    final confirm = await showDialog<bool>(
+    final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Delete Chat'),
         content: const Text(
-            'This will permanently delete all messages in this chat for both users. Continue?'),
+            'This deletes all messages for everyone. Cannot be undone.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -195,43 +170,33 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
-    if (confirm != true) return;
-
+    if (ok != true || !mounted) return;
     try {
-      // Delete all messages in the sub-collection
       final msgs = await _db
           .collection('chat_rooms')
           .doc(widget.chatRoomId)
           .collection('messages')
           .get();
       final batch = _db.batch();
-      for (final doc in msgs.docs) {
-        batch.delete(doc.reference);
+      for (final d in msgs.docs) {
+        batch.delete(d.reference);
       }
-      // Reset the room metadata
       batch.update(
-        _db.collection('chat_rooms').doc(widget.chatRoomId),
-        {
-          'lastMessage': null,
-          'lastMessageAt': FieldValue.serverTimestamp(),
-        },
-      );
+          _db.collection('chat_rooms').doc(widget.chatRoomId),
+          {'lastMessage': null, 'lastMessageAt': Timestamp.now()});
       await batch.commit();
-
       if (!mounted) return;
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
-  // ── Build ────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final uid = _currentUid;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -249,7 +214,7 @@ class _ChatScreenState extends State<ChatScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.red),
-            tooltip: 'Delete entire chat',
+            tooltip: 'Delete chat',
             onPressed: _deleteEntireChat,
           ),
         ],
@@ -260,7 +225,7 @@ class _ChatScreenState extends State<ChatScreen> {
           Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Colors.green.withValues(alpha: 0.1),
+            color: Colors.green.withValues(alpha: 0.08),
             child: Row(
               children: [
                 const Icon(Icons.info_outline, size: 16, color: Colors.green),
@@ -268,7 +233,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: Text(
                     'chat_info_banner'.tr(),
-                    style: const TextStyle(fontSize: 12, color: Colors.green),
+                    style:
+                        const TextStyle(fontSize: 12, color: Colors.green),
                   ),
                 ),
               ],
@@ -282,17 +248,37 @@ class _ChatScreenState extends State<ChatScreen> {
                   .collection('chat_rooms')
                   .doc(widget.chatRoomId)
                   .collection('messages')
-                  .orderBy('sentAt')
+                  .orderBy('sentAt', descending: false)
                   .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                final docs = snapshot.data?.docs ?? [];
+                if (snap.hasError) {
+                  return _ClientSortedMessages(
+                    chatRoomId: widget.chatRoomId,
+                    uid: _uid,
+                    scrollController: _scrollController,
+                    onLongPress: _deleteMessage,
+                    colorScheme: colorScheme,
+                  );
+                }
+                final docs = snap.data?.docs ?? [];
                 if (docs.isEmpty) {
                   return Center(
-                    child: Text('no_messages_yet'.tr(),
-                        style: TextStyle(color: Colors.grey[600])),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.chat_bubble_outline,
+                            size: 48, color: Colors.grey[300]),
+                        const SizedBox(height: 12),
+                        Text('no_messages_yet'.tr(),
+                            style: TextStyle(color: Colors.grey[500])),
+                        const SizedBox(height: 6),
+                        Text('Send the first message!',
+                            style: TextStyle(color: Colors.grey[400])),
+                      ],
+                    ),
                   );
                 }
                 WidgetsBinding.instance
@@ -301,16 +287,18 @@ class _ChatScreenState extends State<ChatScreen> {
                   controller: _scrollController,
                   padding: const EdgeInsets.all(16),
                   itemCount: docs.length,
-                  itemBuilder: (ctx, i) {
+                  itemBuilder: (_, i) {
                     final msg = MessageModel.fromMap(
-                        docs[i].data() as Map<String, dynamic>,
-                        docs[i].id);
-                    final isMe = msg.senderId == uid;
-                    return _MessageBubble(
-                      message: msg,
-                      isMe: isMe,
-                      onLongPress: () =>
-                          _deleteMessage(msg.id, msg.senderId),
+                        docs[i].data() as Map<String, dynamic>, docs[i].id);
+                    return _Bubble(
+                      docId: docs[i].id,
+                      senderId: msg.senderId,
+                      text: msg.text,
+                      time:
+                          '${msg.sentAt.hour}:${msg.sentAt.minute.toString().padLeft(2, '0')}',
+                      isMe: msg.senderId == _uid,
+                      onLongPress: _deleteMessage,
+                      colorScheme: colorScheme,
                     );
                   },
                 );
@@ -319,58 +307,57 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
 
           // Input bar
-          Container(
-            padding: EdgeInsets.only(
-              left: 12,
-              right: 8,
-              top: 8,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 8,
-            ),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 8,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _msgController,
-                    maxLines: null,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: InputDecoration(
-                      hintText: 'type_message'.tr(),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
+          SafeArea(
+            top: false,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 6,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _msgController,
+                      maxLines: null,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                        hintText: 'type_message'.tr(),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
                       ),
-                      filled: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                    ),
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Material(
-                  color: Theme.of(context).colorScheme.primary,
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    onTap: _sendMessage,
-                    customBorder: const CircleBorder(),
-                    child: const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Icon(Icons.send_rounded,
-                          color: Colors.white, size: 20),
+                      onSubmitted: (_) => _sendMessage(),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Material(
+                    color: colorScheme.primary,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      onTap: _sendMessage,
+                      customBorder: const CircleBorder(),
+                      child: const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Icon(Icons.send_rounded,
+                            color: Colors.white, size: 20),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -379,25 +366,103 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-// ── Message Bubble ─────────────────────────────────────────────────────────────
-class _MessageBubble extends StatelessWidget {
-  final MessageModel message;
-  final bool isMe;
-  final VoidCallback onLongPress;
+// ── Fallback: client-side sort when Firestore index is missing ─────────────────
+class _ClientSortedMessages extends StatelessWidget {
+  final String chatRoomId;
+  final String uid;
+  final ScrollController scrollController;
+  final Future<void> Function(String, String) onLongPress;
+  final ColorScheme colorScheme;
 
-  const _MessageBubble({
-    required this.message,
-    required this.isMe,
+  const _ClientSortedMessages({
+    required this.chatRoomId,
+    required this.uid,
+    required this.scrollController,
     required this.onLongPress,
+    required this.colorScheme,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('chat_rooms')
+          .doc(chatRoomId)
+          .collection('messages')
+          .snapshots(),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final docs = List<QueryDocumentSnapshot>.from(
+            snap.data?.docs ?? [])
+          ..sort((a, b) {
+            final ad = a.data() as Map<String, dynamic>;
+            final bd = b.data() as Map<String, dynamic>;
+            return _toMs(ad['sentAt']).compareTo(_toMs(bd['sentAt']));
+          });
+        if (docs.isEmpty) {
+          return Center(
+            child: Text('no_messages_yet'.tr(),
+                style: TextStyle(color: Colors.grey[500])),
+          );
+        }
+        return ListView.builder(
+          controller: scrollController,
+          padding: const EdgeInsets.all(16),
+          itemCount: docs.length,
+          itemBuilder: (_, i) {
+            final msg = MessageModel.fromMap(
+                docs[i].data() as Map<String, dynamic>, docs[i].id);
+            return _Bubble(
+              docId: docs[i].id,
+              senderId: msg.senderId,
+              text: msg.text,
+              time:
+                  '${msg.sentAt.hour}:${msg.sentAt.minute.toString().padLeft(2, '0')}',
+              isMe: msg.senderId == uid,
+              onLongPress: onLongPress,
+              colorScheme: colorScheme,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  static int _toMs(dynamic v) {
+    if (v is Timestamp) return v.millisecondsSinceEpoch;
+    if (v is int) return v;
+    return 0;
+  }
+}
+
+// ── Message bubble ─────────────────────────────────────────────────────────────
+class _Bubble extends StatelessWidget {
+  final String docId;
+  final String senderId;
+  final String text;
+  final String time;
+  final bool isMe;
+  final Future<void> Function(String, String) onLongPress;
+  final ColorScheme colorScheme;
+
+  const _Bubble({
+    required this.docId,
+    required this.senderId,
+    required this.text,
+    required this.time,
+    required this.isMe,
+    required this.onLongPress,
+    required this.colorScheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: GestureDetector(
-        onLongPress: onLongPress,
+        onLongPress: () => onLongPress(docId, senderId),
         child: Container(
           margin: const EdgeInsets.only(bottom: 8),
           constraints: BoxConstraints(
@@ -420,7 +485,7 @@ class _MessageBubble extends StatelessWidget {
                 isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
             children: [
               Text(
-                message.text,
+                text,
                 style: TextStyle(
                   color: isMe ? Colors.white : colorScheme.onSurface,
                   fontSize: 14,
@@ -428,7 +493,7 @@ class _MessageBubble extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '${message.sentAt.hour}:${message.sentAt.minute.toString().padLeft(2, '0')}',
+                time,
                 style: TextStyle(
                   fontSize: 10,
                   color: isMe
@@ -442,4 +507,9 @@ class _MessageBubble extends StatelessWidget {
       ),
     );
   }
+}
+
+// Dart doesn't have unawaited in dart:async on older SDKs — define locally
+void unawaited(Future<void> future) {
+  future.catchError((_) {}); // silently suppress errors on fire-and-forget
 }

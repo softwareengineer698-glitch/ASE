@@ -13,7 +13,7 @@ class ChatRoomsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uid = Provider.of<AuthProvider>(context, listen: false).user?.uid;
-    if (uid == null) {
+    if (uid == null || uid.isEmpty) {
       return const Scaffold(body: Center(child: Text('Not signed in')));
     }
 
@@ -32,22 +32,40 @@ class ChatRoomsScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+                  const SizedBox(height: 12),
+                  Text('Error loading chats',
+                      style: TextStyle(color: Colors.grey[600])),
+                ],
+              ),
+            );
           }
 
-          final rooms =
-              List<QueryDocumentSnapshot>.from(snapshot.data?.docs ?? [])
-                ..sort((a, b) {
-                  final aData = a.data() as Map<String, dynamic>;
-                  final bData = b.data() as Map<String, dynamic>;
-                  final aLast = aData['lastMessageAt'];
-                  final bLast = bData['lastMessageAt'];
-                  final aMillis =
-                      aLast is Timestamp ? aLast.millisecondsSinceEpoch : 0;
-                  final bMillis =
-                      bLast is Timestamp ? bLast.millisecondsSinceEpoch : 0;
-                  return bMillis.compareTo(aMillis);
-                });
+          // Filter out rooms with bad participantIds data
+          final allDocs = snapshot.data?.docs ?? [];
+          final rooms = allDocs.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final participants = List<String>.from(data['participantIds'] ?? []);
+            // Must have at least 2 participants and the other one must be non-empty
+            final otherUid = participants.firstWhere(
+              (id) => id != uid && id.isNotEmpty,
+              orElse: () => '',
+            );
+            return otherUid.isNotEmpty;
+          }).toList()
+            ..sort((a, b) {
+              final aData = a.data() as Map<String, dynamic>;
+              final bData = b.data() as Map<String, dynamic>;
+              final aLast = aData['lastMessageAt'];
+              final bLast = bData['lastMessageAt'];
+              final aMs = aLast is Timestamp ? aLast.millisecondsSinceEpoch : 0;
+              final bMs = bLast is Timestamp ? bLast.millisecondsSinceEpoch : 0;
+              return bMs.compareTo(aMs);
+            });
 
           if (rooms.isEmpty) {
             return Center(
@@ -81,11 +99,15 @@ class ChatRoomsScreen extends StatelessWidget {
               final roomId = rooms[index].id;
               final participants =
                   List<String>.from(data['participantIds'] ?? []);
-              final otherUid =
-                  participants.firstWhere((id) => id != uid, orElse: () => '');
+              final otherUid = participants.firstWhere(
+                (id) => id != uid && id.isNotEmpty,
+                orElse: () => '',
+              );
+
               final lastMsg = data['lastMessage'] as String? ?? '';
               final unread = (data['unreadCounts']
-                      as Map<String, dynamic>?)?[uid] as int? ??
+                          as Map<String, dynamic>?)?[uid]
+                      as int? ??
                   0;
               final lastAt = data['lastMessageAt'];
               String timeStr = '';
@@ -98,23 +120,32 @@ class ChatRoomsScreen extends StatelessWidget {
               return FutureBuilder<DocumentSnapshot>(
                 future: FirebaseFirestore.instance
                     .collection('users')
-                    .doc(otherUid)
+                    .doc(otherUid) // safe — filtered empty above
                     .get(),
                 builder: (context, userSnap) {
-                  final otherName = userSnap.hasData && userSnap.data!.exists
-                      ? ((userSnap.data!.data()
-                              as Map<String, dynamic>)['userName'] ??
-                          (userSnap.data!.data()
-                              as Map<String, dynamic>)['email'] ??
-                          'User')
-                      : 'Loading...';
+                  String otherName = 'Loading...';
+                  if (userSnap.hasData) {
+                    if (userSnap.data!.exists) {
+                      final d =
+                          userSnap.data!.data() as Map<String, dynamic>;
+                      otherName = (d['organizationName'] ??
+                              d['userName'] ??
+                              d['email'] ??
+                              'User')
+                          .toString();
+                    } else {
+                      otherName = 'User';
+                    }
+                  }
 
                   return ListTile(
                     leading: CircleAvatar(
                       backgroundColor:
                           Theme.of(context).colorScheme.primaryContainer,
                       child: Text(
-                        otherName.isNotEmpty ? otherName[0].toUpperCase() : '?',
+                        otherName.isNotEmpty
+                            ? otherName[0].toUpperCase()
+                            : '?',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.bold,
@@ -157,11 +188,12 @@ class ChatRoomsScreen extends StatelessWidget {
                       ],
                     ),
                     onTap: () {
-                      // Clear unread count
+                      // Clear unread count for this user
                       FirebaseFirestore.instance
                           .collection('chat_rooms')
                           .doc(roomId)
-                          .update({'unreadCounts.$uid': 0});
+                          .update({'unreadCounts.$uid': 0})
+                          .catchError((_) {});
 
                       Navigator.push(
                         context,

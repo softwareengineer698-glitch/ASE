@@ -314,7 +314,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         (notification.relatedChatRoomId?.isNotEmpty ?? false);
 
     if (canNavigate) {
-      _notificationService.handleNotificationTap(notification);
+      // Pass this screen's own context so Navigator.of() always succeeds
+      _notificationService.handleNotificationTap(notification,
+          callerContext: context);
       return;
     }
 

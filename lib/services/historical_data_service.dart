@@ -71,9 +71,9 @@ class HistoricalDataService {
     int days = 30,
   }) async {
     try {
-      final since = DateTime.now()
-          .subtract(Duration(days: days))
-          .toIso8601String();
+      final since = Timestamp.fromDate(
+        DateTime.now().subtract(Duration(days: days)),
+      );
 
       final snap = await _db
           .collection(_collection)
@@ -85,7 +85,7 @@ class HistoricalDataService {
 
       return snap.docs
           .map((d) => DonationHistoryRecord.fromMap(
-              d.data() as Map<String, dynamic>, d.id))
+              d.data(), d.id))
           .toList();
     } catch (e) {
       debugPrint('HistoricalDataService.getRecentHistory error: $e');
