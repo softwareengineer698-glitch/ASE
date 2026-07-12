@@ -195,6 +195,7 @@ class DonationService {
 
   /// Submit a partial (or full) claim. Returns the new claim ID.
   /// No NGO verification check — phone OTP is sufficient.
+  /// Prevents users from claiming their own donations.
   Future<String> submitClaim({
     required String donationId,
     required String claimantId,
@@ -207,6 +208,11 @@ class DonationService {
       if (!donSnap.exists) throw 'Donation not found';
 
       final don = DonationModel.fromMap(donSnap.data()!, donSnap.id);
+
+      // ── Prevent self-claiming ──────────────────────────────────────────────
+      if (don.donorId == claimantId) {
+        throw 'You cannot claim your own donation';
+      }
 
       final expiry = don.expiryTime;
       if (DateTime.now().isAfter(expiry)) {
@@ -410,7 +416,7 @@ class DonationService {
 
     final items = snap.docs
         .map((d) =>
-            DonationModel.fromMap(d.data() as Map<String, dynamic>, d.id))
+            DonationModel.fromMap(d.data(), d.id))
         .toList()
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
@@ -436,7 +442,7 @@ class DonationService {
 
     final items = snap.docs
         .map((d) =>
-            DonationModel.fromMap(d.data() as Map<String, dynamic>, d.id))
+            DonationModel.fromMap(d.data(), d.id))
         .toList()
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
@@ -504,7 +510,7 @@ class DonationService {
         await doc.reference.update({'status': DonationStatus.expired.name});
         // Record expired outcome for historical tracking
         final donation =
-            DonationModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+            DonationModel.fromMap(doc.data(), doc.id);
         await HistoricalDataService().recordDonationOutcome(
             donation.copyWith(status: DonationStatus.expired));
       }

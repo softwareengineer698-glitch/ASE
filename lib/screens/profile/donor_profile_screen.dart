@@ -7,6 +7,7 @@ import 'dart:io';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/language_provider.dart';
+import '../../services/cloudinary_service.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/loading_widget.dart';
@@ -29,9 +30,12 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
 
   bool _isLoading = false;
   bool _isEditing = false;
+  bool _isUploadingImage = false;
   Map<String, dynamic>? _profileData;
   File? _selectedImage;
+  String? _profileImageUrl;
   final ImagePicker _imagePicker = ImagePicker();
+  final CloudinaryService _cloudinaryService = CloudinaryService();
 
   @override
   void initState() {
@@ -91,6 +95,7 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
       _phoneController.text = _profileData!['phone'] ?? '';
       _addressController.text = _profileData!['address'] ?? '';
       _bioController.text = _profileData!['bio'] ?? '';
+      _profileImageUrl = _profileData!['profileImageUrl'];
     }
   }
 
@@ -193,8 +198,44 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
       if (image != null) {
         setState(() {
           _selectedImage = File(image.path);
+          _isUploadingImage = true;
         });
-        _showSuccessSnackBar('Profile picture updated from gallery');
+
+        // Upload to Cloudinary
+        try {
+          final user = Provider.of<AuthProvider>(context, listen: false).user;
+          if (user != null) {
+            final result = await _cloudinaryService.uploadDonationImage(
+              file: image,
+              donationId: 'profile_${user.uid}',
+              index: 0,
+            );
+
+            // Update profile with new image URL
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .update({
+              'profileImageUrl': result.secureUrl,
+              'profileImagePublicId': result.publicId,
+            });
+
+            if (mounted) {
+              setState(() {
+                _profileImageUrl = result.secureUrl;
+              });
+              _showSuccessSnackBar('Profile picture updated successfully!');
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            _showErrorSnackBar('Failed to upload image: $e');
+          }
+        } finally {
+          if (mounted) {
+            setState(() => _isUploadingImage = false);
+          }
+        }
       }
     } catch (e) {
       _showErrorSnackBar('Failed to pick image from gallery: $e');
@@ -213,8 +254,44 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
       if (image != null) {
         setState(() {
           _selectedImage = File(image.path);
+          _isUploadingImage = true;
         });
-        _showSuccessSnackBar('Profile picture updated from camera');
+
+        // Upload to Cloudinary
+        try {
+          final user = Provider.of<AuthProvider>(context, listen: false).user;
+          if (user != null) {
+            final result = await _cloudinaryService.uploadDonationImage(
+              file: image,
+              donationId: 'profile_${user.uid}',
+              index: 0,
+            );
+
+            // Update profile with new image URL
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .update({
+              'profileImageUrl': result.secureUrl,
+              'profileImagePublicId': result.publicId,
+            });
+
+            if (mounted) {
+              setState(() {
+                _profileImageUrl = result.secureUrl;
+              });
+              _showSuccessSnackBar('Profile picture updated successfully!');
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            _showErrorSnackBar('Failed to upload image: $e');
+          }
+        } finally {
+          if (mounted) {
+            setState(() => _isUploadingImage = false);
+          }
+        }
       }
     } catch (e) {
       _showErrorSnackBar('Failed to take picture: $e');
@@ -328,9 +405,11 @@ class _DonorProfileScreenState extends State<DonorProfileScreen> {
                   radius: 50,
                   backgroundColor: colorScheme.primaryContainer,
                   backgroundImage: _selectedImage != null
-                      ? FileImage(_selectedImage!)
-                      : null,
-                  child: _selectedImage == null
+                      ? FileImage(_selectedImage!) as ImageProvider
+                      : (_profileImageUrl != null && _profileImageUrl!.isNotEmpty)
+                          ? NetworkImage(_profileImageUrl!) as ImageProvider
+                          : null,
+                  child: (_selectedImage == null && (_profileImageUrl == null || _profileImageUrl!.isEmpty))
                       ? Text(
                           _getInitials(),
                           style: TextStyle(
