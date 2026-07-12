@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../providers/auth_provider.dart';
 import '../models/user_model.dart';
 import '../widgets/bottom_navigation_widget.dart';
@@ -125,14 +126,25 @@ class _ResponsiveNavigationWrapperState
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    radius: 20,
-                    child: Icon(
-                      _getRoleIcon(user.role),
-                      color: Colors.white,
-                      size: 24,
-                    ),
+                  FutureBuilder<String?>(
+                    future: _getUserProfileImageUrl(user.uid),
+                    builder: (context, snapshot) {
+                      final imageUrl = snapshot.data;
+                      return CircleAvatar(
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        radius: 20,
+                        backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
+                            ? NetworkImage(imageUrl) as ImageProvider
+                            : null,
+                        child: (imageUrl == null || imageUrl.isEmpty)
+                            ? Icon(
+                                _getRoleIcon(user.role),
+                                color: Colors.white,
+                                size: 24,
+                              )
+                            : null,
+                      );
+                    },
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -284,5 +296,20 @@ class _ResponsiveNavigationWrapperState
       selectedIcon: Icon(selected),
       label: Text(labelKey.tr()),
     );
+  }
+
+  Future<String?> _getUserProfileImageUrl(String uid) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+      if (doc.exists) {
+        return doc.data()?['profileImageUrl'] as String?;
+      }
+    } catch (e) {
+      debugPrint('Error fetching profile image URL: $e');
+    }
+    return null;
   }
 }

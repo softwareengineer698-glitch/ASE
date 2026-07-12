@@ -101,8 +101,9 @@ class _ClaimDonationScreenState extends State<ClaimDonationScreen> {
                       ),
                       validator: (v) {
                         final q = double.tryParse(v ?? '');
-                        if (q == null || q <= 0)
+                        if (q == null || q <= 0) {
                           return 'Enter a valid quantity';
+                        }
                         if (q > d.remainingQuantity) {
                           return 'Exceeds available (${d.remainingQuantity} ${d.unit})';
                         }
@@ -172,6 +173,33 @@ class _ClaimDonationScreenState extends State<ClaimDonationScreen> {
 
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     if (user == null) return;
+
+    // ── Check if user is trying to claim their own donation ────────────────
+    if (widget.donation.donorId == user.uid) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+              const SizedBox(width: 12),
+              const Text('Cannot Claim'),
+            ],
+          ),
+          content: const Text(
+            'You cannot claim your own donation. This donation was posted by you.',
+            style: TextStyle(fontSize: 15),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('OK', style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
 
     final qty = double.parse(_qtyController.text.trim());
 
