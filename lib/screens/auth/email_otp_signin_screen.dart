@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/user_model.dart';
@@ -55,6 +56,11 @@ class _EmailOtpSignInScreenState extends State<EmailOtpSignInScreen> {
     final email = _emailController.text.trim();
 
     try {
+      // Store email in SharedPreferences so splash screen can retrieve it
+      // when the sign-in link opens the app
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pendingEmailSignIn', email);
+
       final acs = ActionCodeSettings(
         // Must match your deployed app URL — registered in Firebase Console
         // → Authentication → Settings → Authorized domains
@@ -442,7 +448,7 @@ class _EmailOtpSignInScreenState extends State<EmailOtpSignInScreen> {
                 _isChecking ? 'Checking...' : "I've Clicked the Link",
             onPressed: _isChecking
                 ? null
-                : () => _checkSignIn(silent: false),
+                : () => _checkSignIn(),
             isLoading: _isChecking,
           ),
         ),

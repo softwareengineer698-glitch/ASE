@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../providers/auth_provider.dart';
@@ -120,22 +121,23 @@ class _SplashScreenState extends State<SplashScreen>
           // ignore: undefined_prefixed_name
           final currentUrl = Uri.base.toString();
           if (auth.isSignInWithEmailLink(currentUrl)) {
-            // Get the email stored before sending the link
-            final user = auth.currentUser;
-            // Try to get email from current user or from the link itself
-            String? emailForSignIn = user?.email;
+            // Retrieve the email stored before sending the link
+            final prefs = await SharedPreferences.getInstance();
+            final emailForSignIn = prefs.getString('pendingEmailSignIn');
 
             if (emailForSignIn != null && emailForSignIn.isNotEmpty) {
               final result = await auth.signInWithEmailLink(
                 email: emailForSignIn,
                 emailLink: currentUrl,
               );
-              if (result.user != null && mounted) {
+              if (result.user != null) {
                 await result.user!.reload();
                 // Mark verified in Firestore
                 try {
                   await _markEmailVerified(result.user!);
                 } catch (_) {}
+                // Clear the stored email
+                await prefs.remove('pendingEmailSignIn');
                 // Navigate to main app — role picker handled by MainWrapper
                 if (mounted) {
                   Navigator.pushReplacement(
