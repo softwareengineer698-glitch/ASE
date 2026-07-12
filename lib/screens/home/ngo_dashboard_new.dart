@@ -1130,47 +1130,110 @@ class _NGODashboardState extends State<NGODashboard> {
   }
 
   void _releaseDonation(DonationModel donation) {
+    final claimedQty = donation.quantity - donation.remainingQuantity;
+    final qtyController = TextEditingController(
+        text: claimedQty > 0 ? claimedQty.toStringAsFixed(1) : donation.quantity.toStringAsFixed(1));
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('release donation'.tr()),
-        content: Text('confirm release donation'.tr()),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('cancel'.tr()),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                await _donationService.releaseDonation(donation.id);
-                if (mounted && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('donation released'.tr()),
-                      backgroundColor: Colors.orange,
-                    ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Row(children: [
+            const Icon(Icons.refresh_rounded, color: Colors.orange, size: 24),
+            const SizedBox(width: 10),
+            Text('release donation'.tr()),
+          ]),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(donation.title,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Total: ${donation.quantity} ${donation.unit}  ·  Remaining: ${donation.remainingQuantity} ${donation.unit}  ·  Claimed: ${claimedQty.toStringAsFixed(1)} ${donation.unit}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 16),
+              const Text('How much do you want to release?',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: qtyController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'quantity'.tr(),
+                  suffixText: donation.unit,
+                  border: const OutlineInputBorder(),
+                  helperText: 'Max releasable: ${claimedQty > 0 ? claimedQty.toStringAsFixed(1) : donation.quantity.toStringAsFixed(1)} ${donation.unit}',
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [0.25, 0.5, 0.75, 1.0].map((frac) {
+                  final max = claimedQty > 0 ? claimedQty : donation.quantity;
+                  final qty = max * frac;
+                  return ActionChip(
+                    label: Text('${(frac * 100).toInt()}%'),
+                    onPressed: () => setDialogState(
+                        () => qtyController.text = qty.toStringAsFixed(1)),
                   );
+                }).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('cancel'.tr()),
+            ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                final qty = double.tryParse(qtyController.text.trim());
+                final maxRelease = claimedQty > 0 ? claimedQty : donation.quantity;
+                if (qty == null || qty <= 0 || qty > maxRelease) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('Enter a valid quantity (max $maxRelease ${donation.unit})'),
+                    backgroundColor: Colors.red,
+                  ));
+                  return;
                 }
-              } catch (e) {
-                if (mounted && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
+                Navigator.pop(ctx);
+                try {
+                  await _donationService.releaseDonation(donation.id, releaseQuantity: qty);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('Released ${qty.toStringAsFixed(1)} ${donation.unit} back to available pool'),
+                      backgroundColor: Colors.orange,
+                    ));
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       content: Text('error releasing donation'.tr()),
                       backgroundColor: Colors.red,
-                    ),
-                  );
+                    ));
+                  }
                 }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
+              },
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange, foregroundColor: Colors.white),
+              icon: const Icon(Icons.refresh_rounded, size: 16),
+              label: Text('release'.tr()),
             ),
-            child: Text('release'.tr()),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

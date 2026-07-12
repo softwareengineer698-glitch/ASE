@@ -110,16 +110,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ],
                 ),
               ),
-              PopupMenuItem(
-                value: 'settings',
-                child: Row(
-                  children: [
-                    const Icon(Icons.settings),
-                    const SizedBox(width: 8),
-                    Text('settings'.tr()),
-                  ],
-                ),
-              ),
             ],
           ),
         ],
@@ -310,16 +300,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     // Mark as read
     _notificationService.markAsRead(notification.id);
 
-    final canNavigate = (notification.actionData?.isNotEmpty ?? false) ||
-        (notification.relatedChatRoomId?.isNotEmpty ?? false);
-
-    if (canNavigate) {
-      // Pass this screen's own context so Navigator.of() always succeeds
-      _notificationService.handleNotificationTap(notification,
-          callerContext: context);
-      return;
-    }
-
+    // Always show details popup instead of navigating
     _showNotificationDetails(notification);
   }
 
@@ -327,67 +308,124 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(notification.title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
           children: [
-            Text(notification.message),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Icon(
-                  Icons.schedule,
-                  size: 16,
-                  color: Colors.grey[600],
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.getStatusColor(notification.type.toString())
+                    .withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                _getNotificationIcon(notification.type),
+                color: AppTheme.getStatusColor(notification.type.toString()),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                notification.title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  notification.formattedTime,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppTheme.getStatusColor(notification.type.toString())
-                        .withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    notification.typeLabel,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color:
-                          AppTheme.getStatusColor(notification.type.toString()),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Message
+              Text(
+                notification.message,
+                style: const TextStyle(fontSize: 15),
+              ),
+              const SizedBox(height: 16),
+              
+              // Metadata row
+              Row(
+                children: [
+                  Icon(
+                    Icons.schedule,
+                    size: 16,
+                    color: Colors.grey[600],
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    notification.formattedTime,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.getStatusColor(notification.type.toString())
+                          .withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      notification.typeLabel,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color:
+                            AppTheme.getStatusColor(notification.type.toString()),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('close'.tr()),
-          ),
-          if (notification.actionData != null)
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                // Handle action navigation
-              },
-              child: Text('view'.tr()),
+            child: Text(
+              'close'.tr(),
+              style: const TextStyle(fontSize: 16),
             ),
+          ),
         ],
       ),
     );
+  }
+
+  IconData _getNotificationIcon(NotificationType type) {
+    switch (type) {
+      case NotificationType.claimReceived:
+        return Icons.shopping_basket;
+      case NotificationType.claimAccepted:
+        return Icons.check_circle;
+      case NotificationType.claimRejected:
+        return Icons.cancel;
+      case NotificationType.newMessage:
+        return Icons.message;
+      case NotificationType.pickupReminder:
+        return Icons.alarm;
+      case NotificationType.expiryReminder:
+        return Icons.warning;
+      case NotificationType.surplusCollected:
+        return Icons.done_all;
+      case NotificationType.surplusReported:
+      case NotificationType.surplusAccepted:
+        return Icons.inventory_2;
+      case NotificationType.requestCreated:
+      case NotificationType.requestFulfilled:
+        return Icons.food_bank;
+      default:
+        return Icons.notifications;
+    }
   }
 
   void _deleteNotification(String notificationId) {
@@ -417,9 +455,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'clear_all':
         _showClearAllDialog();
         break;
-      case 'settings':
-        _showNotificationSettings();
-        break;
     }
   }
 
@@ -447,41 +482,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: Text('clear_all'.tr()),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showNotificationSettings() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('notification_settings'.tr()),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.notifications),
-              title: Text('push_notifications'.tr()),
-              trailing: const Switch(value: true, onChanged: null),
-            ),
-            ListTile(
-              leading: const Icon(Icons.vibration),
-              title: Text('vibration'.tr()),
-              trailing: const Switch(value: true, onChanged: null),
-            ),
-            ListTile(
-              leading: const Icon(Icons.volume_up),
-              title: Text('sound'.tr()),
-              trailing: const Switch(value: true, onChanged: null),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('close'.tr()),
           ),
         ],
       ),

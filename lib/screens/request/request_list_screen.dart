@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/food_request_service.dart';
 import '../../models/food_request_model.dart';
 import '../../widgets/dashboard_card.dart';
 import '../../widgets/empty_state_widget.dart';
+import '../chat/chat_screen.dart';
 import 'create_request_screen.dart';
 import 'my_requests_screen.dart';
 
@@ -59,7 +61,6 @@ class _RequestListScreenState extends State<RequestListScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -161,7 +162,7 @@ class _RequestListScreenState extends State<RequestListScreen> {
             child: DashboardCard(
               child: Row(
                 children: [
-                  Icon(Icons.request_quote, color: Colors.blue),
+                  const Icon(Icons.request_quote, color: Colors.blue),
                   const SizedBox(width: 8),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,6 +199,10 @@ class _RequestListScreenState extends State<RequestListScreen> {
   }
 
   Widget _buildRequestCard(FoodRequest request, ColorScheme colorScheme) {
+    final currentUserId =
+        Provider.of<AuthProvider>(context, listen: false).user?.uid ?? '';
+    final isOwnRequest = request.userId == currentUserId;
+
     return DashboardCard(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -212,40 +217,54 @@ class _RequestListScreenState extends State<RequestListScreen> {
                   child: Text(
                     request.foodType,
                     style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                        fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
-                if (request.isUrgent)
+                if (isOwnRequest)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text('Your Request',
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold)),
+                  ),
+                if (request.isUrgent && !isOwnRequest)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.priority_high, size: 12, color: Colors.red),
-                        const SizedBox(width: 4),
-                        Text('urgent'.tr(), style: TextStyle(fontSize: 10, color: Colors.red, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
+                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.priority_high, size: 12, color: Colors.red),
+                      SizedBox(width: 4),
+                      Text('Urgent',
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold)),
+                    ]),
                   ),
               ],
             ),
             const SizedBox(height: 8),
-
-            // Organization and quantity
             Row(
               children: [
-                Icon(Icons.business, size: 16, color: Colors.grey),
+                const Icon(Icons.business, size: 16, color: Colors.grey),
                 const SizedBox(width: 4),
-                Text(request.organizationName, style: const TextStyle(fontSize: 13)),
+                Text(request.organizationName,
+                    style: const TextStyle(fontSize: 13)),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(8),
@@ -253,28 +272,20 @@ class _RequestListScreenState extends State<RequestListScreen> {
                   child: Text(
                     '${request.quantity} ${request.unit}',
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: colorScheme.onPrimaryContainer,
-                    ),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: colorScheme.onPrimaryContainer),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-
-            // Description
             if (request.description.isNotEmpty)
-              Text(
-                request.description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-              ),
-
+              Text(request.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600])),
             const SizedBox(height: 12),
-
-            // Footer with time remaining and action
             Row(
               children: [
                 Icon(Icons.access_time, size: 14, color: request.urgencyColor),
@@ -284,22 +295,42 @@ class _RequestListScreenState extends State<RequestListScreen> {
                       ? '${'expires_in'.tr()} ${request.hoursRemaining}h'
                       : 'expired'.tr(),
                   style: TextStyle(
-                    fontSize: 12,
-                    color: request.urgencyColor,
-                    fontWeight: FontWeight.w500,
-                  ),
+                      fontSize: 12,
+                      color: request.urgencyColor,
+                      fontWeight: FontWeight.w500),
                 ),
                 const Spacer(),
-                ElevatedButton.icon(
-                  onPressed: () => _fulfillRequest(request),
-                  icon: const Icon(Icons.handshake, size: 16),
-                  label: Text('fulfill'.tr()),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                if (!isOwnRequest) ...[
+                  // Chat button
+                  OutlinedButton.icon(
+                    onPressed: () => _openChatWithRequester(request),
+                    icon: const Icon(Icons.chat_outlined, size: 14),
+                    label: const Text('Chat', style: TextStyle(fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      minimumSize: const Size(60, 30),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => _fulfillRequest(request),
+                    icon: const Icon(Icons.handshake, size: 16),
+                    label: Text('fulfill'.tr()),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                    ),
+                  ),
+                ] else
+                  OutlinedButton.icon(
+                    onPressed: null,
+                    icon: const Icon(Icons.block, size: 14, color: Colors.grey),
+                    label: const Text('Your own',
+                        style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  ),
               ],
             ),
           ],
@@ -309,6 +340,10 @@ class _RequestListScreenState extends State<RequestListScreen> {
   }
 
   void _showRequestDetails(FoodRequest request) {
+    final currentUserId =
+        Provider.of<AuthProvider>(context, listen: false).user?.uid ?? '';
+    final isOwnRequest = request.userId == currentUserId;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -319,13 +354,45 @@ class _RequestListScreenState extends State<RequestListScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildDetailRow('organization'.tr(), request.organizationName),
-              _buildDetailRow('quantity'.tr(), '${request.quantity} ${request.unit}'),
-              _buildDetailRow('needed_by'.tr(), 
-                '${request.neededBy.day}/${request.neededBy.month}/${request.neededBy.year}'),
+              _buildDetailRow('quantity'.tr(),
+                  '${request.quantity} ${request.unit}'),
+              _buildDetailRow('needed_by'.tr(),
+                  '${request.neededBy.day}/${request.neededBy.month}/${request.neededBy.year}'),
               if (request.description.isNotEmpty)
                 _buildDetailRow('description'.tr(), request.description),
               if (request.location != null)
                 _buildDetailRow('location'.tr(), request.location!),
+              // Requester contact info (visible to other users)
+              if (!isOwnRequest) ...[
+                const Divider(height: 24),
+                const Text('Contact Information',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                FutureBuilder<DocumentSnapshot>(
+                  future: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(request.userId)
+                      .get(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const CircularProgressIndicator();
+                    }
+                    final data = snapshot.data!.data() as Map<String, dynamic>?;
+                    final phone = data?['phone'] as String? ?? '';
+                    final email = data?['email'] as String? ?? '';
+                    final address = data?['address'] as String? ?? '';
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (email.isNotEmpty) _buildDetailRow('Email', email),
+                        if (phone.isNotEmpty) _buildDetailRow('Phone', phone),
+                        if (address.isNotEmpty)
+                          _buildDetailRow('Address', address),
+                      ],
+                    );
+                  },
+                ),
+              ],
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -342,9 +409,8 @@ class _RequestListScreenState extends State<RequestListScreen> {
                           ? '${request.hoursRemaining} ${'hours_remaining'.tr()}'
                           : 'request_expired'.tr(),
                       style: TextStyle(
-                        color: request.urgencyColor,
-                        fontWeight: FontWeight.bold,
-                      ),
+                          color: request.urgencyColor,
+                          fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -357,15 +423,25 @@ class _RequestListScreenState extends State<RequestListScreen> {
             onPressed: () => Navigator.pop(context),
             child: Text('close'.tr()),
           ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              _fulfillRequest(request);
-            },
-            icon: const Icon(Icons.handshake),
-            label: Text('fulfill_request'.tr()),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-          ),
+          if (!isOwnRequest) ...[
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                _openChatWithRequester(request);
+              },
+              icon: const Icon(Icons.chat_outlined, size: 16),
+              label: const Text('Chat'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                _fulfillRequest(request);
+              },
+              icon: const Icon(Icons.handshake),
+              label: Text('fulfill_request'.tr()),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            ),
+          ],
         ],
       ),
     );
@@ -389,13 +465,41 @@ class _RequestListScreenState extends State<RequestListScreen> {
 
   void _fulfillRequest(FoodRequest request) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final userName = authProvider.user?.userName ?? authProvider.user?.email?.split('@')[0] ?? 'A Donor';
+    final currentUser = authProvider.user;
+    if (currentUser == null) return;
+
+    // ── Block self-fulfillment ──────────────────────────────────────────────
+    if (request.userId == currentUser.uid) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Row(children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 26),
+            SizedBox(width: 10),
+            Text('Cannot Fulfill'),
+          ]),
+          content: const Text(
+              'You cannot fulfill your own food request.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    final userName = currentUser.userName ??
+        currentUser.email.split('@')[0];
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('fulfill_request'.tr()),
-        content: Text('confirm_fulfill_request'.tr(args: [request.foodType])),
+        content: Text(
+            'confirm_fulfill_request'.tr(args: [request.foodType])),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -407,7 +511,7 @@ class _RequestListScreenState extends State<RequestListScreen> {
               try {
                 await _requestService.fulfillRequest(
                   requestId: request.id,
-                  donorId: authProvider.user?.uid ?? '',
+                  donorId: currentUser.uid,
                   donorName: userName,
                 );
                 _showSuccessSnackBar('request_fulfilled_success'.tr());
@@ -418,11 +522,64 @@ class _RequestListScreenState extends State<RequestListScreen> {
             },
             icon: const Icon(Icons.check),
             label: Text('confirm'.tr()),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            style:
+                ElevatedButton.styleFrom(backgroundColor: Colors.green),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _openChatWithRequester(FoodRequest request) async {
+    final currentUser =
+        Provider.of<AuthProvider>(context, listen: false).user;
+    if (currentUser == null) return;
+    if (request.userId == currentUser.uid) return;
+
+    try {
+      final db = FirebaseFirestore.instance;
+      String? roomId;
+
+      final existing = await db
+          .collection('chat_rooms')
+          .where('requestId', isEqualTo: request.id)
+          .where('participantIds', arrayContains: currentUser.uid)
+          .get();
+
+      for (final doc in existing.docs) {
+        final p = List<String>.from(doc.data()['participantIds'] ?? []);
+        if (p.contains(request.userId)) {
+          roomId = doc.id;
+          break;
+        }
+      }
+
+      if (roomId == null) {
+        final ref = db.collection('chat_rooms').doc();
+        await ref.set({
+          'participantIds': [currentUser.uid, request.userId],
+          'requestId': request.id,
+          'lastMessage': null,
+          'lastMessageAt': FieldValue.serverTimestamp(),
+          'type': 'request_fulfillment',
+          'unreadCounts': {currentUser.uid: 0, request.userId: 0},
+        });
+        roomId = ref.id;
+      }
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            chatRoomId: roomId!,
+            otherUserName: request.organizationName,
+          ),
+        ),
+      );
+    } catch (e) {
+      _showErrorSnackBar('Could not open chat: $e');
+    }
   }
 
   void _showSuccessSnackBar(String message) {

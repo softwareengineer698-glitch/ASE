@@ -79,7 +79,12 @@ class AuthService {
           createdAt: DateTime.now(),
         );
 
-        final firestoreData = userModel.toMap();
+        final firestoreData = {
+          ...userModel.toMap(),
+          // Also store as 'name' and 'phone' so profile screens can read them
+          'name': userName ?? '',
+          'phone': phoneNumber ?? '',
+        };
         _log.d('Firestore data → doc: ${user.uid}, email: ${user.email}');
 
         await firestore.collection('users').doc(user.uid).set(firestoreData);
@@ -302,7 +307,12 @@ class AuthService {
         await firestore
             .collection('users')
             .doc(firebaseUser.uid)
-            .set(userModel.toMap());
+            .set({
+          ...userModel.toMap(),
+          // Store as 'name' and 'email' so profile screens can read them
+          'name': firebaseUser.displayName ?? '',
+          'phone': '',
+        });
         return (user: userModel, isNewUser: true);
       }
     } on FirebaseAuthException catch (e) {

@@ -727,11 +727,8 @@ class NotificationService {
         );
         break;
       case 'donor_dashboard':
-        navigator.push(
-          MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-        );
-        break;
       case 'ngo_dashboard':
+        // If there's a related donation, navigate with a snackbar pointing to dashboard
         navigator.push(
           MaterialPageRoute(builder: (_) => const NotificationsScreen()),
         );
@@ -747,6 +744,15 @@ class NotificationService {
         );
         break;
       default:
+        // ── New food request deep-link: 'request_<id>' ─────────────────────
+        if (notification.actionData != null &&
+            notification.actionData!.startsWith('request_')) {
+          navigator.push(
+            MaterialPageRoute(builder: (_) => const RequestListScreen()),
+          );
+          break;
+        }
+        // ── Chat room deep-link ────────────────────────────────────────────
         final roomId = _extractChatRoomId(notification);
         if (roomId != null) {
           final otherUserName =

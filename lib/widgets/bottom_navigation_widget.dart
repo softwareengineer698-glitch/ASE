@@ -49,9 +49,8 @@ class AppBottomNavigation extends StatelessWidget {
   List<NavigationDestination> _getDestinationsForRole(UserRole role) {
     switch (role) {
       case UserRole.donor:
-        return _donorDestinations;
       case UserRole.ngo:
-        return _ngoDestinations;
+        return _unifiedDestinations;
       case UserRole.volunteer:
         return _volunteerDestinations;
       case UserRole.admin:
@@ -59,22 +58,12 @@ class AppBottomNavigation extends StatelessWidget {
     }
   }
 
-  List<NavigationDestination> get _donorDestinations => [
+  List<NavigationDestination> get _unifiedDestinations => [
         _buildDest(Icons.home, Icons.home_outlined, 'home'),
-        _buildDest(Icons.shopping_cart, Icons.shopping_cart_outlined, 'accept'),
+        _buildDest(Icons.volunteer_activism, Icons.volunteer_activism_outlined, 'donate'),
         _buildDest(Icons.analytics, Icons.analytics_outlined, 'impact'),
-        _buildDest(Icons.inventory, Icons.inventory_outlined, 'surplus'),
+        _buildDest(Icons.local_shipping, Icons.local_shipping_outlined, 'transport'),
         _buildDest(Icons.person, Icons.person_outline, 'profile'),
-      ];
-
-  List<NavigationDestination> get _ngoDestinations => [
-        _buildDest(Icons.home, Icons.home_outlined, 'home'),
-        _buildDest(Icons.volunteer_activism, Icons.volunteer_activism_outlined,
-            'donate'),
-        _buildDest(Icons.analytics, Icons.analytics_outlined, 'impact'),
-        _buildDest(
-            Icons.local_shipping, Icons.local_shipping_outlined, 'pickups'),
-        _buildDest(Icons.business, Icons.business_outlined, 'profile'),
       ];
 
   List<NavigationDestination> get _volunteerDestinations => [

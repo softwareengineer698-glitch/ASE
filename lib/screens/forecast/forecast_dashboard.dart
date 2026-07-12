@@ -446,9 +446,9 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
         ),
         titlesData: FlTitlesData(
           rightTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              const AxisTitles(),
           topTitles:
-              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              const AxisTitles(),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
@@ -613,13 +613,13 @@ class _ForecastDashboardState extends State<ForecastDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        const Row(
           children: [
-            const Icon(Icons.warning_amber_rounded,
+            Icon(Icons.warning_amber_rounded,
                 color: Colors.orange, size: 20),
-            const SizedBox(width: 6),
+            SizedBox(width: 6),
             Text('Surplus Alerts',
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 17, fontWeight: FontWeight.bold)),
           ],
         ),

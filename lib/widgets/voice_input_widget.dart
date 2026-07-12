@@ -102,7 +102,7 @@ class _VoiceInputButtonState extends State<VoiceInputButton>
         '${dir.path}/whisper_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
     await _recorder.start(
-      const RecordConfig(encoder: AudioEncoder.aacLc, bitRate: 64000),
+      const RecordConfig(bitRate: 64000),
       path: _recordingPath!,
     );
 
@@ -284,7 +284,7 @@ class _VoiceInputButtonState extends State<VoiceInputButton>
                     ),
                   ),
                   child: _isProcessing
-                      ? SizedBox(
+                      ? const SizedBox(
                           width: 22,
                           height: 22,
                           child: CircularProgressIndicator(

@@ -6,13 +6,9 @@ import '../providers/auth_provider.dart';
 import '../models/user_model.dart';
 import '../widgets/bottom_navigation_widget.dart';
 import '../widgets/tracking_info_sheet.dart';
-import '../screens/home/donor_dashboard_new.dart';
-import '../screens/home/ngo_dashboard_new.dart';
-import '../screens/history/history_screen.dart';
-import '../screens/profile/donor_profile_screen.dart';
-import '../screens/profile/ngo_profile_screen.dart';
+import '../screens/home/unified_dashboard.dart';
+import '../screens/profile/unified_profile_screen.dart';
 import '../screens/impact/donor_impact_screen.dart';
-import '../screens/impact/ngo_impact_screen.dart';
 import '../screens/donor/create_donation_screen.dart';
 import '../screens/auth/sign_in_screen.dart';
 import '../screens/volunteer/volunteer_dashboard.dart';
@@ -101,9 +97,8 @@ class _ResponsiveNavigationWrapperState
   List<Widget> _getScreensForRole(UserRole role) {
     switch (role) {
       case UserRole.donor:
-        return _getDonorScreens();
       case UserRole.ngo:
-        return _getNGOScreens();
+        return _getUnifiedScreens();
       case UserRole.volunteer:
         return _getVolunteerScreens();
       case UserRole.admin:
@@ -213,9 +208,8 @@ class _ResponsiveNavigationWrapperState
   List<NavigationRailDestination> _getRailDestinations(UserRole role) {
     switch (role) {
       case UserRole.donor:
-        return _donorRailDestinations;
       case UserRole.ngo:
-        return _ngoRailDestinations;
+        return _unifiedRailDestinations;
       case UserRole.volunteer:
         return _volunteerRailDestinations;
       case UserRole.admin:
@@ -223,23 +217,13 @@ class _ResponsiveNavigationWrapperState
     }
   }
 
-  List<Widget> _getDonorScreens() {
+  List<Widget> _getUnifiedScreens() {
     return [
-      const DonorDashboard(),
-      const DeliveriesScreen(),
-      const DonorImpactScreen(),
-      const HistoryScreen(),
-      const DonorProfileScreen(),
-    ];
-  }
-
-  List<Widget> _getNGOScreens() {
-    return [
-      const NGODashboard(),
+      const UnifiedDashboard(),
       const CreateDonationScreen(),
-      const NGOImpactScreen(),
+      const DonorImpactScreen(),
       const DeliveriesScreen(),
-      const NGOProfileScreen(),
+      const UnifiedProfileScreen(),
     ];
   }
 
@@ -247,7 +231,7 @@ class _ResponsiveNavigationWrapperState
     return [
       const VolunteerDashboard(),
       const DeliveriesScreen(),
-      const NGOProfileScreen(),
+      const UnifiedProfileScreen(),
     ];
   }
 
@@ -258,29 +242,17 @@ class _ResponsiveNavigationWrapperState
     ];
   }
 
-  List<NavigationRailDestination> get _donorRailDestinations => [
+  List<NavigationRailDestination> get _unifiedRailDestinations => [
         _buildRailDest(Icons.home, Icons.home_outlined, 'home'),
-        _buildRailDest(
-            Icons.local_shipping, Icons.local_shipping_outlined, 'transport'),
+        _buildRailDest(Icons.volunteer_activism, Icons.volunteer_activism_outlined, 'donate'),
         _buildRailDest(Icons.analytics, Icons.analytics_outlined, 'impact'),
-        _buildRailDest(Icons.inventory, Icons.inventory_outlined, 'surplus'),
+        _buildRailDest(Icons.local_shipping, Icons.local_shipping_outlined, 'transport'),
         _buildRailDest(Icons.person, Icons.person_outline, 'profile'),
-      ];
-
-  List<NavigationRailDestination> get _ngoRailDestinations => [
-        _buildRailDest(Icons.home, Icons.home_outlined, 'home'),
-        _buildRailDest(Icons.volunteer_activism,
-            Icons.volunteer_activism_outlined, 'donate'),
-        _buildRailDest(Icons.analytics, Icons.analytics_outlined, 'impact'),
-        _buildRailDest(
-            Icons.local_shipping, Icons.local_shipping_outlined, 'pickups'),
-        _buildRailDest(Icons.business, Icons.business_outlined, 'profile'),
       ];
 
   List<NavigationRailDestination> get _volunteerRailDestinations => [
         _buildRailDest(Icons.home, Icons.home_outlined, 'home'),
-        _buildRailDest(
-            Icons.local_shipping, Icons.local_shipping_outlined, 'logistics'),
+        _buildRailDest(Icons.local_shipping, Icons.local_shipping_outlined, 'logistics'),
         _buildRailDest(Icons.person, Icons.person_outline, 'profile'),
       ];
 
@@ -299,6 +271,7 @@ class _ResponsiveNavigationWrapperState
   }
 
   Future<String?> _getUserProfileImageUrl(String uid) async {
+    // Guard: if the user has logged out, the uid may be stale — fail silently
     try {
       final doc = await FirebaseFirestore.instance
           .collection('users')
@@ -307,8 +280,8 @@ class _ResponsiveNavigationWrapperState
       if (doc.exists) {
         return doc.data()?['profileImageUrl'] as String?;
       }
-    } catch (e) {
-      debugPrint('Error fetching profile image URL: $e');
+    } catch (_) {
+      // Permission denied when logging out — suppress silently
     }
     return null;
   }

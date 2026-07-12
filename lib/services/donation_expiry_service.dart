@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'donation_service.dart';
+import 'notification_trigger_service.dart';
 
 /// Background service to handle automatic expiry of donations
 /// This service runs periodically to check and expire donations
@@ -50,6 +51,10 @@ class DonationExpiryService {
       }
       debugPrint('Checking for expired donations...');
       await _donationService.expireDonations();
+
+      // Also send expiry/pickup reminders
+      await NotificationTriggerService().sendExpiryAndPickupReminders();
+
       debugPrint('Expiry check completed');
     } catch (e) {
       debugPrint('Error during expiry check: $e');

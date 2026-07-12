@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:provider/provider.dart';
 import '../../models/donation_model.dart';
-import '../../providers/auth_provider.dart';
 import '../../services/donation_service.dart';
 import '../../widgets/donation_image.dart';
 import '../donor/claim_donation_screen.dart';

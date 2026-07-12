@@ -557,16 +557,18 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
     try {
       final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        if (mounted)
+        if (mounted) {
           UIHelper.showErrorSnackBar(context, 'Location services disabled');
+        }
         return;
       }
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          if (mounted)
+          if (mounted) {
             UIHelper.showErrorSnackBar(context, 'Location permission denied');
+          }
           return;
         }
       }
@@ -636,6 +638,7 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
       // Create the Firestore document first to obtain its ID, then upload
       final donationId = await _donationService.createDonation(
         donorId: user.uid,
+        donorName: user.userName ?? user.email.split('@')[0],
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         category: _selectedCategory,

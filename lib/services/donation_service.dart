@@ -3,9 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/donation_model.dart';
 import '../models/claim_model.dart';
 import '../services/historical_data_service.dart';
+import '../services/notification_trigger_service.dart';
 
 class DonationService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final _notif = NotificationTriggerService();
 
   // ── Create ────────────────────────────────────────────────────────────────
 
@@ -23,6 +25,7 @@ class DonationService {
     List<String> imagePublicIds = const [],
     double? latitude,
     double? longitude,
+    String? donorName,
   }) async {
     final data = {
       'donorId': donorId,
@@ -46,6 +49,19 @@ class DonationService {
       'completedAt': null,
     };
     final ref = await _db.collection('donations').add(data);
+
+    // ── Notify all other users about new food ─────────────────────────────
+    _notif.onNewDonationCreated(
+      donorId: donorId,
+      donorName: donorName ?? 'A donor',
+      donationId: ref.id,
+      foodTitle: title,
+      category: category,
+      quantity: quantity,
+      unit: unit,
+      location: location,
+    );
+
     return ref.id;
   }
 
@@ -174,20 +190,28 @@ class DonationService {
     );
   }
 
-  /// NGO releases a claimed donation (returns it to available pool)
-  Future<void> releaseDonation(String donationId) async {
+  /// NGO releases a claimed donation (returns specified quantity to available pool)
+  /// If [releaseQuantity] is null, restores the full claimed quantity.
+  Future<void> releaseDonation(String donationId, {double? releaseQuantity}) async {
     final donRef = _db.collection('donations').doc(donationId);
     final donSnap = await donRef.get();
 
     if (!donSnap.exists) throw 'Donation not found';
     final don = DonationModel.fromMap(donSnap.data()!, donSnap.id);
 
-    // Restore full quantity and set back to available
+    // How much to release — default is everything remaining claimed
+    final toRelease = releaseQuantity ?? (don.quantity - don.remainingQuantity);
+    final released = (don.remainingQuantity + toRelease).clamp(0.0, don.quantity);
+
+    final newStatus = released >= don.quantity
+        ? DonationStatus.available
+        : DonationStatus.partiallyClaimed;
+
     await donRef.update({
-      'remainingQuantity': don.quantity,
-      'status': DonationStatus.available.name,
-      'claimedBy': null,
-      'claimedAt': null,
+      'remainingQuantity': released,
+      'status': newStatus.name,
+      if (newStatus == DonationStatus.available) 'claimedBy': null,
+      if (newStatus == DonationStatus.available) 'claimedAt': null,
     });
   }
 
@@ -250,6 +274,22 @@ class DonationService {
           ).toMap());
 
       return claimRef.id;
+    }).then((claimId) {
+      // ── Notify donor that their donation was claimed ──────────────────────
+      _db.collection('donations').doc(donationId).get().then((donSnap) {
+        if (!donSnap.exists) return;
+        final don = DonationModel.fromMap(donSnap.data()!, donSnap.id);
+        _notif.onFoodClaimed(
+          donorId: don.donorId,
+          claimantId: claimantId,
+          donationId: donationId,
+          donationTitle: don.title,
+          claimedQuantity: requestedQuantity,
+          unit: don.unit,
+          claimId: claimId,
+        );
+      });
+      return claimId;
     });
   }
 
@@ -277,6 +317,19 @@ class DonationService {
       'acceptedAt': FieldValue.serverTimestamp(),
       'chatRoomId': roomRef.id,
     });
+
+    // ── Notify claimant that their claim was accepted ─────────────────────
+    final donSnap = await _db.collection('donations').doc(claim.donationId).get();
+    final donTitle = donSnap.exists
+        ? (donSnap.data()!['title'] as String? ?? 'Donation')
+        : 'Donation';
+    _notif.onClaimAccepted(
+      claimantId: claim.claimantId,
+      donorId: claim.donorId,
+      donationId: claim.donationId,
+      donationTitle: donTitle,
+      chatRoomId: roomRef.id,
+    );
   }
 
   Future<void> rejectClaim(String claimId) async {
@@ -302,6 +355,17 @@ class DonationService {
       }
       tx.update(claimRef, {'status': ClaimStatus.rejected.name});
     });
+
+    // ── Notify claimant that their claim was rejected ─────────────────────
+    final donSnap = await _db.collection('donations').doc(claim.donationId).get();
+    final donTitle = donSnap.exists
+        ? (donSnap.data()!['title'] as String? ?? 'Donation')
+        : 'Donation';
+    _notif.onClaimRejected(
+      claimantId: claim.claimantId,
+      donationId: claim.donationId,
+      donationTitle: donTitle,
+    );
   }
 
   /// Mark donation completed by donor after pickup
@@ -315,6 +379,17 @@ class DonationService {
     if (snap.exists) {
       final donation = DonationModel.fromMap(snap.data()!, donationId);
       await HistoricalDataService().recordDonationOutcome(donation);
+
+      // ── Notify all parties of completion ─────────────────────────────
+      final claimedBy = snap.data()!['claimedBy'] as String?;
+      if (claimedBy != null && claimedBy.isNotEmpty) {
+        _notif.onDonationCompleted(
+          donorId: donation.donorId,
+          claimantId: claimedBy,
+          donationId: donationId,
+          donationTitle: donation.title,
+        );
+      }
     }
   }
 

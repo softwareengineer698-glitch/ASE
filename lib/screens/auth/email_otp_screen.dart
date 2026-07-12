@@ -5,10 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import '../../models/user_model.dart';
-import '../../providers/auth_provider.dart';
 import '../../widgets/custom_button.dart';
 import '../main/main_wrapper.dart';
 import 'sign_in_screen.dart';
@@ -115,7 +112,6 @@ class _EmailOtpScreenState extends State<EmailOtpScreen> {
 
     if (!mounted) return;
 
-    // Show success briefly then show role picker
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
       content: Text('✅ Email verified successfully!'),
       backgroundColor: Colors.green,
@@ -125,15 +121,7 @@ class _EmailOtpScreenState extends State<EmailOtpScreen> {
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final chosen = await _showRolePicker();
-    if (!mounted) return;
-
-    if (chosen != null) {
-      await authProvider.updateUserRole(chosen);
-    }
-    if (!mounted) return;
-
+    // Go directly to the app — no role selection needed
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const MainWrapper()),
@@ -182,20 +170,6 @@ class _EmailOtpScreenState extends State<EmailOtpScreen> {
     } finally {
       if (mounted) setState(() => _resending = false);
     }
-  }
-
-  // ── Role picker ───────────────────────────────────────────────────────────
-
-  Future<UserRole?> _showRolePicker() {
-    return showModalBottomSheet<UserRole>(
-      context: context,
-      isScrollControlled: true,
-      isDismissible: false,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _RolePickerSheet(
-        onSelected: (role) => Navigator.of(ctx).pop(role),
-      ),
-    );
   }
 
   Future<void> _goBack() async {
@@ -385,7 +359,7 @@ class _EmailOtpScreenState extends State<EmailOtpScreen> {
                       : "I've Verified My Email",
                   onPressed: _isChecking || _verified
                       ? null
-                      : () => _checkVerification(silent: false),
+                      : () => _checkVerification(),
                   isLoading: _isChecking,
                 ),
               ),
@@ -477,150 +451,6 @@ class _Step extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-// ── Role Picker Bottom Sheet ──────────────────────────────────────────────────
-class _RolePickerSheet extends StatelessWidget {
-  final ValueChanged<UserRole> onSelected;
-  const _RolePickerSheet({required this.onSelected});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.fromLTRB(
-          24, 20, 24, MediaQuery.of(context).viewInsets.bottom + 40),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Icon(Icons.check_circle_rounded, size: 52, color: Colors.green[600]),
-          const SizedBox(height: 12),
-          Text(
-            '🎉 Account Verified!',
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Now choose how you want to use FoodBridge.',
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 28),
-          _RoleBtn(
-            icon: Icons.favorite_rounded,
-            title: 'im_a_donor'.tr(),
-            subtitle: 'donor_subtitle'.tr(),
-            color: colorScheme.primary,
-            onTap: () => onSelected(UserRole.donor),
-          ),
-          const SizedBox(height: 12),
-          _RoleBtn(
-            icon: Icons.business_rounded,
-            title: 'im_an_ngo'.tr(),
-            subtitle: 'ngo_subtitle'.tr(),
-            color: Colors.orange,
-            onTap: () => onSelected(UserRole.ngo),
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-}
-
-class _RoleBtn extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _RoleBtn({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(16),
-            border:
-                Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
-          ),
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-            child: Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: color, size: 26),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title,
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: color)),
-                      const SizedBox(height: 2),
-                      Text(subtitle,
-                          style: TextStyle(
-                              fontSize: 12, color: Colors.grey[600])),
-                    ],
-                  ),
-                ),
-                Icon(Icons.arrow_forward_ios_rounded,
-                    color: color, size: 16),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

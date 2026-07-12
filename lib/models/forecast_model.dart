@@ -57,8 +57,7 @@ class DonationHistoryRecord {
     required this.claimedQuantity,
     required this.remainingQuantity,
     required this.postedAt,
-    this.completedAt,
-    required this.outcome,
+    required this.outcome, this.completedAt,
   });
 
   Map<String, dynamic> toMap() {

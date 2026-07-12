@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:animate_do/animate_do.dart';
 import '../../providers/auth_provider.dart';
-import '../../models/user_model.dart';
 import '../../utils/localized_error_text.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_button.dart';
@@ -110,34 +109,8 @@ class _SignInScreenState extends State<SignInScreen> {
     }
     if (result == null || result.user == null) return;
 
-    // For Google sign-in: new users need role selection, returning users go straight to dashboard
-    if (!result.isNewUser || result.user!.roleSelected) {
-      _navigateToDashboard();
-      return;
-    }
-
-    // New Google user only: ask for Donate / Receive
-    final chosen = await _showRolePicker(isNewUser: true);
-    if (!mounted) return;
-    if (chosen == null) {
-      await authProvider.signOut();
-      return;
-    }
-    await authProvider.updateUserRole(chosen);
-    if (!mounted) return;
+    // Go directly to dashboard — no role picker needed
     _navigateToDashboard();
-  }
-
-  Future<UserRole?> _showRolePicker({bool isNewUser = false}) {
-    return showModalBottomSheet<UserRole>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _RolePickerSheet(
-        isNewUser: isNewUser,
-        onSelected: (role) => Navigator.of(ctx).pop(role),
-      ),
-    );
   }
 
   void _navigateToDashboard() {
@@ -337,150 +310,6 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Role Picker Bottom Sheet Widget ──────────────────────────────────────────
-class _RolePickerSheet extends StatelessWidget {
-  final bool isNewUser;
-  final ValueChanged<UserRole> onSelected;
-
-  const _RolePickerSheet({
-    required this.onSelected,
-    this.isNewUser = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.fromLTRB(
-          24, 20, 24, MediaQuery.of(context).viewInsets.bottom + 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Handle
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          Icon(
-            Icons.swap_horiz_rounded,
-            size: 48,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          const SizedBox(height: 12),
-
-          Text(
-            isNewUser ? 'welcome_to_foodbridge'.tr() : 'choose_your_role'.tr(),
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'role_description'.tr(),
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-
-          _RoleActionButton(
-            title: 'donate'.tr(),
-            icon: Icons.favorite_rounded,
-            color: const Color(0xFFE53935),
-            onTap: () => onSelected(UserRole.donor),
-          ),
-          const SizedBox(height: 12),
-          _RoleActionButton(
-            title: 'receive'.tr(),
-            icon: Icons.business_rounded,
-            color: const Color(0xFF43A047),
-            onTap: () => onSelected(UserRole.ngo),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RoleActionButton extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _RoleActionButton({
-    required this.title,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 72,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withValues(alpha: 0.35)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: color, size: 26),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                Icon(Icons.arrow_forward_ios_rounded, color: color, size: 18),
               ],
             ),
           ),

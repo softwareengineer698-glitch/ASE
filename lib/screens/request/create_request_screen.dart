@@ -160,7 +160,7 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: _selectedFoodType,
+                      initialValue: _selectedFoodType,
                       items: _foodTypes.map((type) {
                         return DropdownMenuItem(
                           value: type,
@@ -227,7 +227,7 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
                               Text('unit'.tr(), style: const TextStyle(fontSize: 12, color: Colors.grey)),
                               const SizedBox(height: 4),
                               DropdownButtonFormField<String>(
-                                value: _selectedUnit,
+                                initialValue: _selectedUnit,
                                 items: _units.map((unit) {
                                   return DropdownMenuItem(
                                     value: unit,
@@ -341,7 +341,7 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
                           Switch(
                             value: _isUrgent,
                             onChanged: (value) => setState(() => _isUrgent = value),
-                            activeColor: Colors.red,
+                            activeThumbColor: Colors.red,
                           ),
                         ],
                       ),

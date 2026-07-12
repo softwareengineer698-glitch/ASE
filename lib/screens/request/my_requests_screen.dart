@@ -248,7 +248,7 @@ class _MyRequestsScreenState extends State<MyRequestsScreen> {
           // Quantity and deadline
           Row(
             children: [
-              Icon(Icons.inventory_2, size: 16, color: Colors.grey),
+              const Icon(Icons.inventory_2, size: 16, color: Colors.grey),
               const SizedBox(width: 4),
               Text('${request.quantity} ${request.unit}'),
               const Spacer(),
@@ -274,7 +274,7 @@ class _MyRequestsScreenState extends State<MyRequestsScreen> {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.volunteer_activism, size: 14, color: Colors.green),
+                const Icon(Icons.volunteer_activism, size: 14, color: Colors.green),
                 const SizedBox(width: 4),
                 Text(
                   '${'fulfilled_by'.tr()} ${request.fulfilledByDonorName}',

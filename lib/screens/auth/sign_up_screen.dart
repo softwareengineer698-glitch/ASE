@@ -10,6 +10,7 @@ import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import 'email_otp_screen.dart';
 import 'sign_in_screen.dart';
+import '../main/main_wrapper.dart';
 
 /// Registration screen — collects name, email, password.
 /// Sends a verification email after account creation, then
@@ -111,30 +112,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ));
       return;
     }
-    // Google accounts are pre-verified — go straight to role picker
-    if (!result.user!.roleSelected) {
-      final chosen = await _showRolePicker();
-      if (!mounted) return;
-      if (chosen != null) await authProvider.updateUserRole(chosen);
-    }
-    if (!mounted) return;
+    // Go directly to dashboard — no role picker needed
     _navigateToDashboard();
   }
 
-  Future<UserRole?> _showRolePicker() {
-    return showModalBottomSheet<UserRole>(
-      context: context,
-      isScrollControlled: true,
-      isDismissible: false,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _RolePickerSheet(
-        onSelected: (role) => Navigator.of(ctx).pop(role),
-      ),
-    );
-  }
-
   void _navigateToDashboard() {
-    Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const MainWrapper()),
+      (_) => false,
+    );
   }
 
   @override
@@ -333,151 +320,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ],
                 ),
                 const SizedBox(height: 32),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Role Picker Bottom Sheet ────────────────────────────────────────────────
-class _RolePickerSheet extends StatelessWidget {
-  final ValueChanged<UserRole> onSelected;
-  const _RolePickerSheet({required this.onSelected});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.fromLTRB(
-          24, 20, 24, MediaQuery.of(context).viewInsets.bottom + 40),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Icon(Icons.volunteer_activism_rounded,
-              size: 48, color: colorScheme.primary),
-          const SizedBox(height: 12),
-          Text(
-            'welcome_to_foodbridge'.tr(),
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'role_description'.tr(),
-            style:
-                TextStyle(fontSize: 13, color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 28),
-          _RoleBtn(
-            icon: Icons.favorite_rounded,
-            title: 'im_a_donor'.tr(),
-            subtitle: 'donor_subtitle'.tr(),
-            color: colorScheme.primary,
-            onTap: () => onSelected(UserRole.donor),
-          ),
-          const SizedBox(height: 12),
-          _RoleBtn(
-            icon: Icons.business_rounded,
-            title: 'im_an_ngo'.tr(),
-            subtitle: 'ngo_subtitle'.tr(),
-            color: Colors.orange,
-            onTap: () => onSelected(UserRole.ngo),
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-}
-
-class _RoleBtn extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _RoleBtn({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(16),
-            border:
-                Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-            child: Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: color, size: 26),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title,
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: color)),
-                      const SizedBox(height: 2),
-                      Text(subtitle,
-                          style: TextStyle(
-                              fontSize: 12, color: Colors.grey[600])),
-                    ],
-                  ),
-                ),
-                Icon(Icons.arrow_forward_ios_rounded,
-                    color: color, size: 16),
               ],
             ),
           ),

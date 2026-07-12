@@ -11,8 +11,7 @@ class ExpiryCountdownWidget extends StatefulWidget {
   final TextStyle? style;
 
   const ExpiryCountdownWidget({
-    super.key,
-    required this.expiryTime,
+    required this.expiryTime, super.key,
     this.style,
   });
 
@@ -72,8 +71,9 @@ class _ExpiryCountdownWidgetState extends State<ExpiryCountdownWidget> {
     if (isExpired) {
       final ago = _remaining.abs();
       if (ago.inDays >= 1) return 'Expired ${ago.inDays}d ago';
-      if (ago.inHours >= 1)
+      if (ago.inHours >= 1) {
         return 'Expired ${ago.inHours}h ${ago.inMinutes % 60}m ago';
+      }
       if (ago.inMinutes >= 1) return 'Expired ${ago.inMinutes}m ago';
       return 'Just expired';
     }

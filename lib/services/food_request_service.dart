@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import '../models/food_request_model.dart';
+import '../models/notification_model.dart';
 import '../services/notification_service.dart';
 
 class FoodRequestService {
@@ -76,7 +78,41 @@ class FoodRequestService {
         .doc(request.id)
         .set(request.toMap());
 
+    // Notify all other users about the new food request
+    await _broadcastNewRequestNotification(request);
+
     return request;
+  }
+
+  /// Push a Firestore notification to every user except the requester,
+  /// so they see the new food request in their notification centre.
+  Future<void> _broadcastNewRequestNotification(FoodRequest request) async {
+    try {
+      final usersSnap = await _firestore.collection('users').get();
+      final notifId =
+          'req_created_${request.id}_${DateTime.now().millisecondsSinceEpoch}';
+      for (final userDoc in usersSnap.docs) {
+        if (userDoc.id == request.userId) continue; // skip the requester
+        await _notificationService.createRemoteNotificationForUser(
+          userId: userDoc.id,
+          notification: AppNotification(
+            id: '${notifId}_${userDoc.id}',
+            title: '🍽️ New Food Request',
+            message:
+                '${request.organizationName} needs ${request.quantity} ${request.unit} of ${request.foodType}.',
+            type: NotificationType.requestCreated,
+            priority: request.isUrgent
+                ? NotificationPriority.urgent
+                : NotificationPriority.medium,
+            timestamp: DateTime.now(),
+            actionData: 'request_${request.id}',
+            relatedRequestId: request.id,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Failed to broadcast request notification: $e');
+    }
   }
 
   // Fulfill a request (donor provides the food)
