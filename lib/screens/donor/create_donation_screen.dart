@@ -282,6 +282,13 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
           labelText: 'description'.tr(),
           hintText: 'enter_description'.tr(),
           border: const OutlineInputBorder(),
+          helperText: '${_descriptionController.text.trim().length}/100 characters minimum',
+          helperStyle: TextStyle(
+            color: _descriptionController.text.trim().length >= 100
+                ? Colors.green
+                : Colors.grey[600],
+            fontSize: 11,
+          ),
           suffixIcon: Padding(
             padding: const EdgeInsets.only(right: 4),
             child: VoiceInputButton(
@@ -293,9 +300,13 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
           ),
         ),
         maxLines: 4,
+        onChanged: (_) => setState(() {}),
         validator: (v) {
           if (v == null || v.trim().isEmpty) {
             return 'please_enter_description'.tr();
+          }
+          if (v.trim().length < 100) {
+            return 'Description must be at least 100 characters (${v.trim().length}/100)';
           }
           return null;
         },

@@ -124,6 +124,67 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
+  Widget _buildPasswordStrength(String password) {
+    int strength = 0;
+    if (password.length >= 8) strength++;
+    if (password.contains(RegExp(r'[A-Z]'))) strength++;
+    if (password.contains(RegExp(r'[a-z]'))) strength++;
+    if (password.contains(RegExp(r'[0-9]'))) strength++;
+    if (password.contains(RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-]'))) strength++;
+
+    if (password.isEmpty) return const SizedBox.shrink();
+
+    final labels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
+    final colors = [Colors.red, Colors.orange, Colors.yellow.shade700, Colors.lightGreen, Colors.green];
+    final label = labels[strength - 1];
+    final color = colors[strength - 1];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: strength / 5,
+                backgroundColor: Colors.grey.shade200,
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+                minHeight: 6,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12,
+                  color: color,
+                  fontWeight: FontWeight.w600)),
+        ]),
+        const SizedBox(height: 4),
+        Wrap(spacing: 8, children: [
+          _reqChip('8+ chars', password.length >= 8),
+          _reqChip('A-Z', password.contains(RegExp(r'[A-Z]'))),
+          _reqChip('a-z', password.contains(RegExp(r'[a-z]'))),
+          _reqChip('0-9', password.contains(RegExp(r'[0-9]'))),
+          _reqChip('!@#', password.contains(RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-]'))),
+        ]),
+      ],
+    );
+  }
+
+  Widget _reqChip(String label, bool met) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(met ? Icons.check_circle : Icons.cancel,
+          size: 13, color: met ? Colors.green : Colors.grey),
+      const SizedBox(width: 3),
+      Text(label,
+          style: TextStyle(
+              fontSize: 11,
+              color: met ? Colors.green : Colors.grey)),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -247,12 +308,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       if (v == null || v.isEmpty) {
                         return 'password_required'.tr();
                       }
-                      if (v.length < 6) return 'password_too_short'.tr();
+                      if (v.length < 8) {
+                        return 'Password must be at least 8 characters';
+                      }
+                      if (!v.contains(RegExp(r'[A-Z]'))) {
+                        return 'Password must contain an uppercase letter';
+                      }
+                      if (!v.contains(RegExp(r'[a-z]'))) {
+                        return 'Password must contain a lowercase letter';
+                      }
+                      if (!v.contains(RegExp(r'[0-9]'))) {
+                        return 'Password must contain a number';
+                      }
+                      if (!v.contains(RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-]'))) {
+                        return 'Password must contain a special character';
+                      }
                       return null;
                     },
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
+                // Password strength indicator
+                _buildPasswordStrength(_passwordController.text),
+                const SizedBox(height: 8),
 
                 // Confirm password
                 SlideInLeft(
