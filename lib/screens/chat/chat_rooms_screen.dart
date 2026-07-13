@@ -188,7 +188,6 @@ class ChatRoomsScreen extends StatelessWidget {
                       ],
                     ),
                     onTap: () {
-                      // Clear unread count for this user
                       FirebaseFirestore.instance
                           .collection('chat_rooms')
                           .doc(roomId)
@@ -205,6 +204,7 @@ class ChatRoomsScreen extends StatelessWidget {
                         ),
                       );
                     },
+                    onLongPress: () => _confirmDeleteChat(context, roomId, otherName),
                   );
                 },
               );
@@ -214,4 +214,68 @@ class ChatRoomsScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+void _confirmDeleteChat(
+    BuildContext context, String roomId, String otherName) {
+  showDialog(
+    context: context,
+    builder: (_) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Row(children: [
+        Icon(Icons.delete_outline, color: Colors.red),
+        SizedBox(width: 8),
+        Text('Delete Chat'),
+      ]),
+      content: Text(
+          'Delete your chat with $otherName?\nThis cannot be undone.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            Navigator.pop(context);
+            try {
+              final db = FirebaseFirestore.instance;
+              final msgs = await db
+                  .collection('chat_rooms')
+                  .doc(roomId)
+                  .collection('messages')
+                  .get();
+              final batch = db.batch();
+              for (final d in msgs.docs) {
+                batch.delete(d.reference);
+              }
+              batch.delete(db.collection('chat_rooms').doc(roomId));
+              await batch.commit();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Chat deleted'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+          ),
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
 }

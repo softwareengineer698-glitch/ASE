@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../models/donation_model.dart';
@@ -43,6 +46,12 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
   double? _latitude;
   double? _longitude;
   bool _fetchingLocation = false;
+
+  // ── Location autocomplete ────────────────────────────────────────────────
+  List<Map<String, dynamic>> _locationSuggestions = [];
+  bool _loadingSuggestions = false;
+  Timer? _debounce;
+  final FocusNode _locationFocus = FocusNode();
 
   // ── Categories per item type ──────────────────────────────────────────────
   static const Map<DonationItemType, List<String>> _categoryMap = {
@@ -111,6 +120,8 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
     _descriptionController.dispose();
     _quantityController.dispose();
     _locationController.dispose();
+    _locationFocus.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
@@ -345,36 +356,193 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
         ],
       );
 
-  Widget _buildLocationField() => Row(
+  // ── Location autocomplete search via Nominatim ───────────────────────────
+  Future<void> _searchLocation(String query) async {
+    if (query.trim().length < 3) {
+      setState(() { _locationSuggestions = []; });
+      return;
+    }
+    setState(() => _loadingSuggestions = true);
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/search'
+        '?q=${Uri.encodeComponent(query)}'
+        '&format=json&addressdetails=1&limit=6',
+      );
+      final res = await http.get(uri, headers: {
+        'User-Agent': 'FoodBridge/1.0 (foodbridge@app.com)',
+      });
+      if (res.statusCode == 200) {
+        final data = List<Map<String, dynamic>>.from(jsonDecode(res.body));
+        if (mounted) setState(() => _locationSuggestions = data);
+      }
+    } catch (_) {} finally {
+      if (mounted) setState(() => _loadingSuggestions = false);
+    }
+  }
+
+  void _onLocationChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      _searchLocation(value);
+    });
+  }
+
+  void _selectSuggestion(Map<String, dynamic> place) {
+    final name = place['display_name'] as String? ?? '';
+    final lat = double.tryParse(place['lat']?.toString() ?? '');
+    final lon = double.tryParse(place['lon']?.toString() ?? '');
+    setState(() {
+      _locationController.text = name;
+      _latitude = lat;
+      _longitude = lon;
+      _locationSuggestions = [];
+    });
+    _locationFocus.unfocus();
+  }
+
+  Widget _buildLocationField() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: TextFormField(
-              controller: _locationController,
-              decoration: InputDecoration(
-                labelText: 'pickup_location'.tr(),
-                hintText: 'enter_pickup_location'.tr(),
-                border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.location_on_outlined),
+          Row(children: [
+            Expanded(
+              child: TextFormField(
+                controller: _locationController,
+                focusNode: _locationFocus,
+                decoration: InputDecoration(
+                  labelText: 'pickup_location'.tr(),
+                  hintText: 'Search for a location...',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.location_on_outlined),
+                  suffixIcon: _loadingSuggestions
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : _locationController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _locationController.clear();
+                                setState(() {
+                                  _locationSuggestions = [];
+                                  _latitude = null;
+                                  _longitude = null;
+                                });
+                              },
+                            )
+                          : null,
+                ),
+                onChanged: _onLocationChanged,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'please_enter_location'.tr()
+                    : null,
               ),
-              validator: (v) => (v == null || v.trim().isEmpty)
-                  ? 'please_enter_location'.tr()
-                  : null,
             ),
-          ),
-          const SizedBox(width: 8),
-          _fetchingLocation
-              ? const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: SizedBox(
+            const SizedBox(width: 8),
+            _fetchingLocation
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(
                       width: 24,
                       height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2)),
-                )
-              : IconButton.outlined(
-                  onPressed: _fetchCurrentLocation,
-                  icon: const Icon(Icons.my_location_rounded),
-                  tooltip: 'Use current location',
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : IconButton.outlined(
+                    onPressed: _fetchCurrentLocation,
+                    icon: const Icon(Icons.my_location_rounded),
+                    tooltip: 'Use current location',
+                  ),
+          ]),
+
+          // Suggestions dropdown
+          if (_locationSuggestions.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _locationSuggestions.length,
+                separatorBuilder: (_, __) =>
+                    Divider(height: 1, color: Colors.grey.shade200),
+                itemBuilder: (_, i) {
+                  final place = _locationSuggestions[i];
+                  final display =
+                      place['display_name'] as String? ?? '';
+                  // Short label: first part before comma
+                  final shortName = display.split(',').first.trim();
+                  // Sub-label: rest of the address
+                  final subLabel = display
+                      .split(',')
+                      .skip(1)
+                      .take(3)
+                      .join(',')
+                      .trim();
+
+                  return InkWell(
+                    onTap: () => _selectSuggestion(place),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      child: Row(children: [
+                        const Icon(Icons.location_on,
+                            size: 18, color: Colors.red),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(shortName,
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600)),
+                              if (subLabel.isNotEmpty)
+                                Text(subLabel,
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey[600]),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis),
+                            ],
+                          ),
+                        ),
+                      ]),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+          // GPS coordinates indicator
+          if (_latitude != null && _longitude != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 4),
+              child: Row(children: [
+                const Icon(Icons.gps_fixed, size: 13, color: Colors.green),
+                const SizedBox(width: 4),
+                Text(
+                  'GPS saved: ${_latitude!.toStringAsFixed(4)}, ${_longitude!.toStringAsFixed(4)}',
+                  style: const TextStyle(fontSize: 11, color: Colors.green),
                 ),
+              ]),
+            ),
         ],
       );
 
@@ -574,11 +742,32 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
       }
       final position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.medium);
+
+      // Reverse geocode to get a readable address
+      String locationText =
+          '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+      try {
+        final uri = Uri.parse(
+          'https://nominatim.openstreetmap.org/reverse'
+          '?lat=${position.latitude}&lon=${position.longitude}'
+          '&format=json',
+        );
+        final res = await http.get(uri,
+            headers: {'User-Agent': 'FoodBridge/1.0 (foodbridge@app.com)'});
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body) as Map<String, dynamic>;
+          final display = data['display_name'] as String?;
+          if (display != null && display.isNotEmpty) {
+            locationText = display;
+          }
+        }
+      } catch (_) {}
+
       setState(() {
         _latitude = position.latitude;
         _longitude = position.longitude;
-        _locationController.text =
-            '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+        _locationController.text = locationText;
+        _locationSuggestions = [];
       });
     } catch (e) {
       if (mounted) {

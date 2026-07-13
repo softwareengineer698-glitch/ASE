@@ -317,191 +317,53 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
   Widget _buildNearbyFood(UserModel user, ColorScheme colorScheme) {
     return Container(
       key: _nearbyKey,
-      child: StreamBuilder<List<DonationModel>>(
-        stream: _donationService.getAvailableDonations(),
-        builder: (context, snapshot) {
-          final allDonations = snapshot.data ?? [];
-
-          // Filter to only donations that have coordinates
-          final nearby = allDonations.where((d) =>
-            d.donorId != user.uid &&
-            d.latitude != null &&
-            d.longitude != null
-          ).toList();
-
-          // Sort by distance if we have location
-          if (_currentPosition != null) {
-            nearby.sort((a, b) =>
-              _calculateDistance(a).compareTo(_calculateDistance(b)));
-          }
-
-          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              const Icon(Icons.location_on, color: Colors.red, size: 22),
-              const SizedBox(width: 8),
-              const Text('Nearby Food',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const Spacer(),
-              if (_currentPosition == null)
-                TextButton.icon(
-                  onPressed: _getCurrentLocation,
-                  icon: const Icon(Icons.my_location, size: 16),
-                  label: const Text('Enable Location', style: TextStyle(fontSize: 12)),
-                ),
-              if (_currentPosition != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.gps_fixed, size: 12, color: Colors.green),
-                      const SizedBox(width: 4),
-                      const Text('Location On',
-                          style: TextStyle(fontSize: 11, color: Colors.green)),
-                    ],
-                  ),
-                ),
-            ]),
-            const SizedBox(height: 12),
-
-            // Location not enabled
-            if (_currentPosition == null)
-              DashboardCard(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(children: [
-                    const Icon(Icons.location_off, size: 48, color: Colors.grey),
-                    const SizedBox(height: 12),
-                    const Text('Enable location to see food donations near you',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey)),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: _getCurrentLocation,
-                      icon: const Icon(Icons.my_location),
-                      label: const Text('Use My Location'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ]),
-                ),
-              )
-
-            // No nearby donations with coordinates
-            else if (nearby.isEmpty)
-              DashboardCard(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(children: [
-                    const Icon(Icons.location_searching, size: 48, color: Colors.grey),
-                    const SizedBox(height: 12),
-                    const Text('No food donations found near your location',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey)),
-                  ]),
-                ),
-              )
-
-            // Show nearby donations as horizontal scroll
-            else ...[
-              SizedBox(
-                height: 220,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: nearby.take(10).length,
-                  itemBuilder: (context, i) {
-                    final d = nearby[i];
-                    final dist = _formatDistance(d);
-                    return Container(
-                      width: 200,
-                      margin: EdgeInsets.only(
-                        right: 12,
-                        left: i == 0 ? 0 : 0,
-                      ),
-                      child: DashboardCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Image
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: DonationImage(
-                                imageUrls: d.imageUrls,
-                                width: double.infinity,
-                                height: 90,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            // Distance badge
-                            if (dist.isNotEmpty)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.location_on,
-                                        size: 10, color: Colors.blue),
-                                    const SizedBox(width: 3),
-                                    Text(dist,
-                                        style: const TextStyle(
-                                            fontSize: 10, color: Colors.blue)),
-                                  ],
-                                ),
-                              ),
-                            const SizedBox(height: 4),
-                            // Title
-                            Text(d.title,
-                                style: const TextStyle(
-                                    fontSize: 13, fontWeight: FontWeight.bold),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis),
-                            // Quantity
-                            Text(
-                              '${d.remainingQuantity} ${d.unit} available',
-                              style: TextStyle(
-                                  fontSize: 11, color: Colors.grey[600]),
-                              maxLines: 1,
-                            ),
-                            const Spacer(),
-                            // Claim button
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: () => _claimDonation(d, user),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: colorScheme.primary,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 6),
-                                  textStyle: const TextStyle(fontSize: 12),
-                                ),
-                                child: const Text('Claim'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const NearbyFoodMapScreen()),
+        ),
+        borderRadius: BorderRadius.circular(16),
+        child: DashboardCard(
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(height: 4),
-              Text('${nearby.length} donation${nearby.length == 1 ? '' : 's'} near you',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-            ],
-          ]);
-        },
+              child: const Icon(Icons.location_on, color: Colors.red, size: 32),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Nearby Food',
+                      style: TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(
+                    _currentPosition != null
+                        ? 'See food donations near your location on a map'
+                        : 'Tap to open map and discover food near you',
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  ),
+                  if (_currentPosition != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Row(children: [
+                        const Icon(Icons.gps_fixed, size: 12, color: Colors.green),
+                        const SizedBox(width: 4),
+                        const Text('Location active',
+                            style: TextStyle(fontSize: 11, color: Colors.green)),
+                      ]),
+                    ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+          ]),
+        ),
       ),
     );
   }
@@ -712,7 +574,16 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
             Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.scale, size: 14, color: Colors.grey[600]),
               const SizedBox(width: 4),
-              Text('${d.quantity} ${d.unit}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+              Text(
+                d.remainingQuantity < d.quantity
+                    ? '${d.remainingQuantity} / ${d.quantity} ${d.unit} left'
+                    : '${d.quantity} ${d.unit}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: d.remainingQuantity < d.quantity ? Colors.orange[700] : Colors.grey[600],
+                  fontWeight: d.remainingQuantity < d.quantity ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
             ]),
             Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
@@ -983,7 +854,10 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
           const SizedBox(height: 10),
           Text(d.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
-          Text('${d.quantity} ${d.unit} · ${d.category}',
+          Text(
+            d.remainingQuantity < d.quantity
+                ? '${d.remainingQuantity} / ${d.quantity} ${d.unit} · ${d.category}'
+                : '${d.quantity} ${d.unit} · ${d.category}',
               style: TextStyle(fontSize: 13, color: Colors.grey[600])),
           const SizedBox(height: 10),
           if (d.status == DonationStatus.claimed ||

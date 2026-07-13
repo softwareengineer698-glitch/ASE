@@ -33,13 +33,6 @@
       ]
     },
     {
-      "collectionGroup": "messages",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "sentAt", "order": "ASCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "claims",
       "queryScope": "COLLECTION",
       "fields": [
