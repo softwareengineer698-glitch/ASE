@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../providers/volunteer_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/user_model.dart';
@@ -60,7 +61,7 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
       case UserRole.ngo:
         return 'Transport Tracking';
       case UserRole.donor:
-        return 'Outgoing Pickups';
+        return 'Outgoing Pickups'.tr();
       default:
         return 'Deliveries';
     }
@@ -78,7 +79,7 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> {
             Icon(Icons.delivery_dining_outlined,
                 size: 64, color: Colors.grey[300]),
             const SizedBox(height: 16),
-            const Text('No active deliveries found',
+            Text('No active deliveries found'.tr(),
                 style: TextStyle(color: Colors.grey)),
           ],
         ),

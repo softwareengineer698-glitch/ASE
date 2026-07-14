@@ -212,7 +212,7 @@ class _UnifiedProfileScreenState extends State<UnifiedProfileScreen> {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title: const Text('My Profile'),
+        title: Text('My Profile'.tr()),
         backgroundColor: colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -292,10 +292,10 @@ class _UnifiedProfileScreenState extends State<UnifiedProfileScreen> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.green),
           ),
-          child: const Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.check_circle, size: 16, color: Colors.green),
-            SizedBox(width: 4),
-            Text('Active Member', style: TextStyle(fontSize: 12,
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.check_circle, size: 16, color: Colors.green),
+            const SizedBox(width: 4),
+            Text('Active Member'.tr(), style: TextStyle(fontSize: 12,
                 fontWeight: FontWeight.w500, color: Colors.green)),
           ]),
         ),
@@ -307,7 +307,7 @@ class _UnifiedProfileScreenState extends State<UnifiedProfileScreen> {
     return Card(elevation: 2, child: Padding(
       padding: const EdgeInsets.all(24),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Personal Information',
+        Text('Personal Information'.tr(),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 20),
         CustomTextField(controller: _nameController, label: 'full_name'.tr(),

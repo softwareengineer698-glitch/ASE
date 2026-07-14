@@ -46,8 +46,7 @@
   "forecast": "Peshangoi",
   "profile": "Profile",
   "report_surplus": "Zyada Khane ki Khabar Dein",
-  "add_new_surplus": "Naya Faazil Shamil Karein"
-,
+  "add_new_surplus": "Naya Faazil Shamil Karein",
   "accept_pickup": "Pickup Qabool Karein",
   "view_details": "Tafsilat Dekhein",
   "on_the_way": "Raste mein hai",
@@ -96,8 +95,7 @@
   "sort": "Tarteeb Dein",
   "clear": "Saaf Karein",
   "apply": "Lagaayein",
-  "reset": "Reset Karein"
-,
+  "reset": "Reset Karein",
   "back": "Wapas",
   "next": "Agla",
   "previous": "Pichla",
@@ -107,7 +105,7 @@
   "pending": "Zair Ghaur",
   "approved": "Manzoori Di Gayi",
   "rejected": "Radd Kar Diya",
-  "active": "Faaal",
+  "active": "faaal",
   "inactive": "Ghair Faaal",
   "available": "Dastiyab",
   "unavailable": "Ghair Dastiyab",
@@ -145,8 +143,7 @@
   "download": "Download Karein",
   "upload": "Upload Karein",
   "print": "Print Karein",
-  "preview": "Preview Karein"
-,
+  "preview": "Preview Karein",
   "form_submit": "Jama Karaein",
   "send": "Bhejein",
   "receive": "Liein",
@@ -199,8 +196,7 @@
   "surplus_alert": "Faazil Alert: Kal zyada talab ki umeed",
   "create_surplus": "Faazil Banayein",
   "view_history": "Taareekh Dekhein",
-  "check_notifications": "Notifications Dekhein"
-,
+  "check_notifications": "Notifications Dekhein",
   "active_surplus": "Faaal Faazil",
   "no_active_surplus": "Koi faaal faazil nahi",
   "create_first_surplus": "Pehla faazil atiya dein!",
@@ -253,8 +249,7 @@
   "leaderboards": "Leaderboards",
   "see_top_performers": "Behtareen performers aur apni ranking dekhein",
   "delivery_confirmations": "Delivery ki Tasdeeq",
-  "manage_delivery": "Delivery ki tassdeq aur dastkhat manage karein"
-,
+  "manage_delivery": "Delivery ki tassdeq aur dastkhat manage karein",
   "ai_forecast": "AI Peshangoi",
   "smart_predictions": "Khane ki talab ke liye smart predictions",
   "quantity": "Miqdar",
@@ -286,7 +281,7 @@
   "active_donations": "Faaal Atiyaat",
   "no_active_donations": "Koi Faaal Atiya Nahi",
   "create_first_donation": "Pehla atiya dein khana zaaya honay se bachaain!",
-  "items": "Cheezein",
+  "items": "cheezein",
   "create_donation": "Atiya Banayein",
   "browse_donations": "Atiyaat Dekhein",
   "claimed_donations": "Claim Kiye Atiyaat",
@@ -297,8 +292,7 @@
   "no_active_donations_desc": "Faaal atiyaat yahan nazar aayenge",
   "no_completed_donations": "Koi Mukammal Atiya Nahi",
   "no_completed_donations_desc": "Mukammal atiyaat yahan nazar aayenge",
-  "error_loading_history": "Taareekh load karne mein ghalti"
-,
+  "error_loading_history": "Taareekh load karne mein ghalti",
   "basic_information": "Buniyaadi Maalumat",
   "category_details": "Category Ki Tafsilat",
   "description": "Tafseel",
@@ -341,8 +335,7 @@
   "confirm_claim_donation": "Kya aap yeh atiya claim karna chahte hain?",
   "donation_claimed": "Atiya Claim Ho Gaya",
   "error_claiming_donation": "Claim karne mein ghalti",
-  "release": "Chhod Dein"
-,
+  "release": "Chhod Dein",
   "welcome_ngo": "Khush Aamdeed, {name}",
   "ready_to_receive": "Khane ke atiyaat liney aur taqseem karne ke liye tayyar?",
   "forecast_insights": "Peshangoi ki Baat",
@@ -395,8 +388,7 @@
   "release donation": "Atiya Chhod Dein",
   "confirm release donation": "Kya yeh atiya wapas dastiyab karein?",
   "donation released": "Atiya Chhod Diya Gaya",
-  "error releasing donation": "Atiya chodne mein ghalti"
-,
+  "error releasing donation": "Atiya chodne mein ghalti",
   "complete pickup": "Pickup Mukammal Karein",
   "confirm complete pickup": "Kya yeh pickup mukammal karein?",
   "pickup completed": "Pickup Mukammal Ho Gayi",
@@ -449,8 +441,7 @@
   "enter_full_name": "Apna poora naam likhein",
   "full_name_required": "Poora naam zaroori hai",
   "enter_address": "Apna pata likhein",
-  "about_you": "Aapke Baray Mein"
-,
+  "about_you": "Aapke Baray Mein",
   "tell_about_yourself": "Apnay baray mein aur khana donate karne ki wajah batayein",
   "confirm_logout": "Kya aap log out karna chahte hain?",
   "organization_information": "Idaaray ki Maalumat",
@@ -500,8 +491,7 @@
   "passwords_do_not_match": "Passwords match nahi karte",
   "join_CareCircle": "CareCircle se judein aur farq daalen",
   "registration_failed": "Registration fail ho gayi. Dobara koshish karein.",
-  "change": "Badlein"
-,
+  "change": "Badlein",
   "item_type": "Cheez ki Qisam",
   "pickup_location": "Pickup ka Maqaam",
   "enter_pickup_location": "Pickup ka maqaam likhein",
@@ -545,8 +535,7 @@
   "auth_error_google_sign_in_failed": "Google Sign-In fail ho gayi.",
   "auth_error_phone_sign_in_empty": "Phone sign-in fail ho gayi.",
   "show_tracking_info": "Track karna kaisay kaam karta hai?",
-  "sign_up_with_google": "Google se Sign Up karein"
-,
+  "sign_up_with_google": "Google se Sign Up karein",
   "my_requests": "Meri Darkhwastein",
   "create_request": "Darkhwast Banayein",
   "no_requests_found": "Koi Darkhwast Nahi Mili",
@@ -631,8 +620,6 @@
   "confirm_sign_out": "Kya aap sign out karna chahte hain?",
   "notification_deleted": "Notification Mitta Di Gayi",
   "view": "Dekhein",
-  "view_details": "Tafsilat Dekhein",
-  "invalid_phone_format": "Ghalat phone format",
   "accept donation": "Atiya Qabool Karein",
   "accept donations": "Atiyaat Qabool Karein",
   "accept food donations from other donors": "Doosre donors se khane ke atiyaat qabool karein",
@@ -665,7 +652,6 @@
   "quick overview": "Jaldi Jaayza",
   "reset_theme": "Theme Reset Karein",
   "reset_to_default": "Default par wapas aayein",
-  "save_changes": "Tabdiliyaan Mahfooz Karein",
   "search donations": "Atiyaat Dhoondein",
   "sign_out_account": "Account Sign Out Karein",
   "something_went_wrong": "Kuch Ghalat Ho Gaya",
@@ -739,5 +725,7 @@
   "pairs": "Jodey",
   "sets": "Sett",
   "location_details": "Maqaam ki Tafsilat",
-  "expiry_details": "Khatam Honay ki Tafsilat"
+  "expiry_details": "Khatam Honay ki Tafsilat",
+  "nearby_food_desc_on": "Naqshay par qareeb ke atiyaat dekhein",
+  "nearby_food_desc_off": "Naqsha kholne ke liye tap karein"
 }

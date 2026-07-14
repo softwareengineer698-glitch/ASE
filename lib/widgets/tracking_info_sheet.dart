@@ -269,7 +269,7 @@ class _StatusPipeline extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Donation Status Pipeline',
+          'Donation Status Pipeline'.tr(),
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,

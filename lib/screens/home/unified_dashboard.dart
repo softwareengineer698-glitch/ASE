@@ -202,7 +202,7 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
             ]),
             const SizedBox(height: 4),
             Text(
-              'Donate & receive donations',
+              'Donate & receive donations'.tr(),
               style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 8),
@@ -299,7 +299,7 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('available_donations'.tr(),
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-              Text('$count items ready for pickup',
+              Text('$count ${'items_ready_for_pickup'.tr()}',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,
                       color: colorScheme.primary)),
             ]),
@@ -330,7 +330,7 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
       _ActionBtn('notifications'.tr(), Icons.notifications_outlined,
           Colors.purple.withValues(alpha: 0.12), Colors.purple,
           () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen()))),
-      _ActionBtn('Nearby Food', Icons.location_on,
+      _ActionBtn('nearby_food'.tr(), Icons.location_on,
           Colors.red.withValues(alpha: 0.12), Colors.red,
           () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NearbyFoodMapScreen()))),
       _ActionBtn('view history'.tr(), Icons.history,
@@ -342,7 +342,7 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
     ];
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('Quick Actions',
+      Text('quick_actions'.tr(),
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface)),
       const SizedBox(height: 12),
@@ -405,14 +405,14 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Nearby Food',
+                  Text('nearby_food'.tr(),
                       style: TextStyle(
                           fontSize: 17, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
                   Text(
                     _currentPosition != null
-                        ? 'See food donations near your location on a map'
-                        : 'Tap to open map and discover food near you',
+                        ? 'nearby_food_desc_on'.tr()
+                        : 'nearby_food_desc_off'.tr(),
                     style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                   ),
                   if (_currentPosition != null)
@@ -499,7 +499,7 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
-            items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+            items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c.tr()))).toList(),
             onChanged: (v) => setState(() => _selectedCategory = v!),
           )),
           const SizedBox(width: 12),
@@ -511,7 +511,7 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
-            items: _sortOptions.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+            items: _sortOptions.map((o) => DropdownMenuItem(value: o, child: Text(o.tr()))).toList(),
             onChanged: (v) => setState(() => _selectedSortBy = v!),
           )),
         ]),
@@ -730,9 +730,9 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
 
           return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text('My Donations',
+              Text('my_donations'.tr(),
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              Text('${active.length} active',
+              Text('${active.length} ${'active'.tr()}',
                   style: TextStyle(color: colorScheme.onSurfaceVariant)),
             ]),
             const SizedBox(height: 12),
@@ -872,9 +872,9 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
 
           return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text('My Claims',
+              Text('my_claims'.tr(),
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              Text('${claims.length} items',
+              Text('${claims.length} ${'items'.tr()}',
                   style: TextStyle(color: colorScheme.onSurfaceVariant)),
             ]),
             const SizedBox(height: 12),

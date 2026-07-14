@@ -32,16 +32,20 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // --- EasyLocalization ---
+  // --- Set Roman Urdu as default BEFORE EasyLocalization reads its cache ---
   try {
-    await EasyLocalization.ensureInitialized();
-    // Always force Roman Urdu unless user has explicitly chosen another lang
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString('locale');
-    // Override 'en' (old default) with Roman Urdu. Respect user's own choices.
     if (saved == null || saved == 'en') {
       await prefs.setString('locale', 'ur_PK');
     }
+  } catch (e) {
+    debugPrint('SharedPreferences init error: $e');
+  }
+
+  // --- EasyLocalization ---
+  try {
+    await EasyLocalization.ensureInitialized();
   } catch (e) {
     debugPrint('EasyLocalization init error: $e');
   }
