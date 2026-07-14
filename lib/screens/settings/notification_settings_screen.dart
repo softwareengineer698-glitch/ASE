@@ -106,7 +106,7 @@ class _NotificationSettingsScreenState
             SwitchListTile(
               title: const Text('Enable Notifications'),
               subtitle:
-                  const Text('Receive push notifications from FoodBridge'),
+                  const Text('Receive push notifications from CareCircle'),
               value: _preferences.pushNotificationsEnabled,
               onChanged: (value) => _updateMasterToggle(value),
               activeThumbColor: themeProvider.primaryColor,

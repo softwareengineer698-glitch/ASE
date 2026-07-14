@@ -238,7 +238,9 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: DonationItemType.values.map((type) {
+      children: DonationItemType.values
+          .where((type) => type != DonationItemType.medicines)
+          .map((type) {
         final selected = _selectedItemType == type;
         return FilterChip(
           label: Text(type.displayName),
@@ -381,7 +383,7 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
         '&format=json&addressdetails=1&limit=6',
       );
       final res = await http.get(uri, headers: {
-        'User-Agent': 'FoodBridge/1.0 (foodbridge@app.com)',
+        'User-Agent': 'CareCircle/1.0 (CareCircle@app.com)',
       });
       if (res.statusCode == 200) {
         final data = List<Map<String, dynamic>>.from(jsonDecode(res.body));
@@ -764,7 +766,7 @@ class _CreateDonationScreenState extends State<CreateDonationScreen> {
           '&format=json',
         );
         final res = await http.get(uri,
-            headers: {'User-Agent': 'FoodBridge/1.0 (foodbridge@app.com)'});
+            headers: {'User-Agent': 'CareCircle/1.0 (CareCircle@app.com)'});
         if (res.statusCode == 200) {
           final data = jsonDecode(res.body) as Map<String, dynamic>;
           final display = data['display_name'] as String?;

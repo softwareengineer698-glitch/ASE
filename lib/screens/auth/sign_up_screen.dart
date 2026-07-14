@@ -222,7 +222,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 FadeInDown(
                   delay: const Duration(milliseconds: 150),
                   child: Text(
-                    'join_foodbridge'.tr(),
+                    'join_CareCircle'.tr(),
                     style: Theme.of(context)
                         .textTheme
                         .bodyMedium

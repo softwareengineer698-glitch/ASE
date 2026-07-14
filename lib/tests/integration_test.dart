@@ -23,7 +23,7 @@ class IntegrationTestRunner {
     _testResults.clear();
     _allTestsPassed = true;
 
-    print('🧪 Starting FoodBridge Integration Tests...\n');
+    print('🧪 Starting CareCircle Integration Tests...\n');
 
     // Test 1: Service Initialization
     await _testServiceInitialization();
@@ -421,7 +421,7 @@ class IntegrationTestRunner {
 
   void _printTestSummary(Map<String, dynamic> results) {
     print('\n${'=' * 50}');
-    print('🧪 FOODBRIDGE INTEGRATION TEST SUMMARY');
+    print('🧪 CareCircle INTEGRATION TEST SUMMARY');
     print('=' * 50);
     print('Total Tests: ${results['totalTests']}');
     print('Passed: ${results['passedTests']} ✅');

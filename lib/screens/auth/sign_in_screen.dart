@@ -128,41 +128,86 @@ class _SignInScreenState extends State<SignInScreen> {
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(height: MediaQuery.of(context).size.height * 0.08),
+                SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+
+                // ── App branding ──────────────────────────────────────────
                 FadeInDown(
-                  child: Icon(Icons.volunteer_activism_rounded,
-                      size: 72, color: colorScheme.primary),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: colorScheme.primary.withValues(alpha: 0.3),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.volunteer_activism_rounded,
+                            size: 40, color: Colors.white),
+                      ),
+                      const SizedBox(width: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'CareCircle',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w800,
+                              color: colorScheme.primary,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          Text(
+                            'Connecting Communities • Reducing Waste',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[500],
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 20),
+
+                const SizedBox(height: 36),
+
+                // ── Divider with welcome text ─────────────────────────────
                 FadeInDown(
                   delay: const Duration(milliseconds: 100),
-                  child: Text(
-                    'welcome_back'.tr(),
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.primary),
-                    textAlign: TextAlign.center,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'welcome_back'.tr(),
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'sign_in_to_continue'.tr(),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                FadeInDown(
-                  delay: const Duration(milliseconds: 150),
-                  child: Text(
-                    'sign_in_to_continue'.tr(),
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: Colors.grey[600]),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 40),
+
+                const SizedBox(height: 28),
                 SlideInLeft(
                   duration: const Duration(milliseconds: 500),
                   child: CustomTextField(

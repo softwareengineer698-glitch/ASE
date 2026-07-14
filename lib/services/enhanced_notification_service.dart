@@ -57,7 +57,7 @@ class EnhancedNotificationService extends ChangeNotifier {
     _pushNotifications.addAll([
       PushNotificationModel(
         id: _generateId(),
-        title: 'Welcome to FoodBridge! 🎉',
+        title: 'Welcome to CareCircle! 🎉',
         body: 'Start reducing food waste by connecting with your community.',
         data: {'screen': 'home'},
         receivedAt: now.subtract(const Duration(hours: 2)),

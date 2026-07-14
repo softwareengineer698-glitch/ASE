@@ -202,13 +202,26 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
             ]),
             const SizedBox(height: 4),
             Text(
-              'Donate & receive food donations',
+              'Donate & receive donations',
               style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
             ),
+            const SizedBox(height: 8),
+            // Language switcher
+            _buildLanguageSwitcher(context),
           ]),
         ),
       ]),
     );
+  }
+
+  // Format quantity — rounds tiny floating-point errors to clean numbers
+  String _fmtQty(double v) {
+    // If value is essentially zero (floating point noise), show 0
+    if (v.abs() < 0.001) return '0';
+    // If it's a whole number, show without decimals
+    if (v == v.roundToDouble()) return v.toInt().toString();
+    // Otherwise show up to 2 decimal places, trimming trailing zeros
+    return double.parse(v.toStringAsFixed(2)).toString();
   }
 
   String _getInitials(UserModel user) {
@@ -217,6 +230,60 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
     if (words.length >= 2) return '${words[0][0]}${words[1][0]}'.toUpperCase();
     if (name.isNotEmpty) return name[0].toUpperCase();
     return 'U';
+  }
+
+  Widget _buildLanguageSwitcher(BuildContext context) {
+    final current = context.locale;
+    final langs = [
+      {'locale': const Locale('ur', 'PK'), 'label': 'Roman Urdu', 'flag': '🇵🇰'},
+      {'locale': const Locale('en'), 'label': 'English', 'flag': '🇬🇧'},
+      {'locale': const Locale('ur'), 'label': 'اردو', 'flag': '🕌'},
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: langs.map((lang) {
+          final locale = lang['locale'] as Locale;
+          final isSelected = current == locale;
+          return Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: GestureDetector(
+              onTap: () => context.setLocale(locale),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.grey.shade300,
+                  ),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(lang['flag'] as String, style: const TextStyle(fontSize: 13)),
+                  const SizedBox(width: 4),
+                  Text(
+                    lang['label'] as String,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 
   // ── Available Count ────────────────────────────────────────────────────────
@@ -576,8 +643,8 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
               const SizedBox(width: 4),
               Text(
                 d.remainingQuantity < d.quantity
-                    ? '${d.remainingQuantity} / ${d.quantity} ${d.unit} left'
-                    : '${d.quantity} ${d.unit}',
+                    ? '${_fmtQty(d.remainingQuantity)} / ${_fmtQty(d.quantity)} ${d.unit} left'
+                    : '${_fmtQty(d.quantity)} ${d.unit}',
                 style: TextStyle(
                   fontSize: 12,
                   color: d.remainingQuantity < d.quantity ? Colors.orange[700] : Colors.grey[600],
@@ -844,9 +911,6 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
                   style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w500)),
             ),
             const Spacer(),
-            if (d.claimedAt != null)
-              Text('${d.claimedAt!.day}/${d.claimedAt!.month}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600])),
           ]),
           const SizedBox(height: 10),
           DonationImage(imageUrls: d.imageUrls, width: double.infinity, height: 120,
@@ -856,8 +920,8 @@ class _UnifiedDashboardState extends State<UnifiedDashboard> {
           const SizedBox(height: 4),
           Text(
             d.remainingQuantity < d.quantity
-                ? '${d.remainingQuantity} / ${d.quantity} ${d.unit} · ${d.category}'
-                : '${d.quantity} ${d.unit} · ${d.category}',
+                ? '${_fmtQty(d.remainingQuantity)} / ${_fmtQty(d.quantity)} ${d.unit} · ${d.category}'
+                : '${_fmtQty(d.quantity)} ${d.unit} · ${d.category}',
               style: TextStyle(fontSize: 13, color: Colors.grey[600])),
           const SizedBox(height: 10),
           if (d.status == DonationStatus.claimed ||

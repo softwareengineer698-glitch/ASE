@@ -123,16 +123,39 @@ class DonationService {
   }
 
   Stream<List<DonationModel>> getNGOClaimedDonations(String ngoId) {
+    // Query the claims subcollection across all donations to get ALL claims
+    // by this user, not just the one stored in claimedBy field
     return _db
-        .collection('donations')
-        .where('claimedBy', isEqualTo: ngoId)
+        .collectionGroup('claims')
+        .where('claimantId', isEqualTo: ngoId)
         .snapshots()
-        .map((snap) {
-      final list = snap.docs
-          .map((d) => DonationModel.fromMap(d.data(), d.id))
-          .toList()
-        ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-      return list;
+        .asyncMap((claimsSnap) async {
+      if (claimsSnap.docs.isEmpty) return <DonationModel>[];
+
+      // Get unique donation IDs
+      final donationIds = claimsSnap.docs
+          .map((d) => d.data()['donationId'] as String? ?? '')
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList();
+
+      if (donationIds.isEmpty) return <DonationModel>[];
+
+      // Fetch donations in batches of 10 (Firestore whereIn limit)
+      final results = <DonationModel>[];
+      for (int i = 0; i < donationIds.length; i += 10) {
+        final batch = donationIds.skip(i).take(10).toList();
+        final snap = await _db
+            .collection('donations')
+            .where(FieldPath.documentId, whereIn: batch)
+            .get();
+        results.addAll(
+          snap.docs.map((d) => DonationModel.fromMap(d.data(), d.id)),
+        );
+      }
+
+      results.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      return results;
     });
   }
 

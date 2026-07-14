@@ -8,6 +8,72 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/donation_model.dart';
 import '../donor/claim_donation_screen.dart';
 
+// ── Pakistan food/donation centers ────────────────────────────────────────────
+class _FoodCenter {
+  final String name;
+  final String city;
+  final String type;
+  final String phone;
+  final double lat;
+  final double lng;
+  const _FoodCenter({
+    required this.name,
+    required this.city,
+    required this.type,
+    required this.phone,
+    required this.lat,
+    required this.lng,
+  });
+}
+
+const List<_FoodCenter> _pakCenters = [
+  // Edhi Foundation
+  _FoodCenter(name: 'Edhi Foundation', city: 'Karachi', type: 'Food & Relief', phone: '021-32476378', lat: 24.8671, lng: 67.0102),
+  _FoodCenter(name: 'Edhi Foundation', city: 'Lahore', type: 'Food & Relief', phone: '042-35761999', lat: 31.5204, lng: 74.3587),
+  _FoodCenter(name: 'Edhi Foundation', city: 'Islamabad', type: 'Food & Relief', phone: '051-2611188', lat: 33.6844, lng: 73.0479),
+  _FoodCenter(name: 'Edhi Foundation', city: 'Rawalpindi', type: 'Food & Relief', phone: '051-4411777', lat: 33.5651, lng: 73.0169),
+
+  // Saylani Welfare
+  _FoodCenter(name: 'Saylani Welfare', city: 'Karachi', type: 'Free Food', phone: '021-32779966', lat: 24.9056, lng: 67.0822),
+  _FoodCenter(name: 'Saylani Welfare', city: 'Lahore', type: 'Free Food', phone: '042-35123456', lat: 31.5497, lng: 74.3436),
+  _FoodCenter(name: 'Saylani Welfare', city: 'Islamabad', type: 'Free Food', phone: '051-2345678', lat: 33.7215, lng: 73.0433),
+
+  // Chippa Welfare
+  _FoodCenter(name: 'Chippa Welfare', city: 'Karachi', type: 'Food & Emergency', phone: '1030', lat: 24.8925, lng: 67.0281),
+  _FoodCenter(name: 'Chippa Welfare', city: 'Lahore', type: 'Food & Emergency', phone: '1030', lat: 31.5085, lng: 74.3321),
+
+  // Akhuwat
+  _FoodCenter(name: 'Akhuwat Food Bank', city: 'Lahore', type: 'Food Bank', phone: '042-35761801', lat: 31.5754, lng: 74.3154),
+  _FoodCenter(name: 'Akhuwat Food Bank', city: 'Islamabad', type: 'Food Bank', phone: '051-2890111', lat: 33.6938, lng: 73.0651),
+
+  // Rizq
+  _FoodCenter(name: 'Rizq Food Bank', city: 'Karachi', type: 'Food Bank', phone: '0311-1174979', lat: 24.8615, lng: 67.0099),
+  _FoodCenter(name: 'Rizq Food Bank', city: 'Lahore', type: 'Food Bank', phone: '0311-1174979', lat: 31.4504, lng: 74.2787),
+
+  // Khidmat Foundation
+  _FoodCenter(name: 'Khidmat Foundation', city: 'Lahore', type: 'Free Food', phone: '042-36280001', lat: 31.5200, lng: 74.4000),
+  _FoodCenter(name: 'Khidmat Foundation', city: 'Rawalpindi', type: 'Free Food', phone: '051-4601234', lat: 33.5971, lng: 73.0479),
+
+  // JDC Foundation
+  _FoodCenter(name: 'JDC Foundation', city: 'Karachi', type: 'Food Relief', phone: '021-34871000', lat: 24.9800, lng: 67.0350),
+
+  // Al-Khidmat Foundation
+  _FoodCenter(name: 'Al-Khidmat Foundation', city: 'Lahore', type: 'Food & Relief', phone: '042-35761000', lat: 31.4600, lng: 74.2600),
+  _FoodCenter(name: 'Al-Khidmat Foundation', city: 'Karachi', type: 'Food & Relief', phone: '021-35761000', lat: 24.8200, lng: 67.0100),
+  _FoodCenter(name: 'Al-Khidmat Foundation', city: 'Peshawar', type: 'Food & Relief', phone: '091-2611000', lat: 34.0150, lng: 71.5805),
+
+  // Pakistan Sweet Home
+  _FoodCenter(name: 'Pakistan Sweet Home', city: 'Islamabad', type: 'Food & Shelter', phone: '051-2890001', lat: 33.7100, lng: 73.0500),
+
+  // Imran Khan Foundation / Shaukat Khanum
+  _FoodCenter(name: 'Shaukat Khanum Memorial', city: 'Lahore', type: 'Healthcare & Food', phone: '042-35945100', lat: 31.4827, lng: 74.3148),
+  _FoodCenter(name: 'Shaukat Khanum Memorial', city: 'Peshawar', type: 'Healthcare & Food', phone: '091-5840000', lat: 34.0100, lng: 71.5350),
+
+  // Chhipa
+  _FoodCenter(name: 'Chhipa Relief', city: 'Hyderabad', type: 'Food Relief', phone: '022-2611000', lat: 25.3792, lng: 68.3683),
+  _FoodCenter(name: 'Chhipa Relief', city: 'Multan', type: 'Food Relief', phone: '061-4511000', lat: 30.1575, lng: 71.5249),
+];
+
 class NearbyFoodMapScreen extends StatefulWidget {
   const NearbyFoodMapScreen({super.key});
 
@@ -21,6 +87,7 @@ class _NearbyFoodMapScreenState extends State<NearbyFoodMapScreen> {
   Position? _userPosition;
   List<DonationModel> _allDonations = [];
   DonationModel? _selectedDonation;
+  _FoodCenter? _selectedCenter;
   bool _loading = true;
   String? _locationError;
 
@@ -37,9 +104,11 @@ class _NearbyFoodMapScreenState extends State<NearbyFoodMapScreen> {
   }
 
   Future<void> _init() async {
+    if (!mounted) return;
     setState(() { _loading = true; _locationError = null; });
     await _getLocation();
     await _loadDonations();
+    if (!mounted) return;
     setState(() => _loading = false);
   }
 
@@ -97,10 +166,12 @@ class _NearbyFoodMapScreenState extends State<NearbyFoodMapScreen> {
         });
       }
 
+      if (!mounted) return;
       setState(() => _allDonations = donations);
 
       // Center map
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         if (_userPosition != null) {
           _mapController.move(_center, 12.0);
         } else if (_mappable.isNotEmpty) {
@@ -263,13 +334,16 @@ class _NearbyFoodMapScreenState extends State<NearbyFoodMapScreen> {
                         options: MapOptions(
                           initialCenter: _center,
                           initialZoom: 12,
-                          onTap: (_, __) => setState(() => _selectedDonation = null),
+                          onTap: (_, __) => setState(() {
+                            _selectedDonation = null;
+                            _selectedCenter = null;
+                          }),
                         ),
                         children: [
                           TileLayer(
                             urlTemplate:
                                 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.foodbridge.app',
+                            userAgentPackageName: 'com.CareCircle.app',
                           ),
                           // Markers
                           MarkerLayer(markers: [
@@ -295,6 +369,49 @@ class _NearbyFoodMapScreenState extends State<NearbyFoodMapScreen> {
                                       color: Colors.white, size: 22),
                                 ),
                               ),
+
+                            // Pakistan food center pins (always shown)
+                            ..._pakCenters.map((c) {
+                              final sel = _selectedCenter?.name == c.name &&
+                                  _selectedCenter?.lat == c.lat;
+                              return Marker(
+                                point: LatLng(c.lat, c.lng),
+                                width: sel ? 58 : 46,
+                                height: sel ? 58 : 46,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedCenter = c;
+                                      _selectedDonation = null;
+                                    });
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    decoration: BoxDecoration(
+                                      color: Colors.deepOrange,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: Colors.white,
+                                          width: sel ? 3 : 2),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.deepOrange
+                                              .withValues(alpha: 0.5),
+                                          blurRadius: sel ? 14 : 6,
+                                          spreadRadius: sel ? 3 : 0,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      Icons.volunteer_activism,
+                                      color: Colors.white,
+                                      size: sel ? 28 : 22,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+
                             // Donation pins (all with GPS)
                             ..._mappable.map((d) {
                               final color = _catColor(d.category);
@@ -304,8 +421,10 @@ class _NearbyFoodMapScreenState extends State<NearbyFoodMapScreen> {
                                 width: sel ? 60 : 50,
                                 height: sel ? 60 : 50,
                                 child: GestureDetector(
-                                  onTap: () =>
-                                      setState(() => _selectedDonation = d),
+                                  onTap: () => setState(() {
+                                    _selectedDonation = d;
+                                    _selectedCenter = null;
+                                  }),
                                   child: AnimatedContainer(
                                     duration: const Duration(milliseconds: 200),
                                     decoration: BoxDecoration(
@@ -377,6 +496,10 @@ class _NearbyFoodMapScreenState extends State<NearbyFoodMapScreen> {
                 // ── Selected donation popup (above list) ──────────────────
                 if (_selectedDonation != null)
                   _buildSelectedCard(_selectedDonation!, cs),
+
+                // ── Selected food center popup ─────────────────────────────
+                if (_selectedCenter != null)
+                  _buildCenterCard(_selectedCenter!, cs),
 
                 // ── ALL donations list ────────────────────────────────────
                 Expanded(
@@ -509,6 +632,120 @@ class _NearbyFoodMapScreenState extends State<NearbyFoodMapScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildCenterCard(_FoodCenter c, ColorScheme cs) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.deepOrange.withValues(alpha: 0.4), width: 1.5),
+        boxShadow: [
+          BoxShadow(color: Colors.deepOrange.withValues(alpha: 0.15), blurRadius: 8),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.deepOrange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.volunteer_activism,
+                  color: Colors.deepOrange, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(c.name,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.bold)),
+                  Text('${c.city} · ${c.type}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, size: 18),
+              onPressed: () => setState(() => _selectedCenter = null),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          Row(children: [
+            const Icon(Icons.phone, size: 14, color: Colors.grey),
+            const SizedBox(width: 6),
+            Text(c.phone,
+                style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+          ]),
+          const SizedBox(height: 10),
+          Column(children: [
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _openCenterRoute(c),
+                icon: const Icon(Icons.directions, size: 16),
+                label: const Text('Get Directions'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  foregroundColor: Colors.deepOrange,
+                  side: const BorderSide(color: Colors.deepOrange),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _callCenter(c.phone),
+                icon: const Icon(Icons.call, size: 16),
+                label: const Text('Call Now'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  backgroundColor: Colors.deepOrange,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openCenterRoute(_FoodCenter c) async {
+    String url;
+    if (_userPosition != null) {
+      // Route from user location to center
+      url = 'https://www.google.com/maps/dir/?api=1'
+          '&origin=${_userPosition!.latitude},${_userPosition!.longitude}'
+          '&destination=${c.lat},${c.lng}'
+          '&travelmode=driving';
+    } else {
+      // Just open the center location
+      url = 'https://www.google.com/maps/search/?api=1'
+          '&query=${c.lat},${c.lng}';
+    }
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _callCenter(String phone) async {
+    final clean = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    final uri = Uri.parse('tel:$clean');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
   }
 
   Widget _buildListTile(DonationModel d, ColorScheme cs) {

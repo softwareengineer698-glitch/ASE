@@ -390,7 +390,7 @@ class _SplashScreenState extends State<SplashScreen>
                                     colors: [Colors.white, Colors.white70],
                                   ).createShader(bounds),
                                   child: const Text(
-                                    'FoodBridge',
+                                    'CareCircle',
                                     style: TextStyle(
                                       fontSize: 42,
                                       fontWeight: FontWeight.bold,

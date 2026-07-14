@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
@@ -33,6 +35,13 @@ void main() async {
   // --- EasyLocalization ---
   try {
     await EasyLocalization.ensureInitialized();
+    // Always force Roman Urdu unless user has explicitly chosen another lang
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('locale');
+    // Override 'en' (old default) with Roman Urdu. Respect user's own choices.
+    if (saved == null || saved == 'en') {
+      await prefs.setString('locale', 'ur_PK');
+    }
   } catch (e) {
     debugPrint('EasyLocalization init error: $e');
   }
@@ -55,12 +64,14 @@ void main() async {
   runApp(
     EasyLocalization(
       supportedLocales: const [
+        Locale('ur', 'PK'), // Roman Urdu — default
         Locale('en'),
         Locale('ur'),
-        Locale('ru'),
       ],
       path: 'assets/translations',
       fallbackLocale: const Locale('en'),
+      startLocale: const Locale('ur', 'PK'),
+      useOnlyLangCode: false,
       child: const MyApp(),
     ),
   );
@@ -130,13 +141,23 @@ class MyApp extends StatelessWidget {
             NotificationService().setContext(context);
           } catch (_) {}
           return MaterialApp(
-            title: 'FoodBridge',
-            theme: themeProvider.lightTheme,
+            title: 'CareCircle',
+            theme: themeProvider.lightTheme.copyWith(
+              // Force LTR for all widgets regardless of locale
+              extensions: themeProvider.lightTheme.extensions.values.toList(),
+            ),
             darkTheme: themeProvider.darkTheme,
             themeMode: themeProvider.themeMode,
             locale: context.locale,
             supportedLocales: context.supportedLocales,
             localizationsDelegates: context.localizationDelegates,
+            builder: (context, child) {
+              // Always LTR — Roman Urdu is Latin script, reads left-to-right
+              return Directionality(
+                textDirection: ui.TextDirection.ltr,
+                child: child!,
+              );
+            },
             home: const SplashScreen(),
             routes: {
               '/requests': (_) => const RequestListScreen(),

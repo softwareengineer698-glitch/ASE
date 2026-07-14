@@ -87,7 +87,7 @@ class LocalizationService extends ChangeNotifier {
   /// English strings
   static const Map<String, String> _englishStrings = {
     // App General
-    'app_name': 'FoodBridge',
+    'app_name': 'CareCircle',
     'welcome': 'Welcome',
     'loading': 'Loading...',
     'error': 'Error',

@@ -18,7 +18,7 @@ import '../screens/request/request_list_screen.dart';
 class NotificationService {
   // Singleton pattern for global access
   static final NotificationService _instance = NotificationService._internal();
-  static const String _storageKey = 'foodbridge_notifications_v1';
+  static const String _storageKey = 'CareCircle_notifications_v1';
   static const int _maxStoredNotifications = 200;
 
   factory NotificationService() => _instance;
@@ -165,7 +165,7 @@ class NotificationService {
       id: _cleanValue(data['notificationId']) ?? _generateId(),
       title: message.notification?.title ??
           _cleanValue(data['title']) ??
-          'FoodBridge',
+          'CareCircle',
       message: message.notification?.body ?? _cleanValue(data['body']) ?? '',
       type: _parseType(_cleanValue(data['type'])),
       priority: _parsePriority(_cleanValue(data['priority'])),
@@ -273,7 +273,7 @@ class NotificationService {
       _notifications.addAll([
         AppNotification(
           id: _generateId(),
-          title: 'Welcome to FoodBridge!',
+          title: 'Welcome to CareCircle!',
           message:
               'Start reducing food waste by connecting with your community.',
           type: NotificationType.general,
@@ -810,7 +810,7 @@ class NotificationService {
         orElse: () => '',
       );
 
-      if (otherUserId.isEmpty) return 'FoodBridge';
+      if (otherUserId.isEmpty) return 'CareCircle';
 
       final userSnap = await FirebaseFirestore.instance
           .collection('users')
@@ -819,9 +819,9 @@ class NotificationService {
       final data = userSnap.data();
       return (data?['userName'] ?? data?['organizationName'] ?? data?['email'])
               ?.toString() ??
-          'FoodBridge';
+          'CareCircle';
     } catch (_) {
-      return 'FoodBridge';
+      return 'CareCircle';
     }
   }
 

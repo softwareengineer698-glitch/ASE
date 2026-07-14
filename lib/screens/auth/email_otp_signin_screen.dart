@@ -52,12 +52,12 @@ class _EmailOtpSignInScreenState extends State<EmailOtpSignInScreen> {
       await prefs.setString('pendingEmailSignIn', email);
 
       final acs = ActionCodeSettings(
-        url: 'https://foodbridge-chi-nine.vercel.app',
+        url: 'https://CareCircle-chi-nine.vercel.app',
         handleCodeInApp: true,
-        androidPackageName: 'com.example.foodbridge',
+        androidPackageName: 'com.example.CareCircle',
         androidInstallApp: true,
         androidMinimumVersion: '21',
-        iOSBundleId: 'com.example.foodbridge',
+        iOSBundleId: 'com.example.CareCircle',
       );
 
       await FirebaseAuth.instance.sendSignInLinkToEmail(
@@ -271,9 +271,9 @@ class _EmailOtpSignInScreenState extends State<EmailOtpSignInScreen> {
             border: Border.all(color: colorScheme.primary.withValues(alpha: 0.2)),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _Step('1', 'Open the email from FoodBridge', colorScheme.primary),
+            _Step('1', 'Open the email from CareCircle', colorScheme.primary),
             const SizedBox(height: 12),
-            _Step('2', 'Tap the "Sign in to FoodBridge" link', colorScheme.primary),
+            _Step('2', 'Tap the "Sign in to CareCircle" link', colorScheme.primary),
             const SizedBox(height: 12),
             _Step('3', 'Come back here — the app will sign you in automatically', colorScheme.primary),
           ]),

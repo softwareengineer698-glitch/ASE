@@ -36,40 +36,42 @@ class _ClaimDonationScreenState extends State<ClaimDonationScreen> {
   @override
   Widget build(BuildContext context) {
     final d = widget.donation;
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(title: Text('claim_donation'.tr())),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Donation summary ────────────────────────────────────────
+              // ── Donation summary ──────────────────────────────────────
               Card(
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(12)),
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(d.title,
                           style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 6),
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
                       Text(d.description,
-                          maxLines: 3, overflow: TextOverflow.ellipsis),
-                      const Divider(height: 24),
+                          style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                          maxLines: 2, overflow: TextOverflow.ellipsis),
+                      const Divider(height: 16),
                       _row(Icons.category_outlined,
                           '${d.category} · ${d.itemType.displayName}'),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       _row(Icons.scale_outlined,
-                          'Total: ${d.quantity} ${d.unit} · Remaining: ${d.remainingQuantity} ${d.unit}'),
-                      const SizedBox(height: 6),
+                          'Total: ${d.quantity} ${d.unit}  ·  Remaining: ${d.remainingQuantity} ${d.unit}'),
+                      const SizedBox(height: 4),
                       _row(Icons.location_on_outlined, d.location),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       ExpiryCountdownWidget(
                         expiryTime: d.expiryTime,
                         style: const TextStyle(fontSize: 13),
@@ -78,44 +80,38 @@ class _ClaimDonationScreenState extends State<ClaimDonationScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
 
-              // ── Quantity picker ─────────────────────────────────────────
-              Text('how_much_do_you_need'.tr(),
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _qtyController,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        labelText: 'quantity'.tr(),
-                        suffixText: d.unit,
-                        border: const OutlineInputBorder(),
-                        helperText: 'Max: ${d.remainingQuantity} ${d.unit}',
-                      ),
-                      validator: (v) {
-                        final q = double.tryParse(v ?? '');
-                        if (q == null || q <= 0) {
-                          return 'Enter a valid quantity';
-                        }
-                        if (q > d.remainingQuantity) {
-                          return 'Exceeds available (${d.remainingQuantity} ${d.unit})';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
+              // ── Quantity label ────────────────────────────────────────
+              const Text('How much do you need?',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+
+              // ── Quantity input ────────────────────────────────────────
+              TextFormField(
+                controller: _qtyController,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'quantity'.tr(),
+                  suffixText: d.unit,
+                  border: const OutlineInputBorder(),
+                  helperText: 'Max: ${d.remainingQuantity} ${d.unit}',
+                  isDense: true,
+                ),
+                validator: (v) {
+                  final q = double.tryParse(v ?? '');
+                  if (q == null || q <= 0) return 'Enter a valid quantity';
+                  if (q > d.remainingQuantity) {
+                    return 'Exceeds available (${d.remainingQuantity} ${d.unit})';
+                  }
+                  return null;
+                },
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
 
-              // Quick-select fraction buttons
+              // ── Quick-select chips ────────────────────────────────────
               Wrap(
                 spacing: 8,
                 children: [0.25, 0.5, 0.75, 1.0].map((frac) {
@@ -127,28 +123,33 @@ class _ClaimDonationScreenState extends State<ClaimDonationScreen> {
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 32),
 
+              const Spacer(),
+
+              // ── Submit button ─────────────────────────────────────────
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
+                height: 50,
+                child: ElevatedButton(
                   onPressed: _isLoading ? null : _submit,
-                  icon: _isLoading
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: cs.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: _isLoading
                       ? const SizedBox(
-                          width: 18,
-                          height: 18,
+                          width: 20,
+                          height: 20,
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.handshake_outlined),
-                  label: Text('submit_claim'.tr(),
-                      style: const TextStyle(fontSize: 16)),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
+                      : const Text('Submit Claim',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
+              const SizedBox(height: 12),
             ],
           ),
         ),
@@ -156,14 +157,15 @@ class _ClaimDonationScreenState extends State<ClaimDonationScreen> {
     );
   }
 
-  Widget _row(IconData icon, String text, {Color? color}) => Row(
+  Widget _row(IconData icon, String text, {Color? color, double fontSize = 13}) =>
+      Row(
         children: [
-          Icon(icon, size: 16, color: color ?? Colors.grey),
-          const SizedBox(width: 6),
+          Icon(icon, size: 18, color: color ?? Colors.grey),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(text,
-                style:
-                    TextStyle(fontSize: 13, color: color ?? Colors.grey[700])),
+                style: TextStyle(
+                    fontSize: fontSize, color: color ?? Colors.grey[700])),
           ),
         ],
       );
@@ -179,21 +181,21 @@ class _ClaimDonationScreenState extends State<ClaimDonationScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Row(
+          title: const Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-              const SizedBox(width: 12),
-              const Text('Cannot Claim'),
+              SizedBox(width: 12),
+              Text('Cannot Claim'),
             ],
           ),
           content: const Text(
-            'You cannot claim your own donation. This donation was posted by you.',
+            'You cannot claim your own donation.',
             style: TextStyle(fontSize: 15),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('OK', style: TextStyle(fontSize: 16)),
+              child: const Text('OK', style: TextStyle(fontSize: 16)),
             ),
           ],
         ),
@@ -201,7 +203,53 @@ class _ClaimDonationScreenState extends State<ClaimDonationScreen> {
       return;
     }
 
-    final qty = double.parse(_qtyController.text.trim());
+    final qtyText = _qtyController.text.trim();
+    final qty = double.tryParse(qtyText);
+
+    // ── Validate quantity ──────────────────────────────────────────────────
+    if (qty == null || qty <= 0) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Invalid Quantity'),
+          content: const Text('Please enter a valid quantity greater than 0.'),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+        ),
+      );
+      return;
+    }
+
+    if (qty > widget.donation.remainingQuantity) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Row(children: [
+            Icon(Icons.error_outline, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Exceeds Available'),
+          ]),
+          content: Text(
+            'You requested ${_fmtQty(qty)} ${widget.donation.unit} but only '
+            '${_fmtQty(widget.donation.remainingQuantity)} ${widget.donation.unit} is available.\n\n'
+            'Please enter a quantity of ${_fmtQty(widget.donation.remainingQuantity)} or less.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _qtyController.text = _fmtQty(widget.donation.remainingQuantity);
+              },
+              child: const Text('Use Max'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
@@ -219,13 +267,23 @@ class _ClaimDonationScreenState extends State<ClaimDonationScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('$e'),
-          backgroundColor: Colors.red,
-        ));
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Claim Failed'),
+            content: Text('$e'),
+            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  String _fmtQty(double v) {
+    if (v.abs() < 0.001) return '0';
+    if (v == v.roundToDouble()) return v.toInt().toString();
+    return double.parse(v.toStringAsFixed(2)).toString();
   }
 }

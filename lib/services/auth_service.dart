@@ -170,9 +170,9 @@ class AuthService {
   }) async {
     try {
       // Developer Bypass for Admin Login that integrates with real Firebase Auth
-      if ((email == 'admin@foodbridge.com' || email == 'admin') &&
+      if ((email == 'admin@CareCircle.com' || email == 'admin') &&
           password == 'admin123') {
-        final adminEmail = email.contains('@') ? email : 'admin@foodbridge.com';
+        final adminEmail = email.contains('@') ? email : 'admin@CareCircle.com';
         try {
           _log.d('Attempting admin sign-in with Firebase Auth...');
           final UserCredential result = await auth.signInWithEmailAndPassword(

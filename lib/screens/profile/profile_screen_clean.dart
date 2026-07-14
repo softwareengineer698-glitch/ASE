@@ -262,7 +262,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showAboutDialog(BuildContext context) {
     showAboutDialog(
       context: context,
-      applicationName: 'FoodBridge',
+      applicationName: 'CareCircle',
       applicationVersion: '1.0.0',
       applicationIcon: const Icon(
         Icons.volunteer_activism,

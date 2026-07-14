@@ -87,13 +87,13 @@ class DemoService {
     // Create balanced demo profile
     await _profileService.createProfile(
       name: 'Demo User',
-      email: 'demo@foodbridge.com',
+      email: 'demo@CareCircle.com',
       phone: '+1 (555) 123-DEMO',
       role: UserRole.donor,
-      organization: 'FoodBridge Demo Restaurant',
+      organization: 'CareCircle Demo Restaurant',
       address: '123 Demo Street, Demo City, DC 12345',
       bio:
-          'Passionate about reducing food waste and helping the community through FoodBridge.',
+          'Passionate about reducing food waste and helping the community through CareCircle.',
     );
 
     // Add diverse surplus items
@@ -163,7 +163,7 @@ class DemoService {
       },
       {
         'type': NotificationType.general,
-        'title': '🎉 Welcome to FoodBridge!',
+        'title': '🎉 Welcome to CareCircle!',
         'message':
             'Thank you for joining our mission to reduce food waste and feed communities. Every donation makes a difference!',
         'hoursAgo': 24,
@@ -351,7 +351,7 @@ class DemoService {
   Future<void> _loadEmergencyScenario() async {
     await _profileService.createProfile(
       name: 'Emergency Coordinator',
-      email: 'emergency@foodbridge.com',
+      email: 'emergency@CareCircle.com',
       phone: '+1 (555) 911-FOOD',
       role: UserRole.ngo,
       organization: 'Emergency Food Response',
@@ -401,12 +401,12 @@ class DemoService {
   Future<void> _loadSuccessStoryScenario() async {
     await _profileService.createProfile(
       name: 'Community Champion',
-      email: 'champion@foodbridge.com',
+      email: 'champion@CareCircle.com',
       phone: '+1 (555) 123-HERO',
       role: UserRole.donor,
       organization: 'Success Story Restaurant',
       bio:
-          'Proud FoodBridge partner with 500+ successful donations and zero food waste achieved!',
+          'Proud CareCircle partner with 500+ successful donations and zero food waste achieved!',
     );
 
     // Mix of completed and ongoing donations

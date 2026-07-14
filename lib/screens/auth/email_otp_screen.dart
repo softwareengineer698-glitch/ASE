@@ -290,7 +290,7 @@ class _EmailOtpScreenState extends State<EmailOtpScreen> {
                     children: [
                       _Step(
                           number: '1',
-                          text: 'Open the email from FoodBridge',
+                          text: 'Open the email from CareCircle',
                           color: colorScheme.primary),
                       const SizedBox(height: 12),
                       _Step(

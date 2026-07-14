@@ -200,7 +200,7 @@ class ProfileService {
         return UserProfile(
           id: _generateId(),
           name: 'System Admin',
-          email: 'admin@foodbridge.org',
+          email: 'admin@CareCircle.org',
           phone: '+1 (555) 999-9999',
           role: UserRole.admin,
           organization: 'Food Bridge Admin Team',
